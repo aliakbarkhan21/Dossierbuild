@@ -755,16 +755,19 @@ function Toggle({
         aria-label={label}
         onClick={() => onChange(!checked)}
         className={[
-          "relative h-[18px] w-8 shrink-0 rounded-full transition-colors duration-200 ease-out",
+          "relative h-[22px] w-10 shrink-0 rounded-full transition-colors duration-200 ease-out",
           checked ? "bg-accent" : "bg-line-strong",
         ].join(" ")}
       >
-        {/* 2px in from whichever end it is at: 2 on the left, and
-            32 - 14 - 2 = 16 on the right. Written as the arithmetic so the
-            travel stays symmetrical if the track or knob is ever resized. */}
+        {/* The knob sits flush against whichever end it is at, and it is the
+            full height of the track. A 14px knob inset 2px in a 32px track was
+            geometrically at the end and did not look it: two pixels of colour
+            beyond the knob read as a gap, so the switch looked half-thrown in
+            both positions. Flush and full-height leaves nothing to misread --
+            the ring is what keeps it a knob rather than a rounded end. */}
         <span
-          className="absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white shadow-subtle transition-[left] duration-200 ease-out"
-          style={{ left: checked ? 32 - 14 - 2 : 2 }}
+          className="absolute top-0 h-[22px] w-[22px] rounded-full bg-white shadow-subtle ring-1 ring-black/10 transition-[left] duration-200 ease-out"
+          style={{ left: checked ? 40 - 22 : 0 }}
         />
       </button>
     </label>

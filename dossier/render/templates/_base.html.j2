@@ -113,6 +113,15 @@ body { padding-top: 0; }
   transform-origin: top left;
   position: relative;
 }
+{% if fit == 'page' %}
+/* Centring the flex item is not centring the sheet. Layout sees the sheet at
+   full A4 width whatever the transform does, so scaling about ``top left``
+   pins the visible page to the left edge of a 794px box that is itself
+   centred -- which put the page a long way left of the middle. The origin has
+   to move with the centring, and it has to be declared after the rule above:
+   same specificity, so source order is the whole of the argument. */
+.sheet { transform-origin: top center; }
+{% endif %}
 /* Where Chromium will actually cut the paper. Drawn from measurements taken
    after layout, not guessed at -- see the script at the end.
 
@@ -355,14 +364,21 @@ ul.bul li::before {
     if (zoom > 0) {
       scale = zoom;
     } else if (fit === 'page') {
-      // Fit a whole sheet inside the window, not just its width. Fitting the
-      // width of a wide window scales an A4 page far past readable and cuts
-      // off everything below the fold, which is the opposite of what a
-      // full-page view is for. The height available is measured from where
-      // the desk actually starts, so the fit bar above it is accounted for
-      // rather than guessed at.
+      // Fit a sheet to the window's height, not its width. Fitting the width
+      // of a wide window scales an A4 page far past readable and cuts off
+      // everything below the fold, which is the opposite of what a full-page
+      // view is for. The height available is measured from where the desk
+      // actually starts, so the fit bar above it is accounted for rather than
+      // guessed at.
+      //
+      // Then a quarter more. A laptop window is about 630px tall between the
+      // bar and the fold, against a page 1123px tall -- fitting the whole
+      // sheet inside that sizes the page for the one dimension the reader can
+      // scroll, and the type comes out smaller than it will be on paper. The
+      // view scrolls, so the page may run past the fold; that overrun is what
+      // buys back a legible size.
       var top = desk.getBoundingClientRect().top;
-      var byHeight = (window.innerHeight - top - 24) / PAGE_H;
+      var byHeight = (window.innerHeight - top - 24) / PAGE_H * 1.25;
       var byWidth = (desk.clientWidth - 26) / sheet.offsetWidth;
       scale = Math.min(byWidth, byHeight);
     } else {
