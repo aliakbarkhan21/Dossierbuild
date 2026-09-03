@@ -189,81 +189,96 @@ def spans(profile: Profile) -> list[Span]:
 def render_timeline(profile: Profile) -> bool:
     """Bars on a shared year axis. Returns False if there was nothing to draw.
 
-    Laid out in plain HTML rather than a chart library: it is a handful of
-    absolutely positioned divs, and keeping it in the stylesheet means it
+    Laid out in plain HTML rather than with a chart library: it is a handful
+    of absolutely positioned divs, and keeping it in the stylesheet means it
     inherits the theme's colours in both modes for free.
     """
     items = spans(profile)
     if not items:
         return False
 
+    today = date.today()
+    now = today.year + (today.month - 1) / 12
+
     lo = min(s.start for s in items)
-    hi = max(s.end for s in items)
-    span = max(hi - lo, 0.75)  # a single short entry still deserves a full bar
-    lo -= span * 0.02
-    hi += span * 0.02
+    # A degree that runs to 2029 would otherwise set the scale, squeezing six
+    # years of actual history into the left third of the chart to make room
+    # for empty future. The axis stops a year past today; anything reaching
+    # beyond that is drawn as ongoing, which is what it is.
+    horizon = now + 1.0
+    hi = min(max(s.end for s in items), horizon)
+    hi = max(hi, lo + 0.75)  # a single short entry still deserves a full axis
+
+    span = hi - lo
+    lo -= span * 0.03
+    hi += span * 0.03
     span = hi - lo
 
     def pos(value: float) -> float:
-        return 100 * (value - lo) / span
+        return 100 * (min(max(value, lo), hi) - lo) / span
 
-    rows = "".join(
-        f'<div class="db-tl-row">'
-        f'<span class="db-tl-label" title="{s.label}">{s.label}</span>'
-        f'<span class="db-tl-track">'
-        f'<span class="db-tl-bar {s.kind}{" ongoing" if s.ongoing else ""}" '
-        f'style="left:{pos(s.start):.2f}%;width:{max(pos(s.end) - pos(s.start), 1.2):.2f}%" '
-        f'title="{s.label} -- {s.text}"></span>'
-        f"</span>"
-        f'<span class="db-tl-dates">{s.text}</span>'
-        f"</div>"
-        for s in items
-    )
+    rows = []
+    for item in items:
+        left = pos(item.start)
+        width = pos(item.end) - left
+        beyond = item.ongoing or item.end > hi
+        rows.append(
+            f'<div class="db-tl-row">'
+            f'<span class="db-tl-label" title="{item.label}">{item.label}</span>'
+            f'<span class="db-tl-track">'
+            f'<span class="db-tl-bar {item.kind}{" ongoing" if beyond else ""}" '
+            f'style="left:{left:.2f}%;width:{width:.2f}%" '
+            f'title="{item.label} -- {item.text}"></span>'
+            f"</span>"
+            f'<span class="db-tl-dates">{item.text}</span>'
+            f"</div>"
+        )
 
-    first, last = int(lo) + 1, int(hi) + 1
+    # One tick per year while that stays readable, then every second or fifth,
+    # so a long history does not turn the axis into a solid row of digits.
+    years = [y for y in range(int(lo) + 1, int(hi) + 2) if lo <= y <= hi]
+    step = 1 if len(years) <= 8 else (2 if len(years) <= 16 else 5)
     ticks = "".join(
         f'<span class="db-tl-tick" style="left:{pos(year):.2f}%">{year}</span>'
-        for year in range(first, last + 1)
-        if lo <= year <= hi
-    )
-    legend = "".join(
-        f'<span class="db-tl-key"><span class="db-tl-dot {k}"></span>{k.title()}</span>'
-        for k in ("experience", "education", "projects")
-        if any(s.kind == k for s in items)
+        for year in years
+        if year % step == 0 or step == 1
     )
 
     st.markdown(
-        f'<div class="db-timeline">{rows}'
+        f'<div class="db-timeline">{"".join(rows)}'
         f'<div class="db-tl-row db-tl-axis"><span class="db-tl-label"></span>'
         f'<span class="db-tl-track">{ticks}</span>'
-        f'<span class="db-tl-dates"></span></div>'
-        f'<div class="db-tl-legend">{legend}</div></div>',
+        f'<span class="db-tl-dates"></span></div></div>',
         unsafe_allow_html=True,
     )
-    _jump_row(items)
+    _legend_row(items)
     return True
 
 
-def _jump_row(items: list[Span]) -> None:
-    """Turn the chart into a way in, not just a picture.
+def _legend_row(items: list[Span]) -> None:
+    """The legend *is* the navigation.
 
-    A bar cannot be a button -- the row is one HTML block, and Streamlit
-    widgets cannot be placed inside it -- and it would not buy much if it
-    could: the editor shows a whole section at a time, so "jump to this entry"
-    and "jump to this section" land in the same place. So the kinds present
-    become the buttons, and they say plainly what they do.
+    There were two of these: an HTML legend in the corner of the chart and a
+    row of jump buttons under it, saying the same three words twice and
+    overlapping each other. One row now carries the colour key and opens the
+    section it names.
     """
     kinds = [k for k in ("experience", "education", "projects") if any(s.kind == k for s in items)]
     if not kinds:
         return
-    columns = st.columns([0.2, *[0.13] * len(kinds), max(0.05, 0.8 - 0.13 * len(kinds))])
-    with columns[0]:
-        st.markdown('<p class="db-muted" style="padding-top:.35rem">Open in the editor</p>',
-                    unsafe_allow_html=True)
-    for column, kind in zip(columns[1:], kinds):
+
+    columns = st.columns([*[0.16] * len(kinds), max(0.08, 1 - 0.16 * len(kinds))])
+    for column, kind in zip(columns, kinds):
         with column, st.container(key=f"db_tl_{kind}"):
-            if st.button(SECTION_LABELS.get(kind, kind.title()), type="tertiary",
-                         key=f"db_tljump_{kind}"):
+            st.markdown(
+                f'<span class="db-tl-dot {kind}"></span>', unsafe_allow_html=True
+            )
+            if st.button(
+                SECTION_LABELS.get(kind, kind.title()),
+                type="tertiary",
+                key=f"db_tljump_{kind}",
+                help=f"Open {kind} in the editor",
+            ):
                 st.session_state.db_section = kind
                 st.rerun()
 

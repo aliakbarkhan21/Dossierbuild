@@ -1252,6 +1252,10 @@ def _css(palette: dict[str, Any], mode: str, density: str = "comfortable") -> st
         position: absolute;
         top: 4px;
         height: 7px;
+        /* A three-week project is a real entry, and at this scale its true
+           width is two pixels. The minimum keeps it a bar rather than a
+           speck; the date beside it carries the precision. */
+        min-width: 12px;
         border-radius: 4px;
         background: var(--db-primary);
     }}
@@ -1278,29 +1282,33 @@ def _css(palette: dict[str, Any], mode: str, density: str = "comfortable") -> st
     .db-tl-axis .db-tl-track {{ height: 13px; }}
     .db-tl-tick {{
         position: absolute;
+        /* Centred on the year it marks. Left-aligned, every label sat half
+           its own width to the right of the position it was labelling, which
+           is what made the bars look like they disagreed with the axis. */
+        transform: translateX(-50%);
         top: 0;
         transform: translateX(-50%);
         font-size: .68rem;
         color: var(--db-text-faint);
     }}
-    .db-tl-legend {{
-        display: flex;
-        gap: .9rem;
-        justify-content: flex-end;
-        margin-top: .35rem;
-        font-size: .7rem;
-        color: var(--db-text-faint);
+    /* The legend dot belongs beside its label, not above it: Streamlit puts
+       every element on its own row, so the dot's container is lifted out of
+       the flow and pinned to the left of the button. */
+    [class*="st-key-db_tl_"] {{ position: relative; padding-left: 14px; }}
+    [class*="st-key-db_tl_"] [data-testid="stElementContainer"]:has(.db-tl-dot) {{
+        position: absolute;
+        left: 0;
+        top: .48rem;
     }}
-    .db-tl-key {{ display: inline-flex; align-items: center; gap: .3rem; }}
-    .db-tl-dot {{
-        width: 9px;
-        height: 5px;
-        border-radius: 3px;
-        background: var(--db-primary);
+    [class*="st-key-db_tl_"] .db-tl-dot {{
         display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--db-primary);
     }}
-    .db-tl-dot.education {{ opacity: .55; }}
-    .db-tl-dot.projects {{ opacity: .78; }}
+    [class*="st-key-db_tl_education"] .db-tl-dot {{ opacity: .55; }}
+    [class*="st-key-db_tl_projects"] .db-tl-dot {{ opacity: .78; }}
 
     /* ---- Search results --------------------------------------------------- */
     .db-hit {{
