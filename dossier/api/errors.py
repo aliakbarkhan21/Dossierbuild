@@ -55,7 +55,7 @@ FIELD_NAMES = {
 # that failed rather than by field name, so a new date field is covered the
 # day it is added.
 RULE_HELP = {
-    DATE_PATTERN: "Use a month like 2025-06, or just the year: 2025.",
+    DATE_PATTERN: "Use a month like 06/2025, or just the year: 2025.",
 }
 
 

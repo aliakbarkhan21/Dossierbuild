@@ -177,6 +177,15 @@ MARGINS: dict[str, tuple[str, float]] = {
     "wide": ("Wide", 21.0),
 }
 
+# How a date prints. Two options rather than a format string: "Feb 2025" is
+# the resume convention almost everywhere and is unambiguous to a parser,
+# while "02/2025" is normal in Pakistan and much of Europe. A free-text format
+# would let someone print a date no reader could parse.
+DATE_FORMATS: dict[str, tuple[str, str]] = {
+    "month": ("Feb 2025", "Month name. The usual resume convention."),
+    "numeric": ("02/2025", "Numeric, month first."),
+}
+
 LEADING: dict[str, tuple[str, float]] = {
     "tight": ("Tight", 1.28),
     "normal": ("Normal", 1.42),
@@ -335,6 +344,7 @@ class Design(BaseModel):
     show_page_numbers: bool = False
     show_photo: bool = True
     photo_shape: str = "circle"
+    date_format: str = "month"
 
     # Every validator below repairs rather than raises. A design that cannot
     # be honoured should quietly fall back to something printable -- losing a
@@ -353,6 +363,11 @@ class Design(BaseModel):
     @classmethod
     def _margin(cls, v: str) -> str:
         return v if v in MARGINS else "normal"
+
+    @field_validator("date_format")
+    @classmethod
+    def _date_format(cls, v: str) -> str:
+        return v if v in DATE_FORMATS else "month"
 
     @field_validator("leading")
     @classmethod

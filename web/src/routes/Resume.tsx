@@ -433,6 +433,7 @@ function DesignPanel({
     pages: { key: string; name: string }[];
     margins: { key: string; name: string; blurb: string }[];
     leading: { key: string; name: string }[];
+    date_formats: { key: string; name: string; blurb: string }[];
     sections: { key: string; name: string }[];
     scale: { steps: number[] };
     templates: TemplateOption[];
@@ -489,6 +490,14 @@ function DesignPanel({
           onChange={(margin) => onChange({ margin })}
         />
       </div>
+
+      <Choice
+        label="Dates"
+        value={design.date_format}
+        options={options.date_formats}
+        onChange={(date_format) => onChange({ date_format })}
+        note={options.date_formats.find((d) => d.key === design.date_format)?.blurb}
+      />
 
       <div className="grid grid-cols-2 gap-3">
         <Choice
@@ -552,6 +561,7 @@ function DesignPanel({
             page: "a4",
             margin: "normal",
             leading: "normal",
+            date_format: "month",
             scale: 100,
             hidden: [],
             order: options.sections.map((s) => s.key),

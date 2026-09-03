@@ -9,6 +9,11 @@ rem One process. uvicorn serves the API and the built React app from the same
 rem port, so there is no Node to start and nothing for the two halves to
 rem disagree about. See dossier/api/static.py.
 rem
+rem It also stops on its own. The page heartbeats while it is open and says so
+rem when it closes; the server exits a few seconds later. That is what a
+rem desktop app does, and it is why there is no "stop" icon any more.
+rem See dossier/api/lifetime.py.
+rem
 rem Called with /quiet by launch.vbs, which runs this window-less. In that
 rem mode nothing may wait for a keypress -- there would be no window to press
 rem it in, and the process would hang around invisibly forever.
@@ -56,6 +61,7 @@ rem it.
 start "" /b powershell -NoProfile -Command ^
   "for ($i = 0; $i -lt 60; $i++) { try { $c = New-Object Net.Sockets.TcpClient; $c.Connect('127.0.0.1', %PORT%); $c.Close(); Start-Process '%URL%'; break } catch { Start-Sleep -Milliseconds 400 } }"
 
+set "DOSSIER_EXIT_WHEN_IDLE=1"
 python -m uvicorn dossier.api:app --host 127.0.0.1 --port %PORT%
 
 if defined QUIET exit /b 0

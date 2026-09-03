@@ -132,6 +132,7 @@ export interface Design {
   page: string;
   margin: string;
   leading: string;
+  date_format: string;
   accent: string;
   fonts: string;
   scale: number;
@@ -177,6 +178,7 @@ export interface DesignOptions {
   pages: PageOption[];
   margins: Option[];
   leading: Option[];
+  date_formats: Option[];
   looks: LookOption[];
   sections: Option[];
   scale: { steps: number[]; base_pt: number };

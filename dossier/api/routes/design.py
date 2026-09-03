@@ -53,6 +53,7 @@ class Options(BaseModel):
     pages: list[PageOut]
     margins: list[Option]
     leading: list[Option]
+    date_formats: list[Option]
     looks: list[LookOut]
     sections: list[Option]
     scale: ScaleOut
@@ -100,6 +101,10 @@ def options() -> Options:
         leading=[
             Option(key=key, name=name, blurb=f"{value:g}")
             for key, (name, value) in dz.LEADING.items()
+        ],
+        date_formats=[
+            Option(key=key, name=name, blurb=blurb)
+            for key, (name, blurb) in dz.DATE_FORMATS.items()
         ],
         looks=[
             LookOut(key=l.key, name=l.name, blurb=l.blurb, values=dict(l.values))

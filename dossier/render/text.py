@@ -18,8 +18,14 @@ from ..core.schema import LIST_SECTIONS, Profile, entry_label, format_range
 from .design import SECTION_LABELS
 
 
-def plain_text(profile: Profile) -> str:
-    """The whole profile as readable text, ending in a newline."""
+def plain_text(profile: Profile, *, date_format: str = "month") -> str:
+    """The whole profile as readable text, ending in a newline.
+
+    Takes the date style rather than a whole design: this format has no
+    layout to speak of, but a date that reads one way in the PDF and another
+    in the text pasted beside it is the kind of inconsistency a reader
+    notices and a person cannot explain.
+    """
     out: list[str] = []
     b = profile.basics
 
@@ -43,7 +49,11 @@ def plain_text(profile: Profile) -> str:
         out += ["", title, "-" * len(title)]
         for entry in entries:
             head = entry_label(entry)
-            dates = format_range(getattr(entry, "start", None), getattr(entry, "end", None))
+            dates = format_range(
+                getattr(entry, "start", None),
+                getattr(entry, "end", None),
+                style=date_format,
+            )
             out.append(f"{head}{f'  ({dates})' if dates else ''}")
             # Skill groups carry ``items``; the narrative sections carry
             # ``bullets``. No entry has both, so the two loops never collide.

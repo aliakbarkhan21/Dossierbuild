@@ -171,7 +171,7 @@ def _entry_bullets(entry: object) -> list[str]:
     return [b.text.strip() for b in getattr(entry, "bullets", []) if b.text.strip()]
 
 
-def _experience_entry(item) -> Entry:
+def _experience_entry(item, design: Design) -> Entry:
     # The employment type only earns its place when it is not the assumed
     # thing: "Software Engineer, Acme (Full-time)" tells a reader nothing,
     # while "(Internship)" changes how the whole entry reads.
@@ -179,19 +179,19 @@ def _experience_entry(item) -> Entry:
     return Entry(
         title=item.role.strip(),
         subtitle=item.organisation.strip(),
-        dates=format_range(item.start, item.end),
+        dates=format_range(item.start, item.end, style=design.date_format),
         place=item.location.strip(),
         note=note,
         bullets=_entry_bullets(item),
     )
 
 
-def _project_entry(item) -> Entry:
+def _project_entry(item, design: Design) -> Entry:
     url = normalise_url(item.url)
     return Entry(
         title=item.name.strip(),
         subtitle=item.tagline.strip(),
-        dates=format_range(item.start, item.end),
+        dates=format_range(item.start, item.end, style=design.date_format),
         url=url,
         url_text=display_url(url),
         tag_label="Stack",
@@ -200,7 +200,7 @@ def _project_entry(item) -> Entry:
     )
 
 
-def _education_entry(item) -> Entry:
+def _education_entry(item, design: Design) -> Entry:
     # Coursework is a tag row rather than prose: it is a list of nouns, and
     # printing it as a sentence wastes two lines saying "Modules included".
     #
@@ -210,7 +210,7 @@ def _education_entry(item) -> Entry:
     return Entry(
         title=item.credential.strip(),
         subtitle=item.institution.strip(),
-        dates=format_range(item.start, item.end),
+        dates=format_range(item.start, item.end, style=design.date_format),
         place=item.location.strip(),
         detail=item.grade.strip(),
         tag_label="Modules",
@@ -219,7 +219,7 @@ def _education_entry(item) -> Entry:
     )
 
 
-def _build_section(profile: Profile, key: str) -> Section | None:
+def _build_section(profile: Profile, design: Design, key: str) -> Section | None:
     """One section, or ``None`` when there is nothing in it worth a heading."""
     label = SECTION_LABELS.get(key, key.title())
 
@@ -233,7 +233,7 @@ def _build_section(profile: Profile, key: str) -> Section | None:
             "projects": _project_entry,
             "education": _education_entry,
         }[key]
-        entries = [builder(item) for item in getattr(profile, key)]
+        entries = [builder(item, design) for item in getattr(profile, key)]
         # An entry with no title, no dates and no bullets is a half-typed row
         # in the editor, not something to print.
         entries = [e for e in entries if e.title or e.subtitle or e.bullets]
@@ -258,7 +258,7 @@ def _build_section(profile: Profile, key: str) -> Section | None:
             if c.issued:
                 from ..core.schema import format_date
 
-                parts.append(format_date(c.issued, blank=""))
+                parts.append(format_date(c.issued, blank="", style=design.date_format))
             lines.append(" · ".join(p for p in parts if p))
         return Section(key, label, "lines", lines=lines) if lines else None
 
@@ -273,7 +273,7 @@ def _build_section(profile: Profile, key: str) -> Section | None:
             if a.date:
                 from ..core.schema import format_date
 
-                parts.append(format_date(a.date, blank=""))
+                parts.append(format_date(a.date, blank="", style=design.date_format))
             line = " · ".join(p for p in parts if p)
             if a.note.strip():
                 line += f". {a.note.strip()}"
@@ -291,7 +291,7 @@ def _build_section(profile: Profile, key: str) -> Section | None:
             if a.date:
                 from ..core.schema import format_date
 
-                parts.append(format_date(a.date, blank=""))
+                parts.append(format_date(a.date, blank="", style=design.date_format))
             line = " · ".join(p for p in parts if p)
             if a.note.strip():
                 line += f". {a.note.strip()}"
@@ -317,7 +317,7 @@ def build_context(
     """Everything a template renders, in the order the design asks for."""
     sections: list[Section] = []
     for key in design.visible_sections():
-        section = _build_section(profile, key)
+        section = _build_section(profile, design, key)
         if section is not None:
             sections.append(section)
 

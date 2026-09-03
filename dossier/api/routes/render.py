@@ -74,7 +74,7 @@ def text(request: RenderRequest) -> Response:
     profile, design = request.resolve()
     filename = suggested_filename(profile, design, "txt")
     return Response(
-        content=plain_text(profile),
+        content=plain_text(profile, date_format=design.date_format),
         media_type="text/plain; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

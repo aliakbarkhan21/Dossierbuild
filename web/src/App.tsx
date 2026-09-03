@@ -12,6 +12,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { CommandPalette, useCommandPalette } from "./components/CommandPalette";
 import { Sidebar } from "./components/Sidebar";
 import { Toaster } from "./components/Toaster";
+import { startHeartbeat } from "./lib/heartbeat";
 import { useStore } from "./lib/store";
 import { HealthScreen } from "./routes/Health";
 import { ImportScreen } from "./routes/Import";
@@ -56,6 +57,9 @@ export default function App() {
   useEffect(() => {
     void boot();
   }, [boot]);
+
+  // What lets closing the tab close the app. See lib/heartbeat.ts.
+  useEffect(() => startHeartbeat(), []);
 
   // Ctrl/Cmd+S saves from anywhere, including from inside a text field, which
   // is exactly where someone's hands are when they think to save.

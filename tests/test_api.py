@@ -84,7 +84,7 @@ def test_a_malformed_profile_is_refused_before_it_reaches_the_disk() -> None:
     assert "Experience" in body["error"]
     assert "entry 1" in body["error"]
     assert "Start" in body["error"]
-    assert "2025-06" in body["error"]
+    assert "06/2025" in body["error"]
     assert "pattern" not in body["error"]
     assert body["fix"]
 

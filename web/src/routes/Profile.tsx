@@ -344,36 +344,74 @@ const MONTH_NAMES = [
 /**
  * Read a typed or pasted date, or return null if it is not one yet.
  *
- * Generous about separators and month names because the common way this field
- * gets filled is a paste out of a CV, and "June 2025" is a date by any
- * reasonable reading. Strict about what it returns: only the two shapes the
- * schema accepts ever leave here.
+ * Day-first ("06/2025", "15/06/2025") because that is the convention here,
+ * but year-first and month names are accepted too: this field is most often
+ * filled by pasting out of an existing CV, and refusing "June 2025" would be
+ * pedantry. Strict about what it returns -- only the two shapes the schema
+ * accepts ever leave here.
+ *
+ * A day is read and discarded. The schema stores months, because that is what
+ * a resume states; keeping "15" would be storing a fact the CV will never
+ * print. The field redisplays "06/2025" straight after, so the loss is
+ * visible rather than silent.
  */
 function normaliseMonth(text: string): string | null {
   let s = text
     .toLowerCase()
     .replace(/[‐-―−]/g, "-") // dashes pasted out of Word
-    .replace(/[/.,]/g, "-")
+    .replace(/[.,]/g, "-")
     .trim();
 
   for (const [index, name] of MONTH_NAMES.entries()) {
     // "june 2025" and "jun-2025" both reduce to "2025-06".
-    const named = new RegExp(`^${name}[a-z]*[\\s-]+(\\d{4})$|^(\\d{4})[\\s-]+${name}[a-z]*$`);
+    const named = new RegExp(`^${name}[a-z]*[\\s\\-/]+(\\d{4})$|^(\\d{4})[\\s\\-/]+${name}[a-z]*$`);
     const hit = named.exec(s);
     if (hit) return `${hit[1] ?? hit[2]}-${String(index + 1).padStart(2, "0")}`;
   }
 
-  s = s.replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  s = s.replace(/\s+/g, "/").replace(/-/g, "/").replace(/\/+/g, "/").replace(/^\/|\/$/g, "");
   if (!s) return null;
-  if (MONTH_RE.test(s)) return s;
 
-  // "2025-6" is unambiguous; the schema just wants the zero.
-  const loose = /^(\d{4})-(\d{1,2})$/.exec(s);
-  if (loose) {
-    const month = Number(loose[2]);
-    if (month >= 1 && month <= 12) return `${loose[1]}-${String(month).padStart(2, "0")}`;
+  const month = (value: string) => {
+    const n = Number(value);
+    return n >= 1 && n <= 12 ? String(n).padStart(2, "0") : null;
+  };
+
+  // A bare year is a valid date at the precision actually known.
+  if (/^\d{4}$/.test(s)) return s;
+
+  // dd/mm/yyyy -- the day is read so the input is accepted, then dropped.
+  const withDay = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+  if (withDay) {
+    const m = month(withDay[2]!);
+    return m && Number(withDay[1]) >= 1 && Number(withDay[1]) <= 31 ? `${withDay[3]}-${m}` : null;
+  }
+
+  // Two numbers: whichever is four digits is the year, so "06/2025" and
+  // "2025/06" both work and neither can be misread as the other.
+  const pair = /^(\d{1,4})\/(\d{1,4})$/.exec(s);
+  if (pair) {
+    const [, a, b] = pair;
+    if (a!.length === 4) {
+      const m = month(b!);
+      return m ? `${a}-${m}` : null;
+    }
+    if (b!.length === 4) {
+      const m = month(a!);
+      return m ? `${b}-${m}` : null;
+    }
   }
   return null;
+}
+
+/** The stored "2025-06" as the "06/2025" this dashboard shows. */
+function displayMonth(stored: string | null): string {
+  if (!stored) return "";
+  if (MONTH_RE.test(stored) && stored.length === 7) {
+    const [year, month] = stored.split("-");
+    return `${month}/${year}`;
+  }
+  return stored;
 }
 
 /**
@@ -398,12 +436,14 @@ function MonthInput({
   onChange: (value: string | null) => void;
   placeholder?: string;
 }) {
-  const [draft, setDraft] = useState(value ?? "");
+  const [draft, setDraft] = useState(displayMonth(value));
 
   // Follow the value when it changes underneath: an undo, an import, or the
-  // read-back after a save.
+  // read-back after a save. Compared on the parsed value so that what is being
+  // typed is not rewritten mid-keystroke.
   useEffect(() => {
-    setDraft(value ?? "");
+    if (normaliseMonth(draft) !== value) setDraft(displayMonth(value));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   const invalid = draft.trim() !== "" && normaliseMonth(draft) === null;
@@ -413,7 +453,7 @@ function MonthInput({
       <input
         className="field font-mono"
         value={draft}
-        placeholder={placeholder ?? "2025-06 or 2025"}
+        placeholder={placeholder ?? "06/2025 or 2025"}
         aria-invalid={invalid}
         onChange={(event) => {
           const text = event.target.value;
@@ -425,21 +465,35 @@ function MonthInput({
           }
         }}
         onBlur={() => {
-          // Tidy up on the way out: "2025-6" and "June 2025" become the
-          // stored shape, and anything unreadable stays on screen, marked,
-          // rather than being silently discarded.
+          // Tidy up on the way out: "6/2025", "2025-06" and "June 2025" all
+          // settle to "06/2025", and a typed day disappears here rather than
+          // quietly at save time. Anything unreadable stays on screen, marked,
+          // rather than being discarded.
           const parsed = normaliseMonth(draft);
-          if (parsed) setDraft(parsed);
+          if (parsed) setDraft(displayMonth(parsed));
         }}
         inputMode="numeric"
       />
       {invalid && (
-        <p className="mt-1 text-2xs text-poor">Not saved yet. Use 2025-06, or 2025 for a year.</p>
+        <p className="mt-1 text-2xs text-poor">Not saved yet. Use 06/2025, or 2025 for a year.</p>
       )}
     </div>
   );
 }
 
+/**
+ * A comma-separated list, held as text while it is being typed.
+ *
+ * The obvious version -- render `value.join(", ")`, split on every keystroke --
+ * cannot accept a comma. Typing one makes a trailing empty item, `filter`
+ * drops it, the list re-renders without it, and the character disappears the
+ * instant it is pressed. Same for the space after it, and for any item you try
+ * to edit in the middle.
+ *
+ * So the draft is the input's own state. The parsed list still goes to the
+ * profile on every change, because the preview and the save both want it; the
+ * text on screen is simply left alone until focus leaves.
+ */
 function CsvInput({
   value,
   onChange,
@@ -449,19 +503,32 @@ function CsvInput({
   onChange: (value: string[]) => void;
   placeholder?: string;
 }) {
+  const [draft, setDraft] = useState(value.join(", "));
+
+  // Follow the value when it changes from somewhere else: an undo, an import,
+  // or the read-back after a save. Comparing the parsed lists rather than the
+  // strings means the user's own spacing is not overwritten while they type.
+  useEffect(() => {
+    const shown = draft.split(",").map((p) => p.trim()).filter(Boolean);
+    if (shown.join(" ") !== value.join(" ")) setDraft(value.join(", "));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
   return (
     <input
       className="field"
-      value={value.join(", ")}
+      value={draft}
       placeholder={placeholder}
-      onChange={(event) =>
+      onChange={(event) => {
+        setDraft(event.target.value);
         onChange(
           event.target.value
             .split(",")
             .map((part) => part.trim())
             .filter(Boolean),
-        )
-      }
+        );
+      }}
+      onBlur={() => setDraft(value.join(", "))}
     />
   );
 }

@@ -312,28 +312,35 @@ MONTH_NAMES = (
 )
 
 
-def format_date(value: str | None, *, blank: str = "Present") -> str:
+def format_date(value: str | None, *, blank: str = "Present", style: str = "month") -> str:
     """Render a stored date for display, at the precision it actually has.
 
-    "2025-06" becomes "Jun 2025". "2025" stays "2025" -- the whole point of
-    allowing year-only dates is not to print a month nobody stated. ``None``
-    becomes ``blank``, which is "Present" for an end date and should be passed
-    as "" for a start date.
+    "2025-06" becomes "Jun 2025", or "06/2025" with ``style="numeric"``.
+    "2025" stays "2025" either way -- the whole point of allowing year-only
+    dates is not to print a month nobody stated, and that holds in both
+    formats. ``None`` becomes ``blank``, which is "Present" for an end date
+    and should be passed as "" for a start date.
+
+    The style is a presentation choice and arrives from the design, never from
+    the profile: the same stored date prints both ways depending on the resume
+    it is going onto.
     """
     if not value:
         return blank
     if len(value) == 4:
         return value
     year, month = value.split("-")
+    if style == "numeric":
+        return f"{month}/{year}"
     return f"{MONTH_NAMES[int(month) - 1]} {year}"
 
 
-def format_range(start: str | None, end: str | None) -> str:
+def format_range(start: str | None, end: str | None, *, style: str = "month") -> str:
     """Render a date span, e.g. "Jun 2025 - Sep 2025" or "2024 - Present"."""
     if not start and not end:
         return ""
-    left = format_date(start, blank="")
-    right = format_date(end, blank="Present")
+    left = format_date(start, blank="", style=style)
+    right = format_date(end, blank="Present", style=style)
     return f"{left} - {right}" if left else right
 
 

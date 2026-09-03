@@ -116,6 +116,12 @@ def _identity(section: str, entry: Any) -> str:
     return _norm(str(entry))
 
 
+# The review screen is part of the dashboard, not the resume, so it follows
+# the dashboard's numeric convention rather than the design's -- there is no
+# design in play at import time anyway.
+DASHBOARD_DATES = "numeric"
+
+
 def _detail(section: str, entry: Any) -> str:
     """A one-line preview for the review UI."""
     if section == "skills":
@@ -125,13 +131,13 @@ def _detail(section: str, entry: Any) -> str:
     bullets = getattr(entry, "bullets", [])
     span = ""
     if getattr(entry, "start", None):
-        span = format_range(entry.start, getattr(entry, "end", None))
+        span = format_range(entry.start, getattr(entry, "end", None), style=DASHBOARD_DATES)
     else:
         # Certifications carry `issued`, awards carry `date` -- single points in
         # time rather than ranges.
         single = getattr(entry, "issued", None) or getattr(entry, "date", None)
         if single:
-            span = format_date(single, blank="")
+            span = format_date(single, blank="", style=DASHBOARD_DATES)
 
     extras = []
     issuer = (

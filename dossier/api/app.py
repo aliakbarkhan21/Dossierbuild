@@ -22,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # for a bug that is really a missing line here.
 load_dotenv()
 
-from . import errors, static  # noqa: E402
+from . import errors, lifetime, static  # noqa: E402
 from .routes import design, ingest, profile, render  # noqa: E402
 
 # The Vite dev server runs on a different port, which makes every call
@@ -60,6 +60,8 @@ app.include_router(design.router)
 app.include_router(render.router)
 app.include_router(ingest.router)
 
+lifetime.install(app)
+
 
 @app.get("/api/health", tags=["meta"])
 def health() -> dict[str, object]:
@@ -79,6 +81,9 @@ def health() -> dict[str, object]:
         "pdf_detail": "" if browser_ok else browser_detail,
         "ai_available": api_key_present(),
         "web_build": static.build_present(),
+        "exits_when_idle": app.state.lifetime.enabled,
+        "seconds_since_beat": app.state.lifetime.seconds_since_beat(),
+        "leaving": app.state.lifetime.leaving_since is not None,
     }
 
 
