@@ -24,6 +24,8 @@ import type {
   QualityReport,
   RewriteResult,
   Suggestion,
+  Version,
+  VersionDetail,
 } from "./types";
 
 export class ApiError extends Error {
@@ -195,6 +197,29 @@ export const api = {
     request<{ status: string }>(`/api/applications/${id}/status`, "PUT", { status }),
   deleteApplication: (id: string) =>
     request<{ deleted: boolean }>(`/api/applications/${id}`, "DELETE"),
+
+  /** Keep the document as it stands against one application. */
+  keepVersion: (id: string, body: { label?: string; profile?: Profile; design?: Design }) =>
+    request<Version>(`/api/applications/${id}/versions`, "POST", body),
+  versions: (id: string) => request<Version[]>(`/api/applications/${id}/versions`),
+  readVersion: (id: string) => request<VersionDetail>(`/api/versions/${id}`),
+  deleteVersion: (id: string) =>
+    request<{ deleted: boolean }>(`/api/versions/${id}`, "DELETE"),
+
+  /** The same PDF again, printed from the stored document. */
+  async versionPdf(id: string): Promise<PdfResult> {
+    const response = await fetch(`/api/versions/${id}/pdf`, { method: "POST" });
+    if (!response.ok) throw await failure(response);
+    const disposition = response.headers.get("content-disposition") ?? "";
+    const match = /filename="([^"]+)"/.exec(disposition);
+    return {
+      blob: await response.blob(),
+      filename: match?.[1] ?? "Resume.pdf",
+      pages: Number(response.headers.get("X-Pages") ?? 0),
+      words: Number(response.headers.get("X-Words") ?? 0),
+      machineReadable: response.headers.get("X-Machine-Readable") === "1",
+    };
+  },
 
   analysePosting: (body: { text: string; title?: string; company?: string; profile?: Profile }) =>
     request<MatchReport>("/api/tailor/analyse", "POST", body),

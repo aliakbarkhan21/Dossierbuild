@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from dossier.core import applications as apps
 from dossier.core import db, jobspec
+from dossier.core import versions as archive
 from dossier.core.schema import Experience, Profile, SkillGroup, TextBlock
 
 from _harness import check, run
@@ -111,6 +112,7 @@ def test_indexes() -> None:
     }
     assert "idx_terms_term" in names, names
     assert "idx_apps_status" in names, names
+    assert "idx_versions_app" in names, names
 
 
 # --------------------------------------------------------------------------
@@ -200,6 +202,50 @@ def test_cascade() -> None:
     assert counts() == (0, 0, 0), f"orphans left behind: {counts()}"
     # The siblings are untouched.
     assert connection.execute("SELECT COUNT(*) FROM applications").fetchone()[0] == 2
+
+
+@check("a kept version is readable exactly as stored, and goes with its application")
+def test_versions() -> None:
+    connection = fresh()
+    app_id, other_id = seed(connection)[:2]
+
+    first = archive.save_version(
+        app_id,
+        {"schema_version": 3, "basics": {"name": "A. Student"}},
+        {"template": "classic", "scale": 92},
+        label="what they read",
+        pages=1,
+        words=180,
+        connection=connection,
+    )
+    archive.save_version(app_id, {"basics": {}}, {}, connection=connection)
+    kept_elsewhere = archive.save_version(other_id, {"basics": {}}, {}, connection=connection)
+
+    listed = archive.list_versions(app_id, connection=connection)
+    assert len(listed) == 2, listed
+    # Newest first, and the tie broken by rowid: created_at is precise to the
+    # second, so two written in one loop compare equal.
+    assert listed[-1].id == first
+    assert listed[-1].label == "what they read"
+    # A listing carries no payloads: twelve versions is twelve whole profiles.
+    assert listed[0].profile is None
+
+    loaded = archive.load(first, connection=connection)
+    assert loaded is not None
+    # Byte for byte what went in. A version that comes back re-shaped is not a
+    # record of anything.
+    assert loaded.profile == {"schema_version": 3, "basics": {"name": "A. Student"}}
+    assert loaded.design == {"template": "classic", "scale": 92}
+    assert loaded.pages == 1 and loaded.words == 180
+
+    assert archive.counts(connection=connection) == {app_id: 2, other_id: 1}
+
+    apps.delete_application(app_id, connection=connection)
+    assert archive.list_versions(app_id, connection=connection) == []
+    assert archive.load(first, connection=connection) is None
+    # The other application's version survives, which is the half of a cascade
+    # that a DELETE with no WHERE would also pass.
+    assert archive.load(kept_elsewhere, connection=connection) is not None
 
 
 # --------------------------------------------------------------------------

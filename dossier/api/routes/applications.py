@@ -12,16 +12,27 @@ from __future__ import annotations
 import sqlite3
 from typing import Iterator
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from ...core import applications as store
 from ...core import jobspec
+from ...core import versions as archive
 from ...core.db import connect
 from ...core.schema import Profile
-from ...core.storage import load_profile
+from ...core.storage import load_profile, migrate
+from ...render.context import suggested_filename
+from ...render.design import Design, load_design
+from ...render.html import render_html
+from ...render.pdf import pdf_report, render_pdf
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
+
+# Versions are addressed by their own id rather than through the application
+# they belong to: everything that acts on one -- reading it, printing it,
+# deleting it -- already has the version in hand and would only be repeating
+# itself by naming the parent as well.
+versions = APIRouter(prefix="/api/versions", tags=["applications"])
 
 
 def db() -> Iterator[sqlite3.Connection]:
@@ -70,6 +81,7 @@ class ApplicationOut(BaseModel):
     required_missing: list[str]
     runs: int
     accepted: int
+    versions: int
 
 
 class GapOut(BaseModel):
@@ -101,6 +113,7 @@ def overview(connection: sqlite3.Connection = Depends(db)) -> OverviewOut:
     the screen is meaningless with only some of them.
     """
     listed = store.list_applications(connection=connection)
+    kept = archive.counts(connection=connection)
     return OverviewOut(
         applications=[
             ApplicationOut(
@@ -117,6 +130,7 @@ def overview(connection: sqlite3.Connection = Depends(db)) -> OverviewOut:
                 required_missing=a.required_missing,
                 runs=a.runs,
                 accepted=a.accepted,
+                versions=kept.get(a.id, 0),
             )
             for a in listed
         ],
@@ -190,6 +204,155 @@ def remove(
         raise HTTPException(status_code=404, detail="No application with that id.")
     store.delete_application(application_id, connection=connection)
     return {"deleted": True}
+
+
+# --------------------------------------------------------------------------
+# Versions: what was actually sent
+# --------------------------------------------------------------------------
+
+
+class VersionRequest(BaseModel):
+    label: str = ""
+    profile: Profile | None = None
+    design: Design | None = None
+    """Unsaved edits are what was printed, so they are what gets kept."""
+
+
+class VersionOut(BaseModel):
+    id: str
+    application_id: str
+    label: str
+    pages: int
+    words: int
+    created_at: str
+
+
+@router.post("/{application_id}/versions", response_model=VersionOut)
+def keep_version(
+    application_id: str,
+    request: VersionRequest,
+    connection: sqlite3.Connection = Depends(db),
+) -> VersionOut:
+    """Keep the document as it stands, against this application.
+
+    The PDF is printed here rather than trusting a page count from the client,
+    for the same reason `pdf_report` reads its own output back: the record has
+    to say what came out of the printer, and a number the browser sent is a
+    number about something else.
+    """
+    if not _exists(connection, application_id):
+        raise HTTPException(status_code=404, detail="No application with that id.")
+    profile = request.profile or load_profile()
+    design = request.design or load_design()
+    report = pdf_report(
+        render_pdf(
+            render_html(profile, design),
+            margin_mm=design.margin_mm,
+            page_numbers=design.show_page_numbers,
+        ),
+        profile,
+    )
+    version_id = archive.save_version(
+        application_id,
+        profile.model_dump(mode="json"),
+        design.model_dump(mode="json"),
+        label=request.label,
+        pages=report.pages,
+        words=report.words,
+        connection=connection,
+    )
+    kept = archive.load(version_id, connection=connection)
+    assert kept is not None  # just written, in this transaction-less connection
+    return _version_out(kept)
+
+
+@router.get("/{application_id}/versions", response_model=list[VersionOut])
+def list_versions(
+    application_id: str, connection: sqlite3.Connection = Depends(db)
+) -> list[VersionOut]:
+    if not _exists(connection, application_id):
+        raise HTTPException(status_code=404, detail="No application with that id.")
+    return [
+        _version_out(v) for v in archive.list_versions(application_id, connection=connection)
+    ]
+
+
+class VersionDetail(VersionOut):
+    profile: Profile
+    design: Design
+
+
+@versions.get("/{version_id}", response_model=VersionDetail)
+def read_version(
+    version_id: str, connection: sqlite3.Connection = Depends(db)
+) -> VersionDetail:
+    """One version, ready to render.
+
+    The stored profile goes through `storage.migrate` on the way out. A
+    version written under schema 3 has to keep opening at schema 5 -- an
+    archive that stops reading its own contents is not an archive.
+    """
+    profile, design, kept = _restore(version_id, connection)
+    return VersionDetail(**_version_out(kept).model_dump(), profile=profile, design=design)
+
+
+@versions.post("/{version_id}/pdf", response_class=Response)
+def reprint(version_id: str, connection: sqlite3.Connection = Depends(db)) -> Response:
+    """The same PDF again, from the stored document rather than from today's."""
+    profile, design, _ = _restore(version_id, connection)
+    data = render_pdf(
+        render_html(profile, design),
+        margin_mm=design.margin_mm,
+        page_numbers=design.show_page_numbers,
+    )
+    report = pdf_report(data, profile)
+    return Response(
+        content=data,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{suggested_filename(profile, design)}"',
+            "X-Pages": str(report.pages),
+            "X-Words": str(report.words),
+            "X-Machine-Readable": "1" if report.machine_readable else "0",
+        },
+    )
+
+
+@versions.delete("/{version_id}", response_model=dict)
+def forget_version(
+    version_id: str, connection: sqlite3.Connection = Depends(db)
+) -> dict[str, bool]:
+    if archive.load(version_id, connection=connection) is None:
+        raise HTTPException(status_code=404, detail="No version with that id.")
+    archive.delete_version(version_id, connection=connection)
+    return {"deleted": True}
+
+
+def _version_out(version: archive.Version) -> VersionOut:
+    return VersionOut(
+        id=version.id,
+        application_id=version.application_id,
+        label=version.label,
+        pages=version.pages,
+        words=version.words,
+        created_at=version.created_at,
+    )
+
+
+def _restore(
+    version_id: str, connection: sqlite3.Connection
+) -> tuple[Profile, Design, archive.Version]:
+    kept = archive.load(version_id, connection=connection)
+    if kept is None or kept.profile is None or kept.design is None:
+        raise HTTPException(status_code=404, detail="No version with that id.")
+    try:
+        profile = Profile.model_validate(migrate(dict(kept.profile)))
+    except Exception as exc:  # noqa: BLE001 -- any failure reads the same here
+        raise HTTPException(
+            status_code=422,
+            detail="That saved version cannot be read by this build of Dossierbuild.",
+        ) from exc
+    return profile, Design.model_validate(kept.design), kept
 
 
 def _exists(connection: sqlite3.Connection, application_id: str) -> bool:

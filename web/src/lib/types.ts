@@ -378,6 +378,30 @@ export interface Application {
   required_missing: string[];
   runs: number;
   accepted: number;
+  /** How many documents have been kept against it. */
+  versions: number;
+}
+
+/**
+ * One document, as it was actually sent.
+ *
+ * `pages` and `words` were read out of the PDF the server printed at the
+ * moment it was kept, not counted from the markup -- the record says what
+ * came out of the printer.
+ */
+export interface Version {
+  id: string;
+  application_id: string;
+  label: string;
+  pages: number;
+  words: number;
+  created_at: string;
+}
+
+/** A version with the document itself, ready to render. */
+export interface VersionDetail extends Version {
+  profile: Profile;
+  design: Design;
 }
 
 /** One term, counted across every posting that named it. */

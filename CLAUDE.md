@@ -19,6 +19,7 @@ dossier/
     quality.py     the bullet-writing standard, as code.
     db.py          SQLite: connection, pragmas, its own migration chain.
     applications.py  saved applications, and the queries across all of them.
+    versions.py    what was actually sent: profile + design, kept whole.
     jobspec.py     a job posting, read by rules. Weighted terms, coverage, evidence. No AI.
     ids.py         stable short ids.
   ingest/    PDF·DOCX·LinkedIn -> profile, plus the merge review. No AI.
@@ -135,16 +136,35 @@ report works with no API key, with Gemini down, and inside a test.
 **Two stores, and the split is deliberate.** `profile.json` holds the one
 hand-typed document — read whole, written whole, atomic, backed up.
 `data/dossier.db` holds what is actually relational: many applications, the
-terms each posting asked for, the tailoring runs and their rewrites. The test
+terms each posting asked for, the tailoring runs and their rewrites, and the
+versions sent. The test
 of which is which is whether you would ever ask a question *across* the rows.
 `recurring_gaps` is that question, it is why the terms are rows rather than a
 JSON blob, and it is the headline of the Applications screen. SQLite is stdlib, so this added no dependency, and there is
 no ORM because the queries are the point.
 
+**A version is a document inside a relational table, and that is not a
+contradiction.** The same test decides it, applied the other way: nobody asks
+a question *across* the bullets of old versions, they ask what one employer
+read — so the payload is JSON. The table around it is a table because there
+are many per application, they are ordered by date, and they must go when it
+does. The profile and the design are stored together because a resume is
+both: the same facts at 92% with tight margins is one page and at 108% it is
+two. `versions.load` returns raw dicts so they can go back through
+`storage.migrate` — an archive that stops reading its own contents is not an
+archive, and `tests/test_api.py` pins a version-1 payload opening today.
+
+**Nothing restores a version over the profile.** The master profile is
+everything you have done; a version is a subset of it re-angled at one
+employer. Writing the second over the first would lose whatever was written
+in between, and autosave would commit that to disk before anyone noticed. A
+version can be read and printed again, and copying a line back out of it is a
+decision a person makes one line at a time.
+
 **`PRAGMA foreign_keys` is off by default in SQLite.** Every `ON DELETE
 CASCADE` in the schema is decorative without it, so `db.connect` sets it and
-`check_db` proves it by deleting an application and asserting its rows go and
-its siblings stay.
+`check_db` proves it by deleting an application and asserting its rows —
+terms, runs, rewrites and versions — go while its siblings stay.
 
 **Never lose the profile.** Atomic writes, a timestamped backup on every save,
 and `data/` deny-listed in `.gitignore` by default.
@@ -185,7 +205,7 @@ cd web && npm install && npm run build     # the interface, built to web/dist
 python -m uvicorn dossier.api:app --port 8000        # then localhost:8000
 
 pip install -r requirements-dev.txt
-pytest                                     # 148 checks, ~34s (real PDF renders)
+pytest                                     # 152 checks, ~55s (real PDF renders)
 python scripts/check_phase2.py             # the render checks, no pytest needed
 python scripts/check_tailor.py             # the posting reader and the audit
 python scripts/check_db.py                 # the schema, its constraints, its queries

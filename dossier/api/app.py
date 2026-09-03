@@ -69,6 +69,7 @@ app.include_router(render.router)
 app.include_router(ingest.router)
 app.include_router(tailor.router)
 app.include_router(applications.router)
+app.include_router(applications.versions)
 app.include_router(suggest.router)
 
 lifetime.install(app)

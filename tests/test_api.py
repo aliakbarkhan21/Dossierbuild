@@ -429,6 +429,121 @@ def test_deleting_an_application_takes_its_runs_with_it() -> None:
     assert client.delete(f"/api/applications/{app_id}").status_code == 404
 
 
+def test_a_version_keeps_the_document_while_the_profile_moves_on() -> None:
+    """The whole point of the archive, in one test.
+
+    A version is printed, the profile is then edited, and the version prints
+    again -- with the old wording. If this ever fails the archive is not an
+    archive, it is a second view of the current profile.
+    """
+    _clear()
+    app_id = _save(POSTING, "Northgate Labs")
+
+    sent = sample()
+    sent["experience"][0]["bullets"] = [{"text": "Cut nightly ETL runtime from 42 to 9 minutes."}]
+    kept = client.post(
+        f"/api/applications/{app_id}/versions",
+        json={"label": "What Northgate read", "profile": sent},
+    )
+    assert kept.status_code == 200, kept.text
+    version_id = kept.json()["id"]
+    # Printed here rather than taken on trust from the client: the record has
+    # to say what came out of the printer.
+    assert kept.json()["pages"] >= 1
+    assert kept.json()["words"] > 0
+
+    moved_on = sample()
+    moved_on["experience"][0]["bullets"] = [{"text": "Rewrote the whole thing for another job."}]
+    assert client.put("/api/profile", json=moved_on).status_code == 200
+
+    body = client.get(f"/api/versions/{version_id}").json()
+    assert body["label"] == "What Northgate read"
+    assert body["profile"]["experience"][0]["bullets"][0]["text"].startswith("Cut nightly ETL")
+    # And the design travelled with it: a resume is both, and the same facts
+    # at a different size are a different number of pages.
+    assert body["design"]["page"]
+
+    printed = client.post(f"/api/versions/{version_id}/pdf")
+    assert printed.status_code == 200
+    assert printed.content[:5] == b"%PDF-"
+    assert printed.headers["content-disposition"].startswith("attachment")
+
+    listing = client.get(f"/api/applications/{app_id}/versions").json()
+    assert [v["id"] for v in listing] == [version_id]
+    assert _one(app_id)["versions"] == 1
+    _clear()
+
+
+def test_a_version_goes_when_its_application_does() -> None:
+    _clear()
+    app_id = _save(POSTING, "Northgate Labs")
+    version_id = client.post(
+        f"/api/applications/{app_id}/versions", json={"profile": sample()}
+    ).json()["id"]
+
+    client.delete(f"/api/applications/{app_id}")
+    # Without PRAGMA foreign_keys the row would outlive its application and go
+    # on being listed against an id nothing else knows about.
+    assert client.get(f"/api/versions/{version_id}").status_code == 404
+    assert client.post(f"/api/versions/{version_id}/pdf").status_code == 404
+
+
+def test_versions_are_newest_first_and_deletable_one_at_a_time() -> None:
+    _clear()
+    app_id = _save(POSTING, "Northgate Labs")
+    first = client.post(
+        f"/api/applications/{app_id}/versions", json={"label": "first", "profile": sample()}
+    ).json()["id"]
+    second = client.post(
+        f"/api/applications/{app_id}/versions", json={"label": "second", "profile": sample()}
+    ).json()["id"]
+
+    listing = client.get(f"/api/applications/{app_id}/versions").json()
+    # created_at is precise to the second, so two printed in one sitting
+    # compare equal -- rowid is what makes this order real rather than lucky.
+    assert [v["label"] for v in listing] == ["second", "first"]
+
+    assert client.delete(f"/api/versions/{second}").status_code == 200
+    assert client.delete(f"/api/versions/{second}").status_code == 404
+    assert [v["id"] for v in client.get(f"/api/applications/{app_id}/versions").json()] == [first]
+    _clear()
+
+
+def test_a_version_of_an_older_schema_still_opens() -> None:
+    """An archive that stops reading its own contents is not an archive.
+
+    The stored dict goes back through `storage.migrate`, so a profile written
+    before the current schema version opens rather than failing validation.
+    """
+    import json as _json
+    import sqlite3
+
+    from dossier.core.db import connect
+    from dossier.core.schema import SCHEMA_VERSION
+
+    _clear()
+    app_id = _save(POSTING, "Northgate Labs")
+    version_id = client.post(
+        f"/api/applications/{app_id}/versions", json={"profile": sample()}
+    ).json()["id"]
+
+    # Rewrite the payload as a version-1 document. The stamp is what makes
+    # this test real: validating a v1 dict directly returns schema_version 1,
+    # so a 3 coming back is proof the chain ran and not a model default.
+    ancient = sample()
+    ancient["schema_version"] = 1
+    connection: sqlite3.Connection = connect()
+    connection.execute(
+        "UPDATE versions SET profile = ? WHERE id = ?", (_json.dumps(ancient), version_id)
+    )
+    connection.close()
+
+    body = client.get(f"/api/versions/{version_id}")
+    assert body.status_code == 200, body.text
+    assert body.json()["profile"]["schema_version"] == SCHEMA_VERSION
+    _clear()
+
+
 def test_an_empty_posting_is_refused_with_a_sentence() -> None:
     response = client.post("/api/applications", json={"text": "   "})
     assert response.status_code == 422

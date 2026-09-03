@@ -40,7 +40,7 @@ DB_PATH = DATA_DIR / "dossier.db"
 
 # Mirrors ``storage.SCHEMA_VERSION`` in spirit: the database has its own
 # version and its own chain, because the two evolve for different reasons.
-DB_VERSION = 1
+DB_VERSION = 2
 
 
 def connect(path: Path | None = None) -> sqlite3.Connection:
@@ -144,13 +144,51 @@ _V1_SCHEMA: tuple[str, ...] = (
 )
 
 
+# What was actually sent, kept whole.
+#
+# The two columns holding a profile and a design are JSON documents, not rows,
+# and that is the same test applied the other way round: nobody asks a
+# question *across* the bullets of old versions -- they ask "what did
+# Northgate read". A version is one document with one reader, so it is stored
+# as one document. The table around it is relational because there are many
+# per application and they have to go when it does.
+#
+# Storing the design beside the profile is the point. A resume is the two
+# together: the same facts at 92% type with the margins tight is a one-page
+# document and at 108% it is two, and "the PDF they read" is meaningless
+# without both.
+_V2_SCHEMA: tuple[str, ...] = (
+    """
+    CREATE TABLE versions (
+        id             TEXT PRIMARY KEY,
+        application_id TEXT NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+        label          TEXT NOT NULL DEFAULT '',
+        profile        TEXT NOT NULL,
+        design         TEXT NOT NULL,
+        -- Measured from the PDF that was actually printed, not guessed from
+        -- the markup, so the record says what came out of the printer.
+        pages          INTEGER NOT NULL DEFAULT 0,
+        words          INTEGER NOT NULL DEFAULT 0,
+        created_at     TEXT NOT NULL
+    )
+    """,
+    "CREATE INDEX idx_versions_app ON versions(application_id, created_at)",
+)
+
+
 def _v0_to_v1(connection: sqlite3.Connection) -> None:
     """The first schema: applications, what they asked for, and what we did."""
     for statement in _V1_SCHEMA:
         connection.execute(statement)
 
 
-MIGRATIONS: tuple[Callable[[sqlite3.Connection], None], ...] = (_v0_to_v1,)
+def _v1_to_v2(connection: sqlite3.Connection) -> None:
+    """Versions: the exact document that went to one employer, on one date."""
+    for statement in _V2_SCHEMA:
+        connection.execute(statement)
+
+
+MIGRATIONS: tuple[Callable[[sqlite3.Connection], None], ...] = (_v0_to_v1, _v1_to_v2)
 
 
 def migrate(connection: sqlite3.Connection) -> int:

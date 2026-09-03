@@ -7,6 +7,8 @@
  */
 
 import {
+  Briefcase,
+  Check,
   Download,
   FileCode2,
   FileType2,
@@ -20,6 +22,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { useShell } from "../App";
 import { Frame } from "../components/Frame";
@@ -30,7 +33,15 @@ import { useShallow } from "zustand/react/shallow";
 
 import { useStore } from "../lib/store";
 import { toast } from "../lib/toast";
-import type { Design, FitReport, LookOption, Option, Profile, TemplateOption } from "../lib/types";
+import type {
+  Application,
+  Design,
+  FitReport,
+  LookOption,
+  Option,
+  Profile,
+  TemplateOption,
+} from "../lib/types";
 
 /** Zoom, as a percentage. 0 is the sentinel for "fit to the pane". */
 const ZOOM_MIN = 60;
@@ -108,6 +119,9 @@ export function ResumeScreen() {
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<"pdf" | "html" | "text" | null>(null);
   const [report, setReport] = useState<FitReport | null>(null);
+  // Set by a download, never by Check fit. Sending the file is the moment
+  // worth recording, and the offer to record it should not appear before it.
+  const [sent, setSent] = useState(false);
 
   // Two keys, because the two renders have different reasons to be redone:
   // the preview follows every edit, the thumbnails only follow the design.
@@ -184,6 +198,7 @@ export function ResumeScreen() {
         missing: [],
         sections: [],
       });
+      setSent(true);
       toast.success(
         `${result.filename} downloaded`,
         `${result.pages} page${result.pages === 1 ? "" : "s"} · ${Math.round(result.blob.size / 1024)} KB`,
@@ -387,6 +402,8 @@ export function ResumeScreen() {
             }
           />
 
+          {sent && <KeepAsSent profile={profile} design={design} />}
+
           {report && report.found && Object.keys(report.found).length > 0 && (
             <div className="card flex flex-wrap items-center gap-x-4 gap-y-1 border-l-2 border-l-accent p-3 text-xs">
               <span className="font-medium">
@@ -412,7 +429,96 @@ export function ResumeScreen() {
 }
 
 /**
+ * Record what was just sent, at the moment it is sent.
+ *
+ * The alternative is remembering to do it later, from a screen you are not
+ * on, about a file you have already emailed -- which is the same as not
+ * recording it. It appears only after a download, and only when there is an
+ * application to attach it to: an offer to file something against nothing is
+ * noise on the one screen that should stay about the page.
+ */
+function KeepAsSent({ profile, design }: { profile: Profile; design: Design }) {
+  const [options, setOptions] = useState<Application[] | null>(null);
+  const [chosen, setChosen] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [kept, setKept] = useState("");
+
+  useEffect(() => {
+    api
+      .applications()
+      // Rejected ones are dropped: nobody files a new document against an
+      // application that is closed.
+      .then(({ applications }) => setOptions(applications.filter((a) => a.status !== "rejected")))
+      .catch(() => setOptions([]));
+  }, []);
+
+  if (!options || options.length === 0) return null;
+  const target = chosen || options[0]!.id;
+
+  async function keep() {
+    setBusy(true);
+    try {
+      const version = await api.keepVersion(target, { profile, design });
+      const application = options!.find((a) => a.id === target);
+      setKept(application?.company || application?.title || "that application");
+      toast.success(
+        "Kept as sent",
+        `${version.pages} page${version.pages === 1 ? "" : "s"}. Readable again from Applications, whatever the profile does next.`,
+      );
+    } catch (error) {
+      if (error instanceof ApiError) toast.error(error.message, error.fix);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (kept) {
+    return (
+      <div className="card flex flex-wrap items-center gap-2 border-l-2 border-l-accent p-3 text-sm">
+        <Check size={15} className="text-accent" />
+        <span className="min-w-0 flex-1">
+          Filed against {kept}. This exact document can be read and printed again from
+          Applications, however far the profile moves on.
+        </span>
+        <Link to="/applications" className="btn">
+          <Briefcase size={14} />
+          Applications
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card flex flex-wrap items-center gap-2 p-3 text-sm">
+      <span className="min-w-0 shrink-0 text-muted">Keep this as what you sent to</span>
+      <select
+        className="field h-8 w-auto min-w-0 flex-1 py-1 text-xs"
+        aria-label="Which application this was sent to"
+        value={target}
+        onChange={(event) => setChosen(event.target.value)}
+      >
+        {options.map((application) => (
+          <option key={application.id} value={application.id}>
+            {[application.company, application.title].filter(Boolean).join(" · ") ||
+              "Untitled posting"}
+          </option>
+        ))}
+      </select>
+      <button type="button" className="btn shrink-0" onClick={() => void keep()} disabled={busy}>
+        {busy ? <Loader2 size={14} className="animate-spin" /> : <Briefcase size={14} />}
+        Keep it
+      </button>
+    </div>
+  );
+}
+
+/**
  * The resume with nothing else on screen.
+ *
+ * Exported because the Applications screen reads saved versions with it: a
+ * version is a profile and a design, which is exactly what this takes, and a
+ * second implementation of "show me this document" would be a second thing to
+ * keep in step with the renderer.
  *
  * Rendered at its own zoom rather than reusing the pane's: the point of this
  * view is to read the page as a page, so it fits the *height* of the window
@@ -420,7 +526,7 @@ export function ResumeScreen() {
  * because the fit script runs per-frame -- sharing the pane's HTML would mean
  * both frames fighting over one scale.
  */
-function FullPage({
+export function FullPage({
   profile,
   design,
   onClose,

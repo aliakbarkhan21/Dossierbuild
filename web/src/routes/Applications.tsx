@@ -12,15 +12,35 @@
  * the one in front of you. The list is last: it is the record, not the point.
  */
 
-import { Briefcase, ExternalLink, Target, Trash2, TrendingUp } from "lucide-react";
+import {
+  Briefcase,
+  ChevronDown,
+  Download,
+  ExternalLink,
+  Eye,
+  Loader2,
+  Target,
+  Trash2,
+  TrendingUp,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useShell } from "../App";
 import { TopBar } from "../components/TopBar";
-import { ApiError, api } from "../lib/api";
+import { ApiError, api, download } from "../lib/api";
+import { useStore } from "../lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { toast } from "../lib/toast";
-import type { Application, ApplicationStatus, Gap, Overview } from "../lib/types";
+import type {
+  Application,
+  ApplicationStatus,
+  Gap,
+  Overview,
+  Version,
+  VersionDetail,
+} from "../lib/types";
+import { FullPage } from "./Resume";
 
 /**
  * The pipeline, in the order an application moves through it.
@@ -64,6 +84,9 @@ export function ApplicationsScreen() {
   // rewrites down with it (ON DELETE CASCADE), so it asks first -- in place,
   // because a modal for a row is a bigger interruption than the action.
   const [arming, setArming] = useState("");
+  // A saved version being read. It is the same full-page view the Resume
+  // screen uses, fed the stored document instead of the current one.
+  const [reading, setReading] = useState<VersionDetail | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -167,6 +190,8 @@ export function ApplicationsScreen() {
                     onDisarm={() => setArming("")}
                     onMove={(status) => void move(application.id, status)}
                     onDelete={() => void remove(application.id)}
+                    onRead={setReading}
+                    onChanged={() => void load()}
                   />
                 ))}
                 {shown.length === 0 && (
@@ -184,6 +209,14 @@ export function ApplicationsScreen() {
           </>
         )}
       </div>
+
+      {reading && (
+        <FullPage
+          profile={reading.profile}
+          design={reading.design}
+          onClose={() => setReading(null)}
+        />
+      )}
     </>
   );
 }
@@ -348,6 +381,8 @@ function Card({
   onDisarm,
   onMove,
   onDelete,
+  onRead,
+  onChanged,
 }: {
   application: Application;
   armed: boolean;
@@ -355,6 +390,8 @@ function Card({
   onDisarm: () => void;
   onMove: (status: ApplicationStatus) => void;
   onDelete: () => void;
+  onRead: (version: VersionDetail) => void;
+  onChanged: () => void;
 }) {
   const { title, company, coverage, required_missing, runs, accepted } = application;
   const band =
@@ -426,6 +463,8 @@ function Card({
         </div>
       )}
 
+      <Versions application={application} onRead={onRead} onChanged={onChanged} />
+
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
         <span>
           {runs} tailoring run{runs === 1 ? "" : "s"}
@@ -445,6 +484,197 @@ function Card({
         {application.notes && <span className="min-w-0 truncate">{application.notes}</span>}
       </div>
     </article>
+  );
+}
+
+/**
+ * What was actually sent, and when.
+ *
+ * Six weeks after an application the recruiter calls and the profile has moved
+ * on -- bullets rewritten for three jobs since, a section reordered, the type
+ * a size smaller to save a page. This is the only place that can still answer
+ * "what did they read".
+ *
+ * There is deliberately no "restore this". The master profile is everything
+ * you have done and a version is a subset of it re-angled at one employer;
+ * writing the second over the first would lose whatever was written in
+ * between, and autosave would commit that to disk before anyone noticed. A
+ * version can be read and it can be printed again. Copying a line back out of
+ * it is a decision a person makes, one line at a time.
+ */
+function Versions({
+  application,
+  onRead,
+  onChanged,
+}: {
+  application: Application;
+  onRead: (version: VersionDetail) => void;
+  onChanged: () => void;
+}) {
+  const { profile, design } = useStore(
+    useShallow((s) => ({ profile: s.profile, design: s.design })),
+  );
+  const [open, setOpen] = useState(false);
+  const [list, setList] = useState<Version[] | null>(null);
+  const [label, setLabel] = useState("");
+  const [busy, setBusy] = useState("");
+
+  // Fetched when the section is opened, not with the overview: a screen
+  // showing nine applications would otherwise fetch nine lists nobody asked
+  // to see.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    api
+      .versions(application.id)
+      .then((next) => !cancelled && setList(next))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [open, application.id, application.versions]);
+
+  async function keep() {
+    if (!profile || !design) return;
+    setBusy("keep");
+    try {
+      // The server prints the PDF to fill in the page and word counts, so
+      // this takes as long as a download does. Said out loud rather than
+      // left as a button that looks stuck.
+      const kept = await api.keepVersion(application.id, { label: label.trim(), profile, design });
+      setLabel("");
+      setList((current) => (current ? [kept, ...current] : [kept]));
+      onChanged();
+      toast.success(
+        "Kept",
+        `${kept.pages} page${kept.pages === 1 ? "" : "s"}, exactly as it stands now.`,
+      );
+    } catch (error) {
+      if (error instanceof ApiError) toast.error(error.message, error.fix);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function read(id: string) {
+    setBusy(id);
+    try {
+      onRead(await api.readVersion(id));
+    } catch (error) {
+      if (error instanceof ApiError) toast.error(error.message, error.fix);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function print(id: string) {
+    setBusy(id);
+    try {
+      const result = await api.versionPdf(id);
+      download(result.blob, result.filename);
+      toast.success(`${result.filename} downloaded`, "Printed from the stored document.");
+    } catch (error) {
+      if (error instanceof ApiError) toast.error(error.message, error.fix);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function forget(id: string) {
+    try {
+      await api.deleteVersion(id);
+      setList((current) => (current ?? []).filter((v) => v.id !== id));
+      onChanged();
+    } catch (error) {
+      if (error instanceof ApiError) toast.error(error.message, error.fix);
+    }
+  }
+
+  return (
+    <div className="border-t border-line pt-2.5">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="flex items-center gap-1.5 text-xs font-medium text-muted transition-colors duration-150 hover:text-ink"
+      >
+        <ChevronDown
+          size={13}
+          className={`transition-transform duration-200 ease-out ${open ? "" : "-rotate-90"}`}
+        />
+        {application.versions === 0
+          ? "No version kept"
+          : `${application.versions} version${application.versions === 1 ? "" : "s"} kept`}
+      </button>
+
+      {open && (
+        <div className="mt-2 flex flex-col gap-2">
+          {list === null ? (
+            <div className="h-6 animate-pulse rounded bg-sunken" aria-hidden />
+          ) : (
+            list.map((version) => (
+              <div key={version.id} className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="tabular-nums text-muted">{when(version.created_at)}</span>
+                <span className="text-faint">
+                  {version.pages} page{version.pages === 1 ? "" : "s"} · {version.words} words
+                </span>
+                {version.label && <span className="min-w-0 truncate font-medium">{version.label}</span>}
+                <span className="ml-auto flex items-center gap-1">
+                  <button
+                    type="button"
+                    className="btn btn-quiet px-1.5 py-1"
+                    onClick={() => void read(version.id)}
+                    disabled={busy === version.id}
+                    title="Read it as it was"
+                    aria-label={`Read the version of ${when(version.created_at)}`}
+                  >
+                    {busy === version.id ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-quiet px-1.5 py-1"
+                    onClick={() => void print(version.id)}
+                    disabled={busy === version.id}
+                    title="Print this PDF again"
+                    aria-label={`Print the version of ${when(version.created_at)} again`}
+                  >
+                    <Download size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-quiet px-1.5 py-1"
+                    onClick={() => void forget(version.id)}
+                    title="Forget this version"
+                    aria-label={`Forget the version of ${when(version.created_at)}`}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </span>
+              </div>
+            ))
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              className="field h-8 min-w-0 flex-1 py-1 text-xs"
+              placeholder="What is this one? (optional)"
+              aria-label={`Label for a new version of ${application.title || "this application"}`}
+              value={label}
+              onChange={(event) => setLabel(event.target.value)}
+            />
+            <button
+              type="button"
+              className="btn shrink-0 py-1 text-xs"
+              onClick={() => void keep()}
+              disabled={busy === "keep" || !profile}
+            >
+              {busy === "keep" ? <Loader2 size={13} className="animate-spin" /> : <Briefcase size={13} />}
+              Keep the resume as it stands
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
