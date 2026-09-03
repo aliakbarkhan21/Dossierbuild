@@ -72,6 +72,12 @@ export function CommandPalette({
       { id: "go-profile", group: "Go to", label: "Profile", run: () => navigate("/profile") },
       { id: "go-resume", group: "Go to", label: "Resume", run: () => navigate("/resume") },
       { id: "go-tailor", group: "Go to", label: "Tailor for a job", run: () => navigate("/tailor") },
+      {
+        id: "go-applications",
+        group: "Go to",
+        label: "Applications",
+        run: () => navigate("/applications"),
+      },
       { id: "go-import", group: "Go to", label: "Import", run: () => navigate("/import") },
       { id: "go-health", group: "Go to", label: "Health check", run: () => navigate("/health") },
       { id: "save", group: "Do", label: "Save profile", hint: "Ctrl+S", run: () => void save() },

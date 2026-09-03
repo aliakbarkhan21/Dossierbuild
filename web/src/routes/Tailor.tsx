@@ -15,6 +15,7 @@
 import {
   AlertTriangle,
   ArrowRight,
+  Briefcase,
   Check,
   Loader2,
   Sparkles,
@@ -22,7 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 
 import { useShell } from "../App";
@@ -30,7 +31,7 @@ import { TopBar } from "../components/TopBar";
 import { ApiError, api } from "../lib/api";
 import { useStore } from "../lib/store";
 import { toast } from "../lib/toast";
-import type { MatchReport, RewriteResult, Suggestion, Term } from "../lib/types";
+import type { MatchReport, Profile, RewriteResult, Suggestion, Term } from "../lib/types";
 
 /** Below this there is not enough posting to read tiers out of. */
 const MIN_POSTING = 120;
@@ -55,6 +56,15 @@ export function TailorScreen() {
   const [accepted, setAccepted] = useState<Set<string>>(new Set());
   const [openTerm, setOpenTerm] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
+  // The id this posting was saved under, once it has been. Held so the
+  // tailoring pass can be recorded against it, and cleared by a new analysis
+  // -- a different posting is a different application.
+  const [savedId, setSavedId] = useState("");
+  // Counts analyses, and keys the save form. Without it the link and the note
+  // typed for one posting were still sitting in the boxes when the next one
+  // was analysed, and saving attached the wrong company's URL to it -- state
+  // kept across something that should have been a fresh form.
+  const [analysis, setAnalysis] = useState(0);
 
   if (!profile) return null;
 
@@ -66,6 +76,8 @@ export function TailorScreen() {
       setResult(null);
       setOpenTerm(null);
       setCollapsed(true);
+      setSavedId("");
+      setAnalysis((n) => n + 1);
       // Everything that answers this posting at all starts ticked; entries
       // scoring zero do not, because sending them costs latency and returns
       // rewrites aimed at a job they have nothing to do with.
@@ -113,6 +125,18 @@ export function TailorScreen() {
     try {
       const { profile: updated, changed } = await api.applyRewrites(profile!, map);
       reloadProfile(updated);
+      // Recorded here rather than when the rewrites came back, because this
+      // is the moment the verdicts are real: until Apply is pressed the ticks
+      // are still being changed. A pass that is never applied is not
+      // recorded, which is the honest reading of it.
+      if (savedId) {
+        void api
+          .recordRun(savedId, {
+            model: result.model,
+            suggestions: all.map((s) => ({ ...s, accepted: accepted.has(s.block_id) })),
+          })
+          .catch(() => undefined);
+      }
       toast.success(
         `${changed} rewrite${changed === 1 ? "" : "s"} written in`,
         "Not saved yet — press Save changes when it reads right.",
@@ -203,6 +227,15 @@ export function TailorScreen() {
         {report && (
           <>
             <Coverage report={report} openTerm={openTerm} onOpenTerm={setOpenTerm} />
+            <SaveApplication
+              key={analysis}
+              report={report}
+              text={text}
+              company={company}
+              profile={profile}
+              savedId={savedId}
+              onSaved={setSavedId}
+            />
             <Entries
               report={report}
               chosen={chosen}
@@ -330,6 +363,10 @@ function Posting({
 
       <textarea
         className="field mt-4 min-h-64 resize-y text-sm leading-relaxed"
+        // The main input of the screen, and it announced nothing: a
+        // placeholder is not a label, and it disappears the moment anything
+        // is typed into it.
+        aria-label="Job posting"
         value={text}
         onChange={(event) => onText(event.target.value)}
         placeholder={"AI Engineering Intern\nNorthgate Analytics — Islamabad\n\nRequirements:\n- Strong Python…"}
@@ -374,6 +411,114 @@ const TIER_LABEL: Record<string, string> = {
   preferred: "Preferred",
   general: "Mentioned",
 };
+
+/**
+ * Keep this posting, or read it and move on.
+ *
+ * Deliberately not automatic. Analysing a posting is browsing -- half of them
+ * are read to see whether they are worth the afternoon -- and a pipeline that
+ * fills itself with every advert anyone glanced at is a pipeline nobody
+ * trusts. Pressing this is the statement that this one is real.
+ *
+ * What gets stored is the rules-based analysis that is already on screen, not
+ * a model's opinion of it, so the record stays reproducible: the same posting
+ * saved twice gives the same terms.
+ */
+function SaveApplication({
+  report,
+  text,
+  company,
+  profile,
+  savedId,
+  onSaved,
+}: {
+  report: MatchReport;
+  text: string;
+  company: string;
+  profile: Profile;
+  savedId: string;
+  onSaved: (id: string) => void;
+}) {
+  const [url, setUrl] = useState("");
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const { id } = await api.saveApplication({
+        text,
+        title: report.title,
+        company,
+        source_url: url.trim(),
+        notes: notes.trim(),
+        profile,
+      });
+      onSaved(id);
+      toast.success(
+        "Saved to Applications",
+        "Rewrites you apply from here are recorded against it.",
+      );
+    } catch (error) {
+      if (error instanceof ApiError) toast.error(error.message, error.fix);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (savedId) {
+    return (
+      <section className="card flex flex-wrap items-center gap-3 border-l-2 border-l-accent p-4">
+        <Check size={16} className="text-accent" />
+        <p className="min-w-0 flex-1 text-sm">
+          Saved. Its requirements now count towards what you keep missing, and any rewrite
+          you apply is recorded against it.
+        </p>
+        <Link to="/applications" className="btn">
+          <Briefcase size={14} />
+          Applications
+        </Link>
+      </section>
+    );
+  }
+
+  return (
+    <section className="card flex flex-col gap-3 p-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-semibold">Keep this one?</h2>
+          <p className="mt-0.5 max-w-prose text-xs text-muted">
+            Stores the posting and the {report.terms.length} requirements read out of it. Once
+            two are saved, the Applications screen can tell you which ones keep coming up that
+            your profile does not evidence — the question a single posting cannot answer.
+          </p>
+        </div>
+        <button type="button" className="btn ml-auto" onClick={save} disabled={busy}>
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <Briefcase size={14} />}
+          Save this application
+        </button>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input
+          className="field"
+          type="url"
+          placeholder="Link to the posting (optional)"
+          aria-label="Link to the posting"
+          value={url}
+          onChange={(event) => setUrl(event.target.value)}
+        />
+        <input
+          className="field"
+          placeholder="A note to your future self (optional)"
+          aria-label="Note"
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+        />
+      </div>
+    </section>
+  );
+}
 
 function Coverage({
   report,

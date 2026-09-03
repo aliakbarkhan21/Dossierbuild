@@ -8,6 +8,7 @@
  */
 
 import type {
+  ApplicationStatus,
   Design,
   DesignOptions,
   Draft,
@@ -16,11 +17,13 @@ import type {
   Health,
   MatchReport,
   MergePlan,
+  Overview,
   Parsed,
   PdfResult,
   Profile,
   QualityReport,
   RewriteResult,
+  Suggestion,
 } from "./types";
 
 export class ApiError extends Error {
@@ -163,6 +166,35 @@ export const api = {
     entry_id?: string;
     profile?: Profile;
   }) => request<Draft>("/api/suggest", "POST", body),
+
+  /** Everything the Applications screen shows, in one round trip. */
+  applications: () => request<Overview>("/api/applications"),
+  /** Analysed by rules on the way in -- saving a posting calls no model. */
+  saveApplication: (body: {
+    text: string;
+    title?: string;
+    company?: string;
+    source_url?: string;
+    notes?: string;
+    profile?: Profile;
+  }) =>
+    request<{ id: string; title: string; coverage: number }>(
+      "/api/applications",
+      "POST",
+      body,
+    ),
+  recordRun: (
+    id: string,
+    // Every rewrite the run produced, with the verdict on it -- the rejected
+    // ones included, because a rejection is the judgement worth having a
+    // record of and the only evidence the fabrication guard catches anything.
+    body: { model: string; suggestions: (Suggestion & { accepted: boolean })[] },
+  ) =>
+    request<{ id: string }>(`/api/applications/${id}/runs`, "POST", body),
+  setApplicationStatus: (id: string, status: ApplicationStatus) =>
+    request<{ status: string }>(`/api/applications/${id}/status`, "PUT", { status }),
+  deleteApplication: (id: string) =>
+    request<{ deleted: boolean }>(`/api/applications/${id}`, "DELETE"),
 
   analysePosting: (body: { text: string; title?: string; company?: string; profile?: Profile }) =>
     request<MatchReport>("/api/tailor/analyse", "POST", body),

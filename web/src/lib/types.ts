@@ -352,3 +352,53 @@ export interface Draft {
   invented: string[];
   findings: string[];
 }
+
+/**
+ * Saved applications: the shapes `/api/applications` returns.
+ *
+ * Mirrors `core/applications.py`. The counts on an application are joined on
+ * in SQL rather than fetched per row, and `required_missing` is already the
+ * list of stated requirements this posting asked for and the profile did not
+ * evidence -- so a card can be drawn without a second call.
+ */
+export type ApplicationStatus = "draft" | "applied" | "interview" | "offer" | "rejected";
+
+export interface Application {
+  id: string;
+  title: string;
+  company: string;
+  status: ApplicationStatus;
+  coverage: number;
+  created_at: string;
+  updated_at: string;
+  /** Stamped the first time it reaches "applied", and never overwritten. */
+  applied_at: string | null;
+  notes: string;
+  source_url: string;
+  required_missing: string[];
+  runs: number;
+  accepted: number;
+}
+
+/** One term, counted across every posting that named it. */
+export interface Gap {
+  term: string;
+  tier: Tier;
+  postings: number;
+  missing_in: number;
+  weight: number;
+}
+
+export interface Overview {
+  applications: Application[];
+  gaps: Gap[];
+  pipeline: Record<ApplicationStatus, number>;
+  /** `[created_at, coverage]`, oldest first. */
+  trend: [string, number][];
+  guard: {
+    suggested: number;
+    accepted: number;
+    flagged: number;
+    accepted_flagged: number;
+  };
+}

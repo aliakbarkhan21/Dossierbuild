@@ -284,6 +284,163 @@ def test_plain_text_carries_the_whole_profile() -> None:
 
 
 # --------------------------------------------------------------------------
+# Applications
+# --------------------------------------------------------------------------
+
+
+POSTING = """
+Backend Engineer, Northgate Labs
+
+Requirements:
+- Strong Python
+- Docker and Kubernetes in production
+- Experience with PostgreSQL
+
+Nice to have:
+- Go
+"""
+
+SECOND_POSTING = """
+Platform Engineer, Ridgeway
+
+Requirements:
+- Python service development
+- Docker, and Kubernetes for orchestration
+- Terraform
+"""
+
+
+def _save(text: str, company: str) -> str:
+    response = client.post(
+        "/api/applications",
+        json={"text": text, "company": company, "profile": sample()},
+    )
+    assert response.status_code == 200, response.text
+    return response.json()["id"]
+
+
+def _clear() -> None:
+    """These tests share one database with every other test in the session."""
+    for application in client.get("/api/applications").json()["applications"]:
+        client.delete(f"/api/applications/{application['id']}")
+
+
+def test_a_saved_posting_keeps_its_requirements_as_rows() -> None:
+    _clear()
+    app_id = _save(POSTING, "Northgate Labs")
+
+    body = client.get("/api/applications").json()
+    saved = next(a for a in body["applications"] if a["id"] == app_id)
+    assert saved["status"] == "draft"
+    assert saved["applied_at"] is None
+    assert 0 <= saved["coverage"] <= 100
+    # The profile in `sample()` has Python and SQL and nothing else, so the
+    # container stack is the gap -- and it is the *stated* requirements that
+    # come back, not every word in the advert.
+    assert "docker" in saved["required_missing"]
+    _clear()
+
+
+def test_the_same_gap_in_two_postings_is_what_recurring_gaps_counts() -> None:
+    """The query the database exists for, over HTTP.
+
+    One posting missing Docker says the job was not a match; two say the
+    profile is. Nothing else in the app can tell those apart, because nothing
+    else looks at more than one posting at a time.
+    """
+    _clear()
+    _save(POSTING, "Northgate Labs")
+    _save(SECOND_POSTING, "Ridgeway")
+
+    gaps = {g["term"]: g for g in client.get("/api/applications").json()["gaps"]}
+    assert gaps["docker"]["postings"] == 2
+    assert gaps["docker"]["missing_in"] == 2
+    assert gaps["docker"]["tier"] == "required"
+    # Named by one posting only: it must not outrank the one named by both.
+    assert gaps["terraform"]["postings"] == 1
+    _clear()
+
+
+def test_status_stamps_the_date_you_applied_and_does_not_move_it() -> None:
+    _clear()
+    app_id = _save(POSTING, "Northgate Labs")
+
+    assert client.put(f"/api/applications/{app_id}/status", json={"status": "applied"}).status_code == 200
+    applied_at = _one(app_id)["applied_at"]
+    assert applied_at
+
+    client.put(f"/api/applications/{app_id}/status", json={"status": "interview"})
+    after = _one(app_id)
+    assert after["status"] == "interview"
+    # A follow-up is counted from the day you applied, not the day you
+    # progressed, so moving on must not rewrite it.
+    assert after["applied_at"] == applied_at
+
+    assert client.put(
+        f"/api/applications/{app_id}/status", json={"status": "hired"}
+    ).status_code == 422
+    _clear()
+
+
+def test_a_recorded_run_counts_towards_the_guard_record() -> None:
+    _clear()
+    app_id = _save(POSTING, "Northgate Labs")
+    response = client.post(
+        f"/api/applications/{app_id}/runs",
+        json={
+            "model": "gemini-test",
+            "suggestions": [
+                {"block_id": "b1", "before": "Cut ETL runtime.", "after": "Cut ETL runtime by 78%.",
+                 "accepted": False, "invented": ["78%"]},
+                {"block_id": "b2", "before": "Built a tracker.", "after": "Built a CSV tracker.",
+                 "accepted": True, "invented": []},
+            ],
+        },
+    )
+    assert response.status_code == 200
+
+    body = client.get("/api/applications").json()
+    assert body["guard"] == {
+        "suggested": 2,
+        "accepted": 1,
+        "flagged": 1,
+        # The number that matters: a flagged rewrite that was kept anyway.
+        "accepted_flagged": 0,
+    }
+    assert _one(app_id)["runs"] == 1
+    assert _one(app_id)["accepted"] == 1
+    _clear()
+
+
+def test_deleting_an_application_takes_its_runs_with_it() -> None:
+    _clear()
+    app_id = _save(POSTING, "Northgate Labs")
+    client.post(
+        f"/api/applications/{app_id}/runs",
+        json={"model": "m", "suggestions": [{"block_id": "b", "accepted": True, "invented": []}]},
+    )
+    assert client.delete(f"/api/applications/{app_id}").status_code == 200
+
+    body = client.get("/api/applications").json()
+    assert all(a["id"] != app_id for a in body["applications"])
+    # Decorative ON DELETE CASCADE is the failure this guards: the rows would
+    # survive their application and go on counting.
+    assert body["guard"]["suggested"] == 0
+    assert client.delete(f"/api/applications/{app_id}").status_code == 404
+
+
+def test_an_empty_posting_is_refused_with_a_sentence() -> None:
+    response = client.post("/api/applications", json={"text": "   "})
+    assert response.status_code == 422
+    assert "posting" in response.json()["detail"].lower()
+
+
+def _one(app_id: str) -> dict:
+    body = client.get("/api/applications").json()
+    return next(a for a in body["applications"] if a["id"] == app_id)
+
+
+# --------------------------------------------------------------------------
 # Serving the built frontend
 # --------------------------------------------------------------------------
 

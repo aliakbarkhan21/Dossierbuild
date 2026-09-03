@@ -41,6 +41,8 @@ dossier/
   api/       FastAPI over core, and the server that hosts the frontend.
     static.py      serves web/dist, so shipping is one process on one port.
 web/         React + Vite + TypeScript + Tailwind. The interface.
+  src/routes/   one screen each: Profile, Resume, Tailor, Applications,
+                Import, Health check.
   src/styles/tokens.css   the design system: every colour, in both themes.
 scripts/     self-checks, runnable with nothing but the app's deps.
              launch.cmd / launch.vbs / stop.cmd back the desktop shortcut.
@@ -67,6 +69,14 @@ was already UI-agnostic, so the migration replaced the shell, not the product.
 Phases: **0** repo foundations ✓ · **1** `core/` + FastAPI ✓ · **2** React UI
 to parity ✓ · **3** delete Streamlit ✓ · **4** AI tailoring ✓ · **5** variants,
 history, cover letters.
+
+The Applications screen (2026-09-04) closed a gap phase 3 left open: the
+database, its repository and its five HTTP routes had all shipped and been
+tested, and nothing in `web/src` referenced them. Every tailoring pass
+computed a posting's requirements, scored the profile against them and threw
+the lot away. Saving is explicit — a press on Tailor, not a side effect of
+analysing — because a pipeline that fills itself with every advert anyone
+glanced at is a pipeline nobody trusts.
 
 Each phase ends with a working app, on its own branch, committed.
 
@@ -127,8 +137,8 @@ hand-typed document — read whole, written whole, atomic, backed up.
 `data/dossier.db` holds what is actually relational: many applications, the
 terms each posting asked for, the tailoring runs and their rewrites. The test
 of which is which is whether you would ever ask a question *across* the rows.
-`recurring_gaps` is that question, and it is why the terms are rows rather
-than a JSON blob. SQLite is stdlib, so this added no dependency, and there is
+`recurring_gaps` is that question, it is why the terms are rows rather than a
+JSON blob, and it is the headline of the Applications screen. SQLite is stdlib, so this added no dependency, and there is
 no ORM because the queries are the point.
 
 **`PRAGMA foreign_keys` is off by default in SQLite.** Every `ON DELETE
@@ -175,7 +185,7 @@ cd web && npm install && npm run build     # the interface, built to web/dist
 python -m uvicorn dossier.api:app --port 8000        # then localhost:8000
 
 pip install -r requirements-dev.txt
-pytest                                     # 142 checks, ~24s (real PDF renders)
+pytest                                     # 148 checks, ~34s (real PDF renders)
 python scripts/check_phase2.py             # the render checks, no pytest needed
 python scripts/check_tailor.py             # the posting reader and the audit
 python scripts/check_db.py                 # the schema, its constraints, its queries

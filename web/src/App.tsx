@@ -14,6 +14,7 @@ import { Sidebar } from "./components/Sidebar";
 import { Toaster } from "./components/Toaster";
 import { startHeartbeat } from "./lib/heartbeat";
 import { useStore } from "./lib/store";
+import { ApplicationsScreen } from "./routes/Applications";
 import { HealthScreen } from "./routes/Health";
 import { ImportScreen } from "./routes/Import";
 import { ProfileScreen } from "./routes/Profile";
@@ -230,6 +231,7 @@ export default function App() {
               <Route path="/profile" element={<ProfileScreen />} />
               <Route path="/resume" element={<ResumeScreen />} />
               <Route path="/tailor" element={<TailorScreen />} />
+              <Route path="/applications" element={<ApplicationsScreen />} />
               <Route path="/import" element={<ImportScreen />} />
               <Route path="/health" element={<HealthScreen />} />
               <Route path="*" element={<Navigate to="/profile" replace />} />
