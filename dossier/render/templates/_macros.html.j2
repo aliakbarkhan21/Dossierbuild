@@ -14,6 +14,23 @@
 {%- endif -%}
 {%- endmacro %}
 
+{#
+  One line of a certifications / honors / achievements list.
+
+  The name is a link when the entry has a URL -- a certification's name *is*
+  its credential page, and printing the address beside it spends a line of a
+  resume on something nobody types in. Underlined rather than coloured, so it
+  still reads as a name on paper, where a link is not clickable at all.
+#}
+{% macro line_body(line) -%}
+{%- if line.name -%}
+{%- if line.url %}<a class="cred" href="{{ line.url }}">{{ line.name }}</a>{% else %}<span class="cred-name">{{ line.name }}</span>{% endif %}
+{%- if line.text %} <span class="entry-note">{{ line.text }}</span>{% endif %}
+{%- else -%}
+{{ line.text }}
+{%- endif -%}
+{%- endmacro %}
+
 {% macro entry(e) -%}
 <div class="entry">
   <div class="entry-head">
@@ -23,12 +40,18 @@
         {%- if e.subtitle %}{% if e.title %}<span class="entry-sep">,</span> {% endif %}<span class="entry-sub">{{ e.subtitle }}</span>{% endif %}
         {%- if e.note %} <span class="entry-note">({{ e.note }})</span>{% endif %}
       </div>
-      {%- if e.dates %}<div class="entry-meta">{{ e.dates }}</div>{% endif %}
+      {#- The right of the title line is the dates. A project with no dates
+          has an empty right margin there and its link stranded on a second
+          line of its own, so the link takes the space instead -- which is
+          also where a reader's eye already goes for an entry's metadata. -#}
+      {%- if e.dates %}<div class="entry-meta">{{ e.dates }}</div>
+      {%- elif e.url %}<div class="entry-meta entry-link"><a href="{{ e.url }}">{{ e.url_text }}</a></div>{% endif %}
     </div>
-    {%- if e.place or e.detail or e.url %}
+    {%- set second_url = e.url and e.dates %}
+    {%- if e.place or e.detail or second_url %}
     <div class="entry-line entry-second">
       <div class="entry-note">{{ e.place }}{% if e.place and e.detail %} · {% endif %}{{ e.detail }}</div>
-      {%- if e.url %}<div class="entry-link"><a href="{{ e.url }}">{{ e.url_text }}</a></div>{% endif %}
+      {%- if second_url %}<div class="entry-link"><a href="{{ e.url }}">{{ e.url_text }}</a></div>{% endif %}
     </div>
     {%- endif %}
   </div>
@@ -57,7 +80,7 @@
 {%- elif s.kind == 'lines' -%}
 <ul class="lines">
   {%- for line in s.lines %}
-  <li>{{ line }}</li>
+  <li>{{ line_body(line) }}</li>
   {%- endfor %}
 </ul>
 {%- endif -%}
@@ -89,7 +112,7 @@
     {%- endfor %}
   {%- elif s.kind == 'lines' %}
   <ul class="lines">
-    {%- for line in s.lines %}<li>{{ line }}</li>{% endfor %}
+    {%- for line in s.lines %}<li>{{ line_body(line) }}</li>{% endfor %}
   </ul>
   {%- elif s.kind == 'entries' %}
     {%- for e in s.entries %}

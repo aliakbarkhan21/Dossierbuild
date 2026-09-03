@@ -49,6 +49,26 @@ class Entry:
 
 
 @dataclass(frozen=True)
+class Line:
+    """One entry in a "lines" section: certifications, honors, achievements.
+
+    A plain string would do for the text, and did until a certification needed
+    its name to be clickable. The link is kept apart from the text rather than
+    baked in as HTML because ``render/text.py`` prints the same sections into a
+    plain-text resume, where an anchor tag is noise.
+    """
+
+    text: str
+    """Everything after the name -- issuer, date -- already joined."""
+    name: str = ""
+    url: str = ""
+
+    def __str__(self) -> str:
+        """So a template that has not been updated still prints something."""
+        return f"{self.name} · {self.text}" if self.name and self.text else (self.name or self.text)
+
+
+@dataclass(frozen=True)
 class Section:
     key: str
     label: str
@@ -61,7 +81,7 @@ class Section:
     Joining them into "Python, SQL" here would be one character shorter in the
     common template and would stop the side-column layouts putting one skill
     per line. Templates that want a sentence ask for ``| join(', ')``."""
-    lines: list[str] = field(default_factory=list)
+    lines: list["Line"] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -248,18 +268,25 @@ def _build_section(profile: Profile, design: Design, key: str) -> Section | None
         return Section(key, label, "groups", groups=groups) if groups else None
 
     if key == "certifications":
+        from ..core.schema import format_date
+
         lines = []
         for c in profile.certifications:
             if not c.name.strip():
                 continue
-            parts = [c.name.strip()]
-            if c.issuer.strip():
-                parts.append(c.issuer.strip())
+            # The name is the link, not a trailing URL. A certification's
+            # credential page is what its name refers to, and printing the URL
+            # beside it spends a line of a resume on an address nobody types.
+            rest = [c.issuer.strip()]
             if c.issued:
-                from ..core.schema import format_date
-
-                parts.append(format_date(c.issued, blank="", style=design.date_format))
-            lines.append(" · ".join(p for p in parts if p))
+                rest.append(format_date(c.issued, blank="", style=design.date_format))
+            lines.append(
+                Line(
+                    name=c.name.strip(),
+                    text=" · ".join(p for p in rest if p),
+                    url=normalise_url(c.url),
+                )
+            )
         return Section(key, label, "lines", lines=lines) if lines else None
 
     if key == "awards":
@@ -277,7 +304,7 @@ def _build_section(profile: Profile, design: Design, key: str) -> Section | None
             line = " · ".join(p for p in parts if p)
             if a.note.strip():
                 line += f". {a.note.strip()}"
-            lines.append(line)
+            lines.append(Line(text=line))
         return Section(key, label, "lines", lines=lines) if lines else None
 
     if key == "achievements":
@@ -295,7 +322,7 @@ def _build_section(profile: Profile, design: Design, key: str) -> Section | None
             line = " · ".join(p for p in parts if p)
             if a.note.strip():
                 line += f". {a.note.strip()}"
-            lines.append(line)
+            lines.append(Line(text=line))
         return Section(key, label, "lines", lines=lines) if lines else None
 
     return None

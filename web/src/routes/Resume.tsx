@@ -6,7 +6,7 @@
  * Everything on the left changes one thing and shows the result immediately.
  */
 
-import { Download, FileCode2, FileType2, Loader2, RotateCcw, Trash2, Upload } from "lucide-react";
+import { Download, FileCode2, FileType2, Loader2, Maximize2, RotateCcw, Trash2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useShell } from "../App";
@@ -19,11 +19,28 @@ import { useStore } from "../lib/store";
 import { toast } from "../lib/toast";
 import type { Design, FitReport, Profile, TemplateOption } from "../lib/types";
 
-const ZOOMS = [
-  { label: "Fit", value: 0 },
-  { label: "100%", value: 1 },
-  { label: "150%", value: 1.5 },
-];
+/** Zoom, as a percentage. 0 is the sentinel for "fit to the pane". */
+const ZOOM_MIN = 60;
+const ZOOM_MAX = 150;
+
+/**
+ * What "Reset design" and an unpicked look both go back to.
+ *
+ * One constant rather than two copies: the reset button and the look toggle
+ * have to agree on what "no look" means, and they did not while each held its
+ * own object literal.
+ */
+const DEFAULT_DESIGN: Partial<Design> = {
+  template: "classic",
+  accent: "ink",
+  fonts: "serif_sans",
+  page: "a4",
+  margin: "normal",
+  leading: "normal",
+  date_format: "month",
+  scale: 100,
+  hidden: [],
+};
 
 const FILTERS = [
   { label: "All", test: () => true },
@@ -52,7 +69,12 @@ export function ResumeScreen() {
     edit: s.edit,
   })));
 
+  // 0 means fit-to-pane; anything else is a literal scale. `percent` is what
+  // the slider shows, and it survives a trip through Fit so going back to a
+  // manual zoom returns you to the one you had.
   const [zoom, setZoom] = useState(0);
+  const [percent, setPercent] = useState(100);
+  const [fullscreen, setFullscreen] = useState(false);
   const [filter, setFilter] = useState("All");
   const [preview, setPreview] = useState("");
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
@@ -254,21 +276,47 @@ export function ResumeScreen() {
         <div className="flex min-w-0 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-sm font-semibold">Preview</h2>
-            <div className="ml-auto flex gap-0.5 rounded-md bg-sunken p-0.5">
-              {ZOOMS.map((z) => (
-                <button
-                  key={z.label}
-                  type="button"
-                  onClick={() => setZoom(z.value)}
-                  className={[
-                    "rounded px-2 py-1 text-2xs font-medium transition-colors duration-150",
-                    zoom === z.value ? "bg-surface text-ink shadow-subtle" : "text-muted hover:text-ink",
-                  ].join(" ")}
-                >
-                  {z.label}
-                </button>
-              ))}
+
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setZoom(0)}
+                className={[
+                  "rounded px-2 py-1 text-2xs font-medium transition-colors duration-150",
+                  zoom === 0 ? "bg-sunken text-ink shadow-subtle" : "text-muted hover:text-ink",
+                ].join(" ")}
+                title="Scale the page to fit this pane"
+              >
+                Fit
+              </button>
+              <input
+                type="range"
+                min={ZOOM_MIN}
+                max={ZOOM_MAX}
+                step={5}
+                value={percent}
+                aria-label="Zoom"
+                onChange={(event) => {
+                  const next = Number(event.target.value);
+                  setPercent(next);
+                  setZoom(next / 100);
+                }}
+                className="zoom w-28"
+              />
+              <span className="w-9 text-right font-mono text-2xs tabular-nums text-muted">
+                {zoom === 0 ? "fit" : `${percent}%`}
+              </span>
+              <button
+                type="button"
+                className="btn btn-quiet px-1.5 py-1"
+                onClick={() => setFullscreen(true)}
+                title="See the whole page, as it prints"
+                aria-label="Full screen preview"
+              >
+                <Maximize2 size={14} />
+              </button>
             </div>
+
             <button type="button" className="btn" onClick={checkFit}>
               Check fit
             </button>
@@ -313,7 +361,78 @@ export function ResumeScreen() {
           )}
         </div>
       </div>
+
+      {fullscreen && (
+        <FullPage profile={profile} design={design} onClose={() => setFullscreen(false)} />
+      )}
     </>
+  );
+}
+
+/**
+ * The resume with nothing else on screen.
+ *
+ * Rendered at its own zoom rather than reusing the pane's: the point of this
+ * view is to read the page as a page, so it fits the *height* of the window
+ * instead of the width of a column. It asks the server for its own document
+ * because the fit script runs per-frame -- sharing the pane's HTML would mean
+ * both frames fighting over one scale.
+ */
+function FullPage({
+  profile,
+  design,
+  onClose,
+}: {
+  profile: Profile;
+  design: Design;
+  onClose: () => void;
+}) {
+  const [html, setHtml] = useState("");
+
+  useEffect(() => {
+    api
+      .preview({ profile, design, zoom: 0 })
+      .then(setHtml)
+      .catch((error: unknown) => {
+        if (error instanceof ApiError) toast.error(error.message, error.fix);
+      });
+  }, [profile, design]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    // The page behind must not scroll while a full-screen layer is over it.
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#1b1c1f]">
+      <div className="flex items-center gap-3 px-4 py-2 text-sm text-white/80">
+        <span className="font-display">{profile.basics.name || "Resume"}</span>
+        <span className="text-white/45">Press Escape to close</span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="ml-auto rounded-md px-2 py-1 text-white/80 transition-colors duration-150 hover:bg-white/10 hover:text-white"
+          aria-label="Close the full screen preview"
+        >
+          <X size={18} />
+        </button>
+      </div>
+      <Frame
+        html={html}
+        title="Full page preview"
+        className="min-h-0 flex-1"
+        placeholder={<div className="absolute inset-0 animate-pulse bg-white/5" aria-hidden />}
+      />
+    </div>
   );
 }
 
@@ -341,8 +460,12 @@ function Looks({
             <button
               key={look.key}
               type="button"
-              title={look.blurb}
-              onClick={() => onPick(look.values)}
+              title={active ? `${look.blurb} — click again to clear it` : look.blurb}
+              aria-pressed={active}
+              // A look was a one-way door: once applied there was no way back
+              // to an unstyled starting point except by hunting through the
+              // controls it had changed. Clicking the active one clears it.
+              onClick={() => onPick(active ? DEFAULT_DESIGN : look.values)}
               className={[
                 "btn justify-center",
                 active ? "border-accent text-accent" : "",
@@ -492,7 +615,7 @@ function DesignPanel({
       </div>
 
       <Choice
-        label="Dates"
+        label="Date format"
         value={design.date_format}
         options={options.date_formats}
         onChange={(date_format) => onChange({ date_format })}
@@ -555,15 +678,7 @@ function DesignPanel({
         className="btn self-start"
         onClick={() =>
           onChange({
-            template: "classic",
-            accent: "ink",
-            fonts: "serif_sans",
-            page: "a4",
-            margin: "normal",
-            leading: "normal",
-            date_format: "month",
-            scale: 100,
-            hidden: [],
+            ...DEFAULT_DESIGN,
             order: options.sections.map((s) => s.key),
           })
         }
@@ -610,6 +725,14 @@ function Choice({
   );
 }
 
+/**
+ * A settings row: what it does at one end, the switch at the other.
+ *
+ * The switch used to sit immediately left of its label, which left the rest
+ * of the row empty and gave three unrelated controls three different hit
+ * targets. Full width means the whole row is clickable and the switches line
+ * up in a column the eye can run down.
+ */
 function Toggle({
   checked,
   onChange,
@@ -620,23 +743,27 @@ function Toggle({
   label: string;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+    <label className="flex w-full cursor-pointer items-center gap-3 py-0.5 text-sm">
+      <span className="min-w-0 flex-1 text-muted">{label}</span>
       <button
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={label}
         onClick={() => onChange(!checked)}
         className={[
           "relative h-[18px] w-8 shrink-0 rounded-full transition-colors duration-200 ease-out",
           checked ? "bg-accent" : "bg-line-strong",
         ].join(" ")}
       >
+        {/* 2px in from whichever end it is at: 2 on the left, and
+            32 - 14 - 2 = 16 on the right. Written as the arithmetic so the
+            travel stays symmetrical if the track or knob is ever resized. */}
         <span
           className="absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white shadow-subtle transition-[left] duration-200 ease-out"
-          style={{ left: checked ? 16 : 2 }}
+          style={{ left: checked ? 32 - 14 - 2 : 2 }}
         />
       </button>
-      <span className="text-muted">{label}</span>
     </label>
   );
 }

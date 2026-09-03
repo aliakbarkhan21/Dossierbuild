@@ -138,7 +138,7 @@
         {%- for item in items %}<div class="side-item">{{ item }}</div>{% endfor %}
         {%- endfor %}
       {%- else %}
-        {%- for line in s.lines %}<div class="side-item">{{ line }}</div>{% endfor %}
+        {%- for line in s.lines %}<div class="side-item">{{ m.line_body(line) }}</div>{% endfor %}
       {%- endif %}
     </section>
     {%- endfor %}

@@ -228,6 +228,19 @@
                 box-shadow var(--duration-fast) var(--ease-out);
   }
   .field::placeholder { color: var(--c-faint); }
+  /* A select draws its own chevron hard against the border, so the same
+     padding that looks right on a text input looks cramped on a dropdown.
+     The extra room on the right is for the arrow, not for the text. */
+  select.field {
+    padding-right: 1.9rem;
+    background-image: linear-gradient(45deg, transparent 50%, var(--c-muted) 50%),
+                      linear-gradient(135deg, var(--c-muted) 50%, transparent 50%);
+    background-position: calc(100% - 1.05rem) 55%, calc(100% - 0.72rem) 55%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    appearance: none;
+    -webkit-appearance: none;
+  }
   .field:focus {
     outline: none;
     border-color: var(--c-accent);
@@ -241,6 +254,49 @@
   .field[aria-invalid="true"]:focus {
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-poor) 22%, transparent);
   }
+
+  /* The zoom slider. A range input takes none of the design tokens on its
+     own, and the unstyled control is a different shape in every browser. */
+  .zoom {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 18px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .zoom::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--c-line-strong);
+  }
+  .zoom::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--c-line-strong);
+  }
+  .zoom::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 13px;
+    height: 13px;
+    /* Centres the thumb on a 4px track: (4 - 13) / 2. */
+    margin-top: -4.5px;
+    border-radius: 999px;
+    background: var(--c-accent);
+    border: 2px solid var(--c-surface);
+    box-shadow: var(--shadow-subtle);
+  }
+  .zoom::-moz-range-thumb {
+    width: 13px;
+    height: 13px;
+    border-radius: 999px;
+    background: var(--c-accent);
+    border: 2px solid var(--c-surface);
+    box-shadow: var(--shadow-subtle);
+  }
+  .zoom:focus-visible { outline: none; }
+  .zoom:focus-visible::-webkit-slider-thumb { box-shadow: var(--ring-accent); }
+  .zoom:focus-visible::-moz-range-thumb { box-shadow: var(--ring-accent); }
 
   .btn {
     display: inline-flex;
