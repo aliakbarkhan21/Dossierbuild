@@ -17,6 +17,8 @@ dossier/
     storage.py     load / validate / atomic save / migrate. DATA_DIR is env-configurable.
     settings.py    small UI preferences, low stakes, never validated hard.
     quality.py     the bullet-writing standard, as code.
+    db.py          SQLite: connection, pragmas, its own migration chain.
+    applications.py  saved applications, and the queries across all of them.
     jobspec.py     a job posting, read by rules. Weighted terms, coverage, evidence. No AI.
     ids.py         stable short ids.
   ingest/    PDF·DOCX·LinkedIn -> profile, plus the merge review. No AI.
@@ -24,6 +26,7 @@ dossier/
     client.py      the key, the model fallback ladder, the retry budget. Shared.
     parse.py       resume text -> profile. Transcribes, never composes.
     tailor.py      profile + posting -> rewrites keyed by block id, each audited.
+    suggest.py     one drafted bullet or summary, from facts the user supplies.
   render/    profile + design -> HTML -> PDF.
     design.py      every presentation choice, validated. Curated, not open-ended.
     context.py     the profile flattened into exactly what a template needs.
@@ -116,6 +119,20 @@ requirement would silently re-angle an entire resume at something the employer
 never asked for — and keeping the analysis deterministic is also why the gap
 report works with no API key, with Gemini down, and inside a test.
 
+**Two stores, and the split is deliberate.** `profile.json` holds the one
+hand-typed document — read whole, written whole, atomic, backed up.
+`data/dossier.db` holds what is actually relational: many applications, the
+terms each posting asked for, the tailoring runs and their rewrites. The test
+of which is which is whether you would ever ask a question *across* the rows.
+`recurring_gaps` is that question, and it is why the terms are rows rather
+than a JSON blob. SQLite is stdlib, so this added no dependency, and there is
+no ORM because the queries are the point.
+
+**`PRAGMA foreign_keys` is off by default in SQLite.** Every `ON DELETE
+CASCADE` in the schema is decorative without it, so `db.connect` sets it and
+`check_db` proves it by deleting an application and asserting its rows go and
+its siblings stay.
+
 **Never lose the profile.** Atomic writes, a timestamped backup on every save,
 and `data/` deny-listed in `.gitignore` by default.
 
@@ -155,9 +172,10 @@ cd web && npm install && npm run build     # the interface, built to web/dist
 python -m uvicorn dossier.api:app --port 8000        # then localhost:8000
 
 pip install -r requirements-dev.txt
-pytest                                     # 115 checks, ~24s (real PDF renders)
+pytest                                     # 140 checks, ~26s (real PDF renders)
 python scripts/check_phase2.py             # the render checks, no pytest needed
 python scripts/check_tailor.py             # the posting reader and the audit
+python scripts/check_db.py                 # the schema, its constraints, its queries
 ```
 
 One process serves both the API and the interface: `api/static.py` mounts
@@ -230,6 +248,22 @@ Each of these cost a debugging round.
   invites. They are caught by name against the technology lexicon instead.
   Going the other way and flagging every capitalised word makes "Built" an
   invented entity and the warning worthless.
+- **A short Title Case line is not a heading.** Postings list single-word
+  requirements constantly — "- Docker", "- SQL" — and each is short and either
+  Title Case or all-caps, which was exactly the heading test. Four
+  requirements were silently dropped across three test postings. Headings are
+  matched against the vocabulary that already exists (`KNOWN_HEADINGS`), and a
+  line opening with a bullet marker is never one. Casing was always a bad
+  proxy: "Nice to have" is not Title Case, and "Docker" is.
+- **`executescript` commits before it runs**, which ends the migration's own
+  transaction and makes the following COMMIT fail. Splitting a script on ";"
+  instead is worse — a semicolon inside a SQL comment cut a statement in half
+  and produced a syntax error pointing at an English word. Migrations are
+  tuples of whole statements.
+- **A `transform` does not affect layout.** The preview desk stayed pane-width
+  while the scaled sheet overflowed it, so zooming past fit clipped the page
+  and offered no scrollbar — which read as "150% does nothing". The desk needs
+  an explicit width for the scaled sheet to be reachable.
 - **FastAPI derives a response model from the return annotation.** A route
   returning `FileResponse | JSONResponse` fails at import until it is given
   `response_model=None`.

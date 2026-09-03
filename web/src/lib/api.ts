@@ -10,6 +10,7 @@
 import type {
   Design,
   DesignOptions,
+  Draft,
   Extracted,
   FitReport,
   Health,
@@ -151,6 +152,13 @@ export const api = {
 
   uploadPhoto: (file: File) => upload<{ photo: string }>("/api/profile/photo", file),
   deletePhoto: () => request<{ photo: string }>("/api/profile/photo", "DELETE"),
+
+  suggest: (body: {
+    kind: "summary" | "bullet";
+    note?: string;
+    entry_label?: string;
+    profile?: Profile;
+  }) => request<Draft>("/api/suggest", "POST", body),
 
   analysePosting: (body: { text: string; title?: string; company?: string; profile?: Profile }) =>
     request<MatchReport>("/api/tailor/analyse", "POST", body),

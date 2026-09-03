@@ -21,6 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from dossier.ai import suggest
 from dossier.ai.tailor import apply_suggestions, audit, _known_vocabulary
 from dossier.core import jobspec
 from dossier.core.schema import (
@@ -343,8 +344,94 @@ def test_apply_unknown_id() -> None:
     assert updated.experience[0].bullets[0].text == "Cleaned 8,400 rows of survey data with pandas"
 
 
+# --------------------------------------------------------------------------
+# Drafting a single line
+# --------------------------------------------------------------------------
+
+
+@check("a note too short to work from is refused rather than filled in")
+def test_suggest_needs_a_note() -> None:
+    """The failure this prevents is the whole reason the guard exists: given
+    two words, a model writes the other twenty itself."""
+    try:
+        suggest.suggest_bullet(sample_profile(), "did stuff")
+    except ValueError as exc:
+        assert "a sentence" in str(exc), exc
+        return
+    raise AssertionError("a two-word note was accepted")
+
+
+@check("a summary is refused when there is nothing to summarise")
+def test_suggest_needs_a_profile() -> None:
+    try:
+        suggest.suggest_summary(Profile.empty())
+    except ValueError as exc:
+        assert "nothing to summarise" in str(exc), exc
+        return
+    raise AssertionError("an empty profile was summarised")
+
+
+@check("a drafted line is audited against the note it came from")
+def test_draft_is_audited() -> None:
+    profile = sample_profile()
+
+    honest = suggest._finish(
+        "Configured new starter laptops and wrote the VPN guide",
+        profile,
+        "set up the new starter laptops and wrote the guide for connecting to the VPN",
+        "test-model",
+        is_summary=False,
+    )
+    assert honest.invented == [], honest.invented
+    assert honest.is_safe
+
+    # The failure mode in full: a plausible metric nobody stated.
+    invented = suggest._finish(
+        "Configured 40 new starter laptops, cutting setup time 60%",
+        profile,
+        "set up the new starter laptops and wrote the guide for connecting to the VPN",
+        "test-model",
+        is_summary=False,
+    )
+    assert set(invented.invented) == {"40", "60"}, invented.invented
+    assert not invented.is_safe
+
+
+@check("a drafted line is linted by the same rules as a typed one")
+def test_draft_is_linted() -> None:
+    draft = suggest._finish(
+        "Responsible for various tasks.",
+        sample_profile(),
+        "responsible for various tasks",
+        "test-model",
+        is_summary=False,
+    )
+    joined = " ".join(draft.findings)
+    assert "filler" in joined, draft.findings
+    assert "trailing full stop" in joined, draft.findings
+
+
+@check("a bullet character the model added is stripped, not inserted")
+def test_draft_strips_bullet_glyph() -> None:
+    for raw in ("- Built a tracker", "• Built a tracker", "  Built a tracker  "):
+        draft = suggest._finish(raw, sample_profile(), "built a tracker", "m", is_summary=False)
+        assert draft.text == "Built a tracker", (raw, draft.text)
+
+
+@check("the facts offered to a summary are the ones already in the profile")
+def test_profile_facts() -> None:
+    facts = suggest._profile_facts(sample_profile())
+    assert "8,400" in facts, facts
+    assert "Loot Ledger" in facts, facts
+    assert "TeleTaleem" in facts, facts
+    assert suggest._profile_facts(Profile.empty()).strip() == ""
+
+
 def main() -> int:
-    return run(__name__, skipped="the Gemini rewrite call itself (needs a key and a network)")
+    return run(
+        __name__,
+        skipped="the Gemini rewrite and suggestion calls (need a key and a network)",
+    )
 
 
 if __name__ == "__main__":

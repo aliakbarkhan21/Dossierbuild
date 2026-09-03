@@ -14,6 +14,7 @@ import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import { AiSuggest } from "../components/AiSuggest";
 import { useShell } from "../App";
 import { TopBar } from "../components/TopBar";
 import { useShallow } from "zustand/react/shallow";
@@ -652,11 +653,19 @@ function SummaryForm({ profile, edit }: { profile: Profile; edit: Edit }) {
   const text = profile.summary.text;
   return (
     <section className="card p-5">
-      <h2 className="font-display text-lg">Summary</h2>
-      <p className="mt-1 max-w-prose text-sm text-muted">
-        Three or four lines. What you work on, what you have built, and what you are looking for —
-        named specifically enough that nobody else could have written it.
-      </p>
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-lg">Summary</h2>
+          <p className="mt-1 max-w-prose text-sm text-muted">
+            Three or four lines. What you work on, what you have built, and what you are looking
+            for — named specifically enough that nobody else could have written it.
+          </p>
+        </div>
+        <AiSuggest
+          kind="summary"
+          onInsert={(text) => edit((d) => void (d.summary.text = text))}
+        />
+      </div>
       <textarea
         data-block-id={profile.summary.id}
         className="field mt-4 min-h-32 resize-y leading-relaxed transition-shadow duration-300"
@@ -907,6 +916,7 @@ function EntryList({
             <Bullets
               bullets={(entry.bullets as { id: string; text: string }[]) ?? []}
               onChange={(next) => mutate(index, "bullets", next)}
+              entryLabel={entryTitle(section, entry)}
             />
           )}
         </article>
@@ -931,16 +941,38 @@ function EntryList({
   );
 }
 
+/** What to call this entry when asking for a bullet for it. */
+function entryTitle(section: ListSection, entry: Record<string, unknown>): string {
+  const parts =
+    section === "projects"
+      ? [entry.name, entry.tagline]
+      : section === "education"
+        ? [entry.credential, entry.institution]
+        : [entry.role, entry.organisation];
+  return parts.filter(Boolean).join(" — ");
+}
+
 function Bullets({
   bullets,
   onChange,
+  entryLabel,
 }: {
   bullets: { id: string; text: string }[];
   onChange: (next: { id: string; text: string }[]) => void;
+  entryLabel: string;
 }) {
   return (
     <div className="mt-4">
-      <span className="label">Bullets</span>
+      <div className="flex items-center justify-between gap-3">
+        <span className="label">Bullets</span>
+        {/* Appends rather than replacing: a drafted line is a new bullet, and
+            overwriting whichever one happened to be focused would lose work. */}
+        <AiSuggest
+          kind="bullet"
+          entryLabel={entryLabel}
+          onInsert={(text) => onChange([...bullets, { id: "", text }])}
+        />
+      </div>
       <div className="flex flex-col gap-2">
         {bullets.map((bullet, index) => (
           <div key={bullet.id || index} className="flex items-start gap-2">

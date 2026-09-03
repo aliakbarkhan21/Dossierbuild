@@ -334,3 +334,12 @@ export interface RewriteResult {
   suggestions: Suggestion[];
   notes: string[];
 }
+
+/** One drafted line, already audited against its source and linted. */
+export interface Draft {
+  text: string;
+  model: string;
+  /** Asserted by the draft and not present in what it was given. */
+  invented: string[];
+  findings: string[];
+}
