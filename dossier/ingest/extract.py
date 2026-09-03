@@ -21,6 +21,15 @@ from dataclasses import dataclass
 SUPPORTED_SUFFIXES = (".pdf", ".docx", ".txt", ".md")
 
 
+class ExtractError(ValueError):
+    """This file cannot be read, with a sentence saying why.
+
+    A subclass of ValueError so existing callers that catch ValueError keep
+    working, and a named type so the HTTP layer can answer 422 with the
+    message rather than 500 with a traceback.
+    """
+
+
 @dataclass
 class Extraction:
     text: str
@@ -76,7 +85,7 @@ def extract_pdf(data: bytes, name: str) -> Extraction:
         try:
             reader.decrypt("")  # many resumes are "encrypted" with an empty password
         except Exception as exc:  # noqa: BLE001
-            raise ValueError(
+            raise ExtractError(
                 "That PDF is password protected. Save an unprotected copy and upload that."
             ) from exc
 
@@ -126,8 +135,8 @@ def extract(data: bytes, filename: str) -> Extraction:
     if lower.endswith((".txt", ".md")):
         return extract_text_file(data, filename)
     if lower.endswith(".doc"):
-        raise ValueError(
+        raise ExtractError(
             "Old-style .doc files are not readable here. Open it in Word or Google Docs "
             "and save as .docx or PDF."
         )
-    raise ValueError(f"Cannot read {filename}. Supported: {', '.join(SUPPORTED_SUFFIXES)}")
+    raise ExtractError(f"Cannot read {filename}. Supported: {', '.join(SUPPORTED_SUFFIXES)}")
