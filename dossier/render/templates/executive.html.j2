@@ -18,9 +18,10 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 8mm;
-  padding-bottom: 7pt;
-  border-bottom: 2pt solid var(--accent);
-  margin-bottom: 10pt;
+  /* No rule under the header. The first section heading already carries one
+     an inch below it, and two accent rules that close to each other read as a
+     mistake rather than as structure. */
+  margin-bottom: 11pt;
 }
 .hdr-name {
   font-size: calc(var(--fs) * 2.3);

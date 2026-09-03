@@ -45,6 +45,9 @@ export const useShell = () => useContext(ShellContext);
  */
 const DRAWER_BELOW = 1024;
 
+/** The sidebar's width, in one place: the spacer and the slide must agree. */
+const SIDEBAR_W = 232;
+
 function useNarrow(): boolean {
   const [narrow, setNarrow] = useState(
     () => typeof window !== "undefined" && window.innerWidth < DRAWER_BELOW,
@@ -166,7 +169,7 @@ export default function App() {
 
   return (
     <ShellContext.Provider value={shell}>
-      <div className="flex h-screen overflow-hidden">
+      <div className="relative flex h-screen overflow-hidden">
         {/* Both forms stay mounted whether they are showing or not. An
             element removed from the tree on close has nothing left to
             animate -- it is simply gone on the next frame -- so the panel
@@ -196,30 +199,29 @@ export default function App() {
             </div>
           </>
         ) : (
-          // The width is what the page layout reacts to, and the transform is
-          // what the eye follows. Width alone clips the panel from the right,
-          // so the words disappear one letter at a time while standing still;
-          // the transform slides it out of the gap the width is closing.
-          <div
-            inert={collapsed}
-            className={[
-              "h-full shrink-0 overflow-hidden transition-[width] duration-200 ease-out",
-              collapsed ? "w-0" : "w-[232px]",
-            ].join(" ")}
-          >
+          // Two elements, and only one of them animates.
+          //
+          // The spacer is what the page layout follows, and its width changes
+          // in a single step -- no transition. Transitioning it instead cost a
+          // layout of every document on the page on every frame, and the
+          // Resume screen holds ten of them: the app, the preview, and eight
+          // template thumbnails. That is what made a 200ms slide stutter.
+          //
+          // The panel is taken out of the flow and moved with a transform,
+          // which the compositor does without laying anything out at all. The
+          // single width step is invisible: on the way out the panel is still
+          // covering the ground the content grows into, and on the way in the
+          // gap opens first and the panel arrives to fill it.
+          <>
+            <div className="shrink-0" style={{ width: collapsed ? 0 : SIDEBAR_W }} aria-hidden />
             <div
-              className={[
-                "h-full transition-transform duration-200 ease-out",
-                // Pixels, not `-translate-x-full`: a percentage resolves
-                // against this element's own width, which the wrapper above
-                // is animating to zero at the same time, so the slide would
-                // shorten as it ran and finish at no offset at all.
-                collapsed ? "-translate-x-[232px]" : "translate-x-0",
-              ].join(" ")}
+              inert={collapsed}
+              className="absolute inset-y-0 left-0 z-30 transition-transform duration-200 ease-out"
+              style={{ transform: collapsed ? `translateX(-${SIDEBAR_W}px)` : "none" }}
             >
               <Sidebar onCollapse={() => setCollapsed(true)} />
             </div>
-          </div>
+          </>
         )}
         <main className="flex min-w-0 flex-1 flex-col overflow-y-auto">
           {ready ? (

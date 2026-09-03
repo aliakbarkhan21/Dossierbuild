@@ -336,9 +336,22 @@ ul.bul li::before {
 
 {% if preview %}
 <script>
-// Two jobs: fit the sheet to whatever width Streamlit gave the iframe, and
-// show where the paper runs out. The break lines are drawn from the measured
-// height of the laid-out sheet, so they move as the profile is edited.
+// Two jobs, and they cost very different amounts, so they are two functions.
+//
+// `measure` is about the document: how many pages the content runs to, where
+// the paper is cut, and what the fit bar says. It reads `scrollHeight`, which
+// forces a full layout of an A4 page, and it rebuilds elements.
+//
+// `fit` is about the window: the scale that puts the sheet in the pane, and
+// the desk's size at that scale. It reads one width.
+//
+// Splitting them is a performance fix, not tidiness. Nine of these documents
+// are alive on the Resume screen -- the preview and eight template
+// thumbnails -- and every one of them gets a `resize` for every frame of the
+// sidebar sliding in or out. Running the whole of `measure` nine times a
+// frame is what made a 200ms animation stutter. A resize cannot change the
+// page count: the sheet is a fixed number of millimetres wide and its text
+// does not reflow. So a resize runs `fit` alone.
 (function () {
   var sheet = document.getElementById('sheet');
   var desk = document.querySelector('.desk');
@@ -349,21 +362,21 @@ ul.bul li::before {
   var LINE = {{ line_px }};
   var zoom = {{ zoom }};
   var breaks = {{ 'true' if breaks else 'false' }};
-  var fit = '{{ fit }}';
+  var fit_mode = '{{ fit }}';
 
-  function draw() {
-    Array.prototype.forEach.call(
-      document.querySelectorAll('.pagebreak'), function (n) { n.remove(); }
-    );
-    // Both of these have to go before measuring: the markers and the stretched
-    // paper are outputs of the last pass, and measuring them would make every
-    // pass believe the document had grown.
-    sheet.style.minHeight = '';
+  var pages = 1;          // what `measure` found, what `fit` scales
+  var sheetW = 0;         // fixed in mm, so it is read once
+  var lastDeskW = -1;
+  var queued = 0;
+
+  function fit() {
+    lastDeskW = desk.clientWidth;
+    if (!sheetW) { sheetW = sheet.offsetWidth; }
 
     var scale;
     if (zoom > 0) {
       scale = zoom;
-    } else if (fit === 'page') {
+    } else if (fit_mode === 'page') {
       // Fit a sheet to the window's height, not its width. Fitting the width
       // of a wide window scales an A4 page far past readable and cuts off
       // everything below the fold, which is the opposite of what a full-page
@@ -379,16 +392,35 @@ ul.bul li::before {
       // buys back a legible size.
       var top = desk.getBoundingClientRect().top;
       var byHeight = (window.innerHeight - top - 24) / PAGE_H * 1.25;
-      var byWidth = (desk.clientWidth - 26) / sheet.offsetWidth;
-      scale = Math.min(byWidth, byHeight);
+      scale = Math.min((lastDeskW - 26) / sheetW, byHeight);
     } else {
-      scale = Math.min((desk.clientWidth - 26) / sheet.offsetWidth, 1.5);
+      scale = Math.min((lastDeskW - 26) / sheetW, 1.5);
     }
+
     sheet.style.transform = 'scale(' + scale + ')';
+    desk.style.height = (PAGE_H * pages * scale) + 'px';
+    desk.style.overflow = 'hidden';
+    // A scaled sheet is wider than the pane at anything over fit, and a
+    // transform does not affect layout -- so without an explicit width the
+    // desk stays pane-width, clips the overflow and offers no scrollbar. That
+    // is why zooming in appeared to do nothing at all. Only set it when the
+    // sheet really is wider, or the minimum would defeat the centring.
+    var scaledWidth = sheetW * scale + 26;
+    desk.style.minWidth = scaledWidth > lastDeskW ? scaledWidth + 'px' : '';
+  }
+
+  function measure() {
+    Array.prototype.forEach.call(
+      document.querySelectorAll('.pagebreak'), function (n) { n.remove(); }
+    );
+    // Both of these have to go before measuring: the markers and the stretched
+    // paper are outputs of the last pass, and measuring them would make every
+    // pass believe the document had grown.
+    sheet.style.minHeight = '';
 
     var content = sheet.scrollHeight - PAD * 2;
     var usable = PAGE_H - PAD * 2;
-    var pages = Math.max(1, Math.ceil(content / usable));
+    pages = Math.max(1, Math.ceil(content / usable));
     // Paper is paper: a two-page resume whose second page holds four lines
     // still shows two full sheets, because that is what comes out of the
     // printer.
@@ -404,16 +436,6 @@ ul.bul li::before {
         sheet.appendChild(gap);
       }
     }
-
-    desk.style.height = (PAGE_H * pages * scale) + 'px';
-    desk.style.overflow = 'hidden';
-    // A scaled sheet is wider than the pane at anything over fit, and a
-    // transform does not affect layout -- so without an explicit width the
-    // desk stays pane-width, clips the overflow and offers no scrollbar. That
-    // is why zooming in appeared to do nothing at all. Only set it when the
-    // sheet really is wider, or the minimum would defeat the centring.
-    var scaledWidth = sheet.offsetWidth * scale + 26;
-    desk.style.minWidth = scaledWidth > desk.clientWidth ? scaledWidth + 'px' : '';
 
     if (left && right) {
       var spill = content - usable * (pages - 1);
@@ -432,12 +454,25 @@ ul.bul li::before {
         right.innerHTML = '';
       }
     }
+
+    fit();
   }
 
-  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(draw); }
-  window.addEventListener('load', draw);
-  window.addEventListener('resize', draw);
-  draw();
+  // One `fit` per frame at most, and none at all when the width did not
+  // actually move -- a thumbnail in a fixed-width panel gets a resize event
+  // for every frame of an animation happening somewhere else on the page.
+  function onResize() {
+    if (queued) { return; }
+    queued = requestAnimationFrame(function () {
+      queued = 0;
+      if (desk.clientWidth !== lastDeskW) { fit(); }
+    });
+  }
+
+  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(measure); }
+  window.addEventListener('load', measure);
+  window.addEventListener('resize', onResize);
+  measure();
 })();
 </script>
 {% endif %}
