@@ -153,14 +153,43 @@ STOPLIST: frozenset[str] = frozenset(
 
 WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9+#./\-]*")
 
-# A line is a heading when it is short and either ends in a colon or carries
-# no sentence punctuation. Postings are written in Word, not Markdown, so the
-# "##" that would make this trivial is never there.
+# A line that opens with a bullet marker is an item in a list, whatever else
+# it looks like. This is load-bearing: postings list single-word requirements
+# constantly ("- Docker", "- SQL", "- Python"), and every one of those is short
+# and Title Case or all-caps, so the heading test below matched them and the
+# reader skipped the requirement entirely. It cost `sql`, `docker`, `python`
+# and `tableau` across three test postings before it was caught.
+LIST_MARKER_RE = re.compile(r"^\s*(?:[-*•‣◦–—+]|\(?\d{1,2}[.)])\s+")
+
+
+# Every heading phrase the reader acts on. Recognising these by name beats
+# guessing from capitalisation: "Nice to have" is not Title Case and would be
+# missed, while "Docker" is and would be invented. A heading this does not
+# know changes no tier anyway, so treating it as ordinary text is the correct
+# fallback rather than a gap.
+KNOWN_HEADINGS: frozenset[str] = frozenset(
+    needle for _tier, needles in TIER_HEADINGS for needle in needles
+) | frozenset(IGNORED_SECTIONS)
+
+
+# A heading is short, is not a list item, and announces itself -- with a colon,
+# by being one of the phrases above, or by being shouted in capitals. Postings
+# are written in Word, not Markdown, so the "##" that would make this trivial
+# is never there.
 def _is_heading(line: str) -> bool:
-    stripped = line.strip().strip("*#-• \t")
+    if LIST_MARKER_RE.match(line):
+        return False
+    stripped = line.strip().strip("*#• \t")
     if not stripped or len(stripped) > 60:
         return False
-    return stripped.endswith(":") or stripped == stripped.title() or stripped.isupper()
+    if stripped.endswith(":"):
+        return True
+    lowered = stripped.lower()
+    if any(needle in lowered for needle in KNOWN_HEADINGS):
+        return True
+    # All-caps needs a second word: a posting listing a bare "SQL" on its own
+    # line is shouting a requirement, not opening a section.
+    return stripped.isupper() and len(stripped.split()) >= 2
 
 
 def _tier_of(line: str) -> Tier | None:

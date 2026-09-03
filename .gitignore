@@ -25,3 +25,9 @@ web/node_modules/
 web/dist/
 web/vite.log
 web/tsconfig.tsbuildinfo
+
+# The SQLite database lives beside the profile and is rebuilt by its own
+# migration chain, so it is never a file worth committing.
+data/*.db
+data/*.db-wal
+data/*.db-shm

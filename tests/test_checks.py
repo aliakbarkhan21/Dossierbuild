@@ -20,6 +20,7 @@ import pytest
 import check_import  # noqa: F401
 import check_phase1  # noqa: F401
 import check_phase2  # noqa: F401
+import check_db  # noqa: F401
 import check_tailor  # noqa: F401
 from _harness import CHECKS
 

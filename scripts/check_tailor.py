@@ -130,6 +130,39 @@ def test_phrase_absorbs_parts() -> None:
     assert "rest" not in keys, keys
 
 
+@check("a single-word bullet is a requirement, not a heading")
+def test_single_word_list_items() -> None:
+    """The bug this pins cost four requirements across three postings.
+
+    "- Docker", "- SQL" and "- Python" are short and Title Case or all-caps,
+    which is exactly what the heading test looked for, so the reader treated
+    each as a section heading and skipped the line -- silently dropping the
+    requirement. Postings list single-word requirements constantly.
+    """
+    spec = jobspec.read_posting(
+        "Requirements:\n- Python\n- SQL\n- Docker\n• Tableau\n1. Excel\n"
+    )
+    keys = {t.key for t in spec.terms}
+    for expected in ("python", "sql", "docker", "tableau", "excel"):
+        assert expected in keys, f"{expected} was swallowed as a heading: {sorted(keys)}"
+    assert all(t.tier == "required" for t in spec.terms), [(t.key, t.tier) for t in spec.terms]
+
+
+@check("headings are recognised by name, not by capitalisation")
+def test_heading_detection() -> None:
+    for line in ("Requirements:", "REQUIREMENTS", "Nice to have", "Benefits", "About the role"):
+        assert jobspec._is_heading(line), f"{line!r} should be a heading"
+    for line in ("- Docker", "• Python", "1. Tableau", "SQL", "Docker",
+                 "You will help the team ship features."):
+        assert not jobspec._is_heading(line), f"{line!r} should not be a heading"
+
+    # "Nice to have" is not Title Case, so a casing rule misses it and every
+    # preferred term underneath is scored as though it were merely mentioned.
+    spec = jobspec.read_posting("Requirements:\n- Python\n\nNice to have\n- Docker\n")
+    tier = {t.key: t.tier for t in spec.terms}
+    assert tier == {"python": "required", "docker": "preferred"}, tier
+
+
 @check("a term is matched as a word, never as a substring")
 def test_word_boundaries() -> None:
     profile = Profile.empty()
