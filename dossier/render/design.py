@@ -7,7 +7,7 @@ the choices a person actually wants to make, and nothing more.
 **Curated, not open-ended.** There is no colour picker, no font box, no margin
 slider. A resume is read for six seconds by someone deciding whether to keep
 reading; the difference between a good one and a bad one is never the
-particular blue. Six accents that all print legibly, four type pairings known
+particular blue. Six accents that all print legibly, nine type pairings known
 to sit well together, three margin widths and a small type scale cover every
 real need and make a bad-looking output hard to produce by accident.
 
@@ -59,6 +59,14 @@ class Template:
 
     Kept per template rather than as a global switch: a photo dropped into a
     layout with nowhere to put it does not look neutral, it looks broken.
+    Compact is the one that says no, and it says no on purpose -- it exists to
+    buy back vertical space, and a portrait is the most expensive thing you
+    can spend it on.
+
+    Where the portrait is an addition rather than the point of the layout, the
+    template draws it only when a real photograph exists: the monogram
+    fallback belongs to the layouts built around a frame, where an empty frame
+    is a hole in the page.
     """
 
 
@@ -77,6 +85,7 @@ TEMPLATES: dict[str, Template] = {
         ats=True,
         columns="Single column",
         best_for="Applications through a portal, and anything conservative.",
+        photo=True,
     ),
     "modern": Template(
         key="modern",
@@ -86,6 +95,7 @@ TEMPLATES: dict[str, Template] = {
         ats=False,
         columns="Two columns",
         best_for="Sending straight to a person, or attaching to an email.",
+        photo=True,
     ),
     "minimal": Template(
         key="minimal",
@@ -95,6 +105,7 @@ TEMPLATES: dict[str, Template] = {
         ats=True,
         columns="Single column",
         best_for="Design-literate readers, and short sharp material.",
+        photo=True,
     ),
     "compact": Template(
         key="compact",
@@ -123,6 +134,7 @@ TEMPLATES: dict[str, Template] = {
         ats=True,
         columns="Single column",
         best_for="Formal applications, and anywhere a page should read like print.",
+        photo=True,
     ),
     "sidebar": Template(
         key="sidebar",
@@ -256,6 +268,52 @@ PAIRINGS: dict[str, Pairing] = {
             "&family=IBM+Plex+Mono:wght@400;500"
         ),
     ),
+    "display": Pairing(
+        key="display",
+        name="Display serif",
+        blurb="Playfair headings over Lato. High contrast; the name carries.",
+        heading='"Playfair Display", Georgia, "Times New Roman", serif',
+        body='"Lato", "Segoe UI", Helvetica, Arial, sans-serif',
+        google="family=Playfair+Display:wght@400;600;700&family=Lato:wght@400;700",
+    ),
+    "grotesque": Pairing(
+        key="grotesque",
+        name="Grotesque",
+        blurb="Space Grotesk headings over Inter. Reads as a product, not a form.",
+        heading='"Space Grotesk", "Segoe UI", Helvetica, Arial, sans-serif',
+        body='"Inter", "Segoe UI", Helvetica, Arial, sans-serif',
+        google=(
+            "family=Space+Grotesk:wght@400;500;600;700"
+            "&family=Inter:wght@400;500;600;700"
+        ),
+    ),
+    "slab": Pairing(
+        key="slab",
+        name="Slab",
+        blurb="Roboto Slab headings over Roboto. Solid, engineering-adjacent.",
+        heading='"Roboto Slab", Rockwell, Georgia, serif',
+        body='"Roboto", "Segoe UI", Helvetica, Arial, sans-serif',
+        google="family=Roboto+Slab:wght@400;600;700&family=Roboto:wght@400;500;700",
+    ),
+    "humanist": Pairing(
+        key="humanist",
+        name="Humanist",
+        blurb="Lora headings over Open Sans. Warmer than the formal pairing.",
+        heading='"Lora", Georgia, "Times New Roman", serif',
+        body='"Open Sans", "Segoe UI", Helvetica, Arial, sans-serif',
+        google="family=Lora:wght@400;600;700&family=Open+Sans:wght@400;600;700",
+    ),
+    "condensed": Pairing(
+        key="condensed",
+        name="Condensed",
+        blurb="Archivo Narrow headings over Source Sans. Buys back a line or two.",
+        heading='"Archivo Narrow", "Arial Narrow", "Segoe UI", sans-serif',
+        body='"Source Sans 3", "Segoe UI", Helvetica, Arial, sans-serif',
+        google=(
+            "family=Archivo+Narrow:wght@400;600;700"
+            "&family=Source+Sans+3:wght@400;600;700"
+        ),
+    ),
 }
 
 MONO_STACK = '"IBM Plex Mono", "JetBrains Mono", Consolas, monospace'
@@ -282,12 +340,15 @@ SECTION_LABELS: dict[str, str] = dict(RESUME_SECTIONS)
 # Looks
 # --------------------------------------------------------------------------
 #
-# Six controls, each independently sensible, still make thirty-odd
-# combinations -- and a few of those combinations are much better than the
-# rest. A look is one of the good ones, named: template, colour, type and
-# spacing set together the way someone who does this for a living would set
-# them. Every control stays available afterwards; a look is a starting point,
-# not a mode.
+# A look is a whole set of decisions, named -- not a colour scheme. No two of
+# these share a template, an accent, a type pairing or a date format, and they
+# differ again in leading, margin, type size and whether a portrait shows.
+# That is deliberate: six buttons that changed only the accent would be six
+# buttons pretending to be a choice, and a person clicking through them would
+# reasonably conclude the app had one design in it.
+#
+# Every control stays available afterwards; a look is a starting point, not a
+# mode.
 
 
 @dataclass(frozen=True)
@@ -301,22 +362,28 @@ class Look:
 LOOKS: tuple[Look, ...] = (
     Look("formal", "Formal", "Classic, ink, serif headings. The safe default.",
          {"template": "classic", "accent": "ink", "fonts": "serif_sans",
-          "leading": "normal", "margin": "normal", "scale": 100}),
-    Look("press", "Press", "Gazette set in Garamond with room to breathe.",
-         {"template": "gazette", "accent": "ink", "fonts": "book",
-          "leading": "airy", "margin": "wide", "scale": 100}),
-    Look("corporate", "Corporate", "Executive in navy, all sans.",
-         {"template": "executive", "accent": "navy", "fonts": "sans",
-          "leading": "normal", "margin": "normal", "scale": 100}),
-    Look("studio", "Studio", "Editorial in burgundy, with a portrait.",
-         {"template": "editorial", "accent": "burgundy", "fonts": "book",
-          "leading": "normal", "margin": "normal", "scale": 100, "show_photo": True}),
-    Look("continental", "Continental", "The European CV: side column, photo, teal.",
+          "leading": "normal", "margin": "normal", "scale": 100,
+          "show_photo": False, "date_format": "month"}),
+    Look("press", "Press", "A Playfair masthead, banded headings, wide margins.",
+         {"template": "gazette", "accent": "burgundy", "fonts": "display",
+          "leading": "airy", "margin": "wide", "scale": 100,
+          "show_photo": False, "date_format": "month"}),
+    Look("corporate", "Corporate", "Executive in navy, Space Grotesk, with a portrait.",
+         {"template": "executive", "accent": "navy", "fonts": "grotesque",
+          "leading": "normal", "margin": "normal", "scale": 100,
+          "show_photo": True, "date_format": "numeric"}),
+    Look("studio", "Studio", "Editorial in bronze, Lora, set large and airy.",
+         {"template": "editorial", "accent": "bronze", "fonts": "humanist",
+          "leading": "airy", "margin": "normal", "scale": 104,
+          "show_photo": True, "date_format": "month"}),
+    Look("continental", "Continental", "The European CV: side column, photo, teal, Inter.",
          {"template": "sidebar", "accent": "teal", "fonts": "sans",
-          "leading": "normal", "margin": "tight", "scale": 96, "show_photo": True}),
-    Look("dense", "Dense", "Compact, tight everything, for a long history.",
-         {"template": "compact", "accent": "ink", "fonts": "sans",
-          "leading": "tight", "margin": "tight", "scale": 96}),
+          "leading": "normal", "margin": "tight", "scale": 96,
+          "show_photo": True, "date_format": "numeric"}),
+    Look("dense", "Dense", "Compact in forest, condensed type, tight everything.",
+         {"template": "compact", "accent": "forest", "fonts": "condensed",
+          "leading": "tight", "margin": "tight", "scale": 92,
+          "show_photo": False, "date_format": "numeric"}),
 )
 
 

@@ -24,6 +24,9 @@
 }
 .contact { justify-content: center; }
 
+/* Only when there is a photograph. A masthead is complete without one. */
+.hdr-photo { display: flex; justify-content: center; margin-bottom: 6pt; }
+
 /* A band rather than a rule: two hairlines with the heading centred between
    them, which is what makes the page read as a printed document. */
 .sec > h2 {
@@ -90,6 +93,7 @@ ul.bul { padding-left: 14pt; }
 
 {% block content %}
 <header class="hdr">
+  {%- if r.photo %}<div class="hdr-photo">{{ m.portrait(r, '20mm') }}</div>{% endif %}
   <h1 class="hdr-name">{{ r.name }}</h1>
   {%- if r.headline %}<p class="hdr-headline">{{ r.headline }}</p>{% endif %}
   {{ m.contact(r.contact) }}

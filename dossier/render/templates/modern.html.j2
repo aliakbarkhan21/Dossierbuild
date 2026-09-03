@@ -18,6 +18,10 @@
 
 {% block extra_css %}
 .band {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 7mm;
   background: var(--accent);
   color: #fff;
   padding: {{ margin_mm * 0.42 }}mm {{ margin_mm * 0.5 }}mm {{ margin_mm * 0.38 }}mm;
@@ -25,6 +29,10 @@
 .band .hdr-name { color: #fff; font-size: calc(var(--fs) * 2.05); }
 .band .hdr-headline { color: rgba(255,255,255,.86); font-size: calc(var(--fs) * 1.02); }
 .band .contact { color: rgba(255,255,255,.92); margin-top: 5pt; }
+.band-text { min-width: 0; }
+/* A white ring, because a photograph dropped straight onto the accent panel
+   has no edge and reads as a hole cut in the band. */
+.band .portrait { box-shadow: 0 0 0 1.4pt rgba(255,255,255,.85); }
 .band .contact a { color: #fff; text-decoration: underline; text-decoration-color: rgba(255,255,255,.45); }
 
 .cols {
@@ -69,9 +77,12 @@
 
 {% block content %}
 <header class="band">
-  <h1 class="hdr-name">{{ r.name }}</h1>
-  {%- if r.headline %}<p class="hdr-headline">{{ r.headline }}</p>{% endif %}
-  {{ m.contact(r.contact) }}
+  <div class="band-text">
+    <h1 class="hdr-name">{{ r.name }}</h1>
+    {%- if r.headline %}<p class="hdr-headline">{{ r.headline }}</p>{% endif %}
+    {{ m.contact(r.contact) }}
+  </div>
+  {%- if r.photo %}{{ m.portrait(r, '24mm') }}{% endif %}
 </header>
 
 <div class="cols">

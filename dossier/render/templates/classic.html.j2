@@ -26,6 +26,11 @@
 }
 .contact { justify-content: center; }
 
+/* Optional in a way it is not in a layout built around a frame, so there is
+   no monogram fallback here: a centred header with no photograph is the
+   classic resume, not a hole in one. */
+.hdr-photo { display: flex; justify-content: center; margin-bottom: 7pt; }
+
 .sec > h2 {
   border-bottom: .6pt solid var(--rule);
   padding-bottom: 2.5pt;
@@ -36,6 +41,7 @@
 
 {% block content %}
 <header class="hdr">
+  {%- if r.photo %}<div class="hdr-photo">{{ m.portrait(r, '22mm') }}</div>{% endif %}
   <h1 class="hdr-name">{{ r.name }}</h1>
   {%- if r.headline %}<p class="hdr-headline">{{ r.headline }}</p>{% endif %}
   {{ m.contact(r.contact) }}

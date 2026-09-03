@@ -167,23 +167,59 @@ export default function App() {
   return (
     <ShellContext.Provider value={shell}>
       <div className="flex h-screen overflow-hidden">
+        {/* Both forms stay mounted whether they are showing or not. An
+            element removed from the tree on close has nothing left to
+            animate -- it is simply gone on the next frame -- so the panel
+            would slide open and then vanish. `inert` is what keeps a hidden
+            panel out of the tab order and away from a screen reader; it is
+            not decoration, it is the price of leaving it mounted. */}
         {narrow ? (
           // Over the page rather than beside it. A 232px column on a phone
           // leaves no room for the thing the column is for navigating to.
-          drawerOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-30 bg-black/40 backdrop-blur-[1px]"
-                onClick={() => setDrawerOpen(false)}
-                aria-hidden
-              />
-              <div className="fixed inset-y-0 left-0 z-40 shadow-raised">
-                <Sidebar onCollapse={() => setDrawerOpen(false)} />
-              </div>
-            </>
-          )
+          <>
+            <div
+              className={[
+                "fixed inset-0 z-30 bg-black/40 backdrop-blur-[1px] transition-opacity duration-200 ease-out",
+                drawerOpen ? "opacity-100" : "pointer-events-none opacity-0",
+              ].join(" ")}
+              onClick={() => setDrawerOpen(false)}
+              aria-hidden
+            />
+            <div
+              inert={!drawerOpen}
+              className={[
+                "fixed inset-y-0 left-0 z-40 shadow-raised transition-transform duration-200 ease-out",
+                drawerOpen ? "translate-x-0" : "-translate-x-full",
+              ].join(" ")}
+            >
+              <Sidebar onCollapse={() => setDrawerOpen(false)} />
+            </div>
+          </>
         ) : (
-          !collapsed && <Sidebar onCollapse={() => setCollapsed(true)} />
+          // The width is what the page layout reacts to, and the transform is
+          // what the eye follows. Width alone clips the panel from the right,
+          // so the words disappear one letter at a time while standing still;
+          // the transform slides it out of the gap the width is closing.
+          <div
+            inert={collapsed}
+            className={[
+              "h-full shrink-0 overflow-hidden transition-[width] duration-200 ease-out",
+              collapsed ? "w-0" : "w-[232px]",
+            ].join(" ")}
+          >
+            <div
+              className={[
+                "h-full transition-transform duration-200 ease-out",
+                // Pixels, not `-translate-x-full`: a percentage resolves
+                // against this element's own width, which the wrapper above
+                // is animating to zero at the same time, so the slide would
+                // shorten as it ran and finish at no offset at all.
+                collapsed ? "-translate-x-[232px]" : "translate-x-0",
+              ].join(" ")}
+            >
+              <Sidebar onCollapse={() => setCollapsed(true)} />
+            </div>
+          </div>
         )}
         <main className="flex min-w-0 flex-1 flex-col overflow-y-auto">
           {ready ? (

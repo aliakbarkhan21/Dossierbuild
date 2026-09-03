@@ -39,14 +39,17 @@ const DEFAULT_DESIGN: Partial<Design> = {
   leading: "normal",
   date_format: "month",
   scale: 100,
+  show_photo: true,
   hidden: [],
 };
 
+// "Portrait" was one of these until seven of the eight layouts grew a place
+// for one. A filter that keeps almost everything is not a filter, it is a
+// button that appears to do nothing.
 const FILTERS = [
   { label: "All", test: () => true },
   { label: "ATS-safe", test: (t: TemplateOption) => t.ats },
   { label: "Two columns", test: (t: TemplateOption) => !t.ats },
-  { label: "Portrait", test: (t: TemplateOption) => t.photo },
 ];
 
 /** Re-render the document a beat after the last change, never during it. */
@@ -852,6 +855,17 @@ function PortraitControls({
           ))}
         </div>
       </div>
+      {/* A look can turn the portrait off -- Formal does, because a photo on a
+          resume is a liability in the countries Formal is aimed at. Without a
+          switch here that decision would be one-way: the upload button would
+          still work, and nothing would appear on the page. */}
+      {has && (
+        <Toggle
+          checked={design.show_photo}
+          onChange={(show_photo) => onChange({ show_photo })}
+          label="Show it on the page"
+        />
+      )}
       {!has && (
         <p className="mt-1.5 text-xs text-muted">
           Conventional on a CV in much of Europe and Asia; discouraged in the US, UK and Canada.

@@ -12,7 +12,17 @@
 #}
 
 {% block extra_css %}
-.hdr { margin-bottom: 13pt; }
+.hdr {
+  margin-bottom: 13pt;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8mm;
+}
+/* The header is a row only so a portrait has somewhere to sit; without one
+   the text block is the only child and the row is indistinguishable from the
+   block it replaced. */
+.hdr-text { min-width: 0; }
 .hdr-name {
   font-size: calc(var(--fs) * 2.0);
   font-weight: 600;
@@ -61,9 +71,12 @@ ul.bul li::before {
 
 {% block content %}
 <header class="hdr">
-  <h1 class="hdr-name">{{ r.name }}</h1>
-  {%- if r.headline %}<p class="hdr-headline">{{ r.headline }}</p>{% endif %}
-  {{ m.contact(r.contact) }}
+  <div class="hdr-text">
+    <h1 class="hdr-name">{{ r.name }}</h1>
+    {%- if r.headline %}<p class="hdr-headline">{{ r.headline }}</p>{% endif %}
+    {{ m.contact(r.contact) }}
+  </div>
+  {%- if r.photo %}{{ m.portrait(r, '22mm') }}{% endif %}
 </header>
 
 {{ m.sections(r.sections) }}
