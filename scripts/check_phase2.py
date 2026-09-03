@@ -338,7 +338,13 @@ if READY:
 
         from pypdf import PdfReader
 
-        for key, expected_mm in (("a4", 297.0), ("letter", 279.4)):
+        from dossier.render.design import PAGES
+
+        # Every size, not a sample of two: a new one is added by writing a CSS
+        # keyword next to a pair of millimetres, and nothing but a printed page
+        # says the two agree.
+        for key, page in PAGES.items():
+            expected_mm = page.height_mm
             design = Design(page=key)
             pdf = render_pdf(render_html(sample(), design), margin_mm=design.margin_mm)
             box = PdfReader(BytesIO(pdf)).pages[0].mediabox

@@ -275,3 +275,15 @@ Each of these cost a debugging round.
 - **FastAPI derives a response model from the return annotation.** A route
   returning `FileResponse | JSONResponse` fails at import until it is given
   `response_model=None`.
+- **A file with a stable name is invisible to a cache key.** The portrait is
+  always `data/photo.jpg`, so replacing it leaves `basics.photo` exactly as it
+  was — and the preview, which re-renders when the profile changes, had
+  nothing to notice. Replace uploaded the new picture and went on showing the
+  old one. `store.photoVersion` is the part of that file the profile cannot
+  hold: which version of it this is. It belongs in the store, not the schema —
+  a cache-buster is not a fact about the person.
+- **The zoom in the full-page view is posted to the document, not rendered
+  into it.** `_base`'s fit script listens for `{dossierZoom}` and calls the
+  same `fit` a resize calls, so the handle and the page move in one frame. The
+  frame is sandboxed into an opaque origin — `postMessage` is what crosses
+  that, and it is why `Frame` takes a `frameRef`.

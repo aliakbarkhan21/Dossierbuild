@@ -203,9 +203,22 @@ class Page:
     css: str
 
 
+# The two that matter first, then the rest in the order somebody would reach
+# for them. ``css`` is what goes in ``@page { size: ... }``: a CSS keyword
+# where one exists, and a pair of lengths where it does not -- US Executive is
+# a real paper size and not a CSS one, and Chromium takes the dimensions
+# either way. The millimetres are what the app measures with, so a keyword and
+# its numbers have to agree; `check_phase2` prints one PDF per size and reads
+# the page box back out to prove they do.
 PAGES: dict[str, Page] = {
     "a4": Page("a4", "A4", 210.0, 297.0, "A4"),
     "letter": Page("letter", "US Letter", 215.9, 279.4, "Letter"),
+    "a5": Page("a5", "A5", 148.0, 210.0, "A5"),
+    "b5": Page("b5", "B5", 176.0, 250.0, "B5"),
+    "legal": Page("legal", "US Legal", 215.9, 355.6, "Legal"),
+    "executive": Page(
+        "executive", "US Executive", 184.15, 266.7, "184.15mm 266.7mm"
+    ),
 }
 
 # Millimetres, because that is what a printer thinks in. 12mm is about as

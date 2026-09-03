@@ -65,6 +65,11 @@ function SaveState() {
             : "Autosave is off: use Ctrl+S or the Save button."
         }
       >
+        {/* The knob is the full height of the track and finishes flush with
+            its end, the same geometry as the switches in the design panel.
+            A 10px knob inset 2px in a 24px track stopped 2px short, and two
+            pixels of accent past the knob read as a gap -- the switch looked
+            half thrown while it was fully on. */}
         <span
           aria-hidden
           className={[
@@ -73,10 +78,8 @@ function SaveState() {
           ].join(" ")}
         >
           <span
-            className={[
-              "absolute top-0.5 h-2.5 w-2.5 rounded-full bg-paper transition-all duration-150 ease-out",
-              autosave ? "left-3" : "left-0.5",
-            ].join(" ")}
+            className="absolute top-0 h-3.5 w-3.5 rounded-full bg-paper shadow-subtle ring-1 ring-black/10 transition-[left] duration-150 ease-out"
+            style={{ left: autosave ? 24 - 14 : 0 }}
           />
         </span>
         <span className="hidden md:inline">Autosave</span>

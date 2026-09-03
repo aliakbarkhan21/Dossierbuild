@@ -31,6 +31,17 @@ interface State {
   autosave: boolean;
   past: Profile[];
 
+  /**
+   * Bumped whenever the stored portrait changes.
+   *
+   * The file is always called `photo.jpg`, so replacing one leaves
+   * `basics.photo` exactly as it was -- and the preview, which re-renders
+   * when the profile changes, had nothing to notice. "Replace" uploaded the
+   * new picture and went on showing the old one. This is the part of the
+   * portrait the profile cannot hold: which version of that file it is.
+   */
+  photoVersion: number;
+
   boot: () => Promise<void>;
   edit: (mutate: (profile: Profile) => void) => void;
   save: (options?: { silent?: boolean }) => Promise<void>;
@@ -39,6 +50,7 @@ interface State {
   refreshQuality: () => Promise<void>;
   setDesign: (patch: Partial<Design>) => void;
   reloadProfile: (profile: Profile) => void;
+  bumpPhoto: () => void;
 }
 
 /** Design writes are chatty -- a slider is a dozen changes a second. */
@@ -100,6 +112,7 @@ export const useStore = create<State>()(
 
     autosave: autosavePreference(),
     past: [],
+    photoVersion: 0,
 
     async boot() {
       try {
@@ -249,6 +262,12 @@ export const useStore = create<State>()(
         s.dirty = true;
       });
       scheduleAutosave(get);
+    },
+
+    bumpPhoto() {
+      set((s) => {
+        s.photoVersion += 1;
+      });
     },
   })),
 );

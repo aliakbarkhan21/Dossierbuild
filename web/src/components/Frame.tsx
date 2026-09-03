@@ -29,10 +29,30 @@ interface Props {
    * whatever wraps it, and stays out of the tab order.
    */
   decorative?: boolean;
+  /**
+   * The frame itself, for a caller that talks to the document inside it.
+   *
+   * The document is sandboxed into an opaque origin, so there is no reaching
+   * into it -- but `postMessage` crosses that boundary, and the fit script
+   * listens for a zoom. That is how the full-page view scales without
+   * fetching a second copy of the page.
+   */
+  frameRef?: React.RefObject<HTMLIFrameElement | null>;
+  /** Fired once the document inside has parsed and run its script. */
+  onLoad?: () => void;
 }
 
-export function Frame({ html, title, className = "", placeholder, decorative = false }: Props) {
-  const ref = useRef<HTMLIFrameElement>(null);
+export function Frame({
+  html,
+  title,
+  className = "",
+  placeholder,
+  decorative = false,
+  frameRef,
+  onLoad,
+}: Props) {
+  const own = useRef<HTMLIFrameElement>(null);
+  const ref = frameRef ?? own;
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -51,6 +71,7 @@ export function Frame({ html, title, className = "", placeholder, decorative = f
           // and it runs a measuring script -- so scripts are allowed, but it
           // stays in its own opaque origin with no access to this page.
           sandbox="allow-scripts"
+          onLoad={onLoad}
           tabIndex={decorative ? -1 : undefined}
           aria-hidden={decorative || undefined}
           className={`h-full w-full border-0 bg-white ${decorative ? "pointer-events-none" : ""}`}

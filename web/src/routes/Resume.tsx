@@ -6,8 +6,20 @@
  * Everything on the left changes one thing and shows the result immediately.
  */
 
-import { Download, FileCode2, FileType2, Loader2, Maximize2, RotateCcw, Trash2, Upload, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Download,
+  FileCode2,
+  FileType2,
+  Loader2,
+  Maximize2,
+  RotateCcw,
+  Trash2,
+  Upload,
+  X,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useShell } from "../App";
 import { Frame } from "../components/Frame";
@@ -23,6 +35,16 @@ import type { Design, FitReport, LookOption, Option, Profile, TemplateOption } f
 /** Zoom, as a percentage. 0 is the sentinel for "fit to the pane". */
 const ZOOM_MIN = 60;
 const ZOOM_MAX = 150;
+
+/** The full-page view goes further both ways: it is where a page is read.
+ *
+ * Down to 40% puts a two-page resume on screen at once, which is the only
+ * place the shape of the whole document is visible. Up to 250% is large
+ * enough to check that a line of contact details set two points smaller than
+ * the body is still legible on paper. */
+const FULL_ZOOM_MIN = 40;
+const FULL_ZOOM_MAX = 250;
+const FULL_ZOOM_STEP = 10;
 
 /**
  * What "Reset design" and an unpicked look both go back to.
@@ -66,10 +88,11 @@ function useDebounced<T>(value: T, ms: number): T {
 
 export function ResumeScreen() {
   const shell = useShell();
-  const { profile, design, options, setDesign, edit } = useStore(useShallow((s) => ({
+  const { profile, design, options, photoVersion, setDesign, edit } = useStore(useShallow((s) => ({
     profile: s.profile,
     design: s.design,
     options: s.options,
+    photoVersion: s.photoVersion,
     setDesign: s.setDesign,
     edit: s.edit,
   })));
@@ -88,11 +111,19 @@ export function ResumeScreen() {
 
   // Two keys, because the two renders have different reasons to be redone:
   // the preview follows every edit, the thumbnails only follow the design.
+  //
+  // `photoVersion` is in both because the portrait is the one thing on the
+  // page that can change without the profile changing: the file keeps its
+  // name, so replacing it left these keys identical and the old face on the
+  // page. See `store.photoVersion`.
   const previewKey = useDebounced(
-    JSON.stringify({ profile, design, zoom }),
+    JSON.stringify({ profile, design, zoom, photoVersion }),
     250,
   );
-  const galleryKey = useDebounced(JSON.stringify({ design, name: profile?.basics.name }), 400);
+  const galleryKey = useDebounced(
+    JSON.stringify({ design, name: profile?.basics.name, photoVersion }),
+    400,
+  );
 
   const inFlight = useRef(0);
 
@@ -399,8 +430,15 @@ function FullPage({
   onClose: () => void;
 }) {
   const [html, setHtml] = useState("");
+  // 0 is the automatic fit the view opens at; `percent` is the last literal
+  // zoom, so Fit and back returns you to the size you were reading at.
+  const [zoom, setZoom] = useState(0);
+  const [percent, setPercent] = useState(100);
+  const frame = useRef<HTMLIFrameElement>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    setReady(false);
     api
       // "page" rather than a zoom: the whole sheet has to be inside the
       // window and centred, which depends on the window, so the fit is
@@ -412,9 +450,30 @@ function FullPage({
       });
   }, [profile, design]);
 
+  // The scale is handed to the document rather than fetched with it. A slider
+  // that re-rendered server-side would put a round trip behind every step,
+  // and the fit script already knows how to scale itself -- so it is told,
+  // and the page redraws in the same frame as the handle.
+  useEffect(() => {
+    if (!ready) return;
+    frame.current?.contentWindow?.postMessage({ dossierZoom: zoom }, "*");
+  }, [zoom, ready]);
+
+  const setLiteral = useCallback((next: number) => {
+    const clamped = Math.min(FULL_ZOOM_MAX, Math.max(FULL_ZOOM_MIN, next));
+    setPercent(clamped);
+    setZoom(clamped / 100);
+  }, []);
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
+      // The keys a reader already has in every viewer they use. Bare rather
+      // than Ctrl+, because Ctrl+= is the browser's own zoom -- that scales
+      // the app around the page instead of scaling the page.
+      else if (event.key === "+" || event.key === "=") setLiteral(percent + FULL_ZOOM_STEP);
+      else if (event.key === "-" || event.key === "_") setLiteral(percent - FULL_ZOOM_STEP);
+      else if (event.key === "0") setZoom(0);
     };
     window.addEventListener("keydown", onKey);
     // The page behind must not scroll while a full-screen layer is over it.
@@ -424,17 +483,65 @@ function FullPage({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = previous;
     };
-  }, [onClose]);
+  }, [onClose, percent, setLiteral]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#1b1c1f]">
-      <div className="flex items-center gap-3 px-4 py-2 text-sm text-white/80">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 text-sm text-white/80">
         <span className="font-display">{profile.basics.name || "Resume"}</span>
-        <span className="text-white/45">Press Escape to close</span>
+        <span className="hidden text-white/45 lg:inline">
+          Escape closes · + and − zoom · 0 fits
+        </span>
+
+        <div className="ml-auto flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setZoom(0)}
+            className={[
+              "rounded px-2 py-1 text-2xs font-medium transition-colors duration-150",
+              zoom === 0
+                ? "bg-white/15 text-white"
+                : "text-white/70 hover:bg-white/10 hover:text-white",
+            ].join(" ")}
+            title="Fit the whole page in the window"
+          >
+            Fit page
+          </button>
+          <button
+            type="button"
+            onClick={() => setLiteral(percent - FULL_ZOOM_STEP)}
+            className="rounded px-1.5 py-1 text-white/70 transition-colors duration-150 hover:bg-white/10 hover:text-white"
+            aria-label="Zoom out"
+          >
+            <ZoomOut size={15} />
+          </button>
+          <input
+            type="range"
+            min={FULL_ZOOM_MIN}
+            max={FULL_ZOOM_MAX}
+            step={FULL_ZOOM_STEP}
+            value={percent}
+            aria-label="Zoom"
+            onChange={(event) => setLiteral(Number(event.target.value))}
+            className="zoom zoom-dark w-28 sm:w-36"
+          />
+          <button
+            type="button"
+            onClick={() => setLiteral(percent + FULL_ZOOM_STEP)}
+            className="rounded px-1.5 py-1 text-white/70 transition-colors duration-150 hover:bg-white/10 hover:text-white"
+            aria-label="Zoom in"
+          >
+            <ZoomIn size={15} />
+          </button>
+          <span className="w-9 text-right font-mono text-2xs tabular-nums text-white/60">
+            {zoom === 0 ? "fit" : `${percent}%`}
+          </span>
+        </div>
+
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto rounded-md px-2 py-1 text-white/80 transition-colors duration-150 hover:bg-white/10 hover:text-white"
+          className="rounded-md px-2 py-1 text-white/80 transition-colors duration-150 hover:bg-white/10 hover:text-white"
           aria-label="Close the full screen preview"
         >
           <X size={18} />
@@ -444,6 +551,8 @@ function FullPage({
         html={html}
         title="Full page preview"
         className="min-h-0 flex-1"
+        frameRef={frame}
+        onLoad={() => setReady(true)}
         placeholder={<div className="absolute inset-0 animate-pulse bg-white/5" aria-hidden />}
       />
     </div>
@@ -739,24 +848,11 @@ function DesignPanel({
           options={options.leading}
           onChange={(leading) => onChange({ leading })}
         />
-        <div>
-          <span className="label">Type size</span>
-          <div className="flex gap-0.5 rounded-md bg-sunken p-0.5">
-            {options.scale.steps.map((step) => (
-              <button
-                key={step}
-                type="button"
-                onClick={() => onChange({ scale: step })}
-                className={[
-                  "flex-1 rounded px-1 py-1 text-2xs font-medium transition-colors duration-150",
-                  design.scale === step ? "bg-surface text-ink shadow-subtle" : "text-muted hover:text-ink",
-                ].join(" ")}
-              >
-                {step}
-              </button>
-            ))}
-          </div>
-        </div>
+        <ScaleSlider
+          steps={options.scale.steps}
+          value={design.scale}
+          onChange={(scale) => onChange({ scale })}
+        />
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -797,6 +893,62 @@ function DesignPanel({
         Reset design
       </button>
     </section>
+  );
+}
+
+/**
+ * The five type sizes, with the highlight sliding between them.
+ *
+ * It used to appear under whichever number you pressed. On a row of five
+ * numbers that differ by four percent each, an instant jump gives no reading
+ * of which way you moved -- and moving is the whole point of the control.
+ * The highlight is one element that translates, so the browser animates it on
+ * the compositor rather than restyling five buttons.
+ */
+function ScaleSlider({
+  steps,
+  value,
+  onChange,
+}: {
+  steps: number[];
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  // A saved design could name a size this build no longer offers; the
+  // highlight parks on the first step rather than sliding off the end.
+  const index = Math.max(0, steps.indexOf(value));
+
+  return (
+    <div>
+      <span className="label">Type size</span>
+      <div className="relative flex rounded-md bg-sunken p-0.5">
+        <span
+          aria-hidden
+          className="absolute inset-y-0.5 left-0.5 rounded bg-surface shadow-subtle transition-transform duration-200 ease-out"
+          // The slots are contiguous and equal, so one slot width is the
+          // whole of the travel per step -- which is what a 100% translate of
+          // this element means.
+          style={{
+            width: `calc((100% - 4px) / ${steps.length})`,
+            transform: `translateX(${index * 100}%)`,
+          }}
+        />
+        {steps.map((step) => (
+          <button
+            key={step}
+            type="button"
+            onClick={() => onChange(step)}
+            aria-pressed={step === value}
+            className={[
+              "relative flex-1 rounded px-1 py-1 text-2xs font-medium transition-colors duration-150",
+              step === value ? "text-ink" : "text-muted hover:text-ink",
+            ].join(" ")}
+          >
+            {step}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -897,6 +1049,7 @@ function PortraitControls({
   // afterwards would mean the server had already thrown away the pixels the
   // person is about to ask for.
   const [pending, setPending] = useState<File | null>(null);
+  const bumpPhoto = useStore((s) => s.bumpPhoto);
   const has = Boolean(profile.basics.photo);
 
   async function upload(file: File) {
@@ -906,8 +1059,12 @@ function PortraitControls({
       onProfile((draft) => {
         draft.basics.photo = photo;
       });
+      // The name is `photo.jpg` both times, so on a replace the line above
+      // writes the value that was already there and nothing downstream can
+      // tell the picture changed. This is what re-renders the page.
+      bumpPhoto();
       setPending(null);
-      toast.success("Portrait added");
+      toast.success(has ? "Portrait replaced" : "Portrait added");
     } catch (error) {
       if (error instanceof ApiError) toast.error(error.message, error.fix);
     } finally {
@@ -954,6 +1111,7 @@ function PortraitControls({
               onProfile((draft) => {
                 draft.basics.photo = "";
               });
+              bumpPhoto();
               toast.info("Portrait removed");
             }}
           >

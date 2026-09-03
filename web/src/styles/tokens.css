@@ -309,6 +309,16 @@
   .zoom:focus-visible::-webkit-slider-thumb { box-shadow: var(--ring-accent); }
   .zoom:focus-visible::-moz-range-thumb { box-shadow: var(--ring-accent); }
 
+  /* The same slider on the full-page view's dark bar. The tokens above are
+     the app's, and the app is not what is behind this one: --c-line-strong on
+     near-black is a track you have to be told is there, and a thumb ringed in
+     --c-surface is a white dot on a dark bar. Fixed values rather than a third
+     theme, because this bar is one colour in both themes. */
+  .zoom-dark::-webkit-slider-runnable-track { background: rgba(255, 255, 255, .25); }
+  .zoom-dark::-moz-range-track { background: rgba(255, 255, 255, .25); }
+  .zoom-dark::-webkit-slider-thumb { background: #fff; border-color: rgba(255, 255, 255, .35); }
+  .zoom-dark::-moz-range-thumb { background: #fff; border-color: rgba(255, 255, 255, .35); }
+
   .btn {
     display: inline-flex;
     align-items: center;

@@ -476,6 +476,18 @@ ul.bul li::before {
     });
   }
 
+  // The full-page view zooms without asking the server for another document.
+  // Re-rendering per step of a slider puts a round trip between the handle and
+  // the page, and the scale is already a one-line job here: `fit` is the same
+  // function a resize runs, and it reads `zoom` for exactly this. 0 hands the
+  // page back to the automatic fit.
+  window.addEventListener('message', function (event) {
+    var next = event.data && event.data.dossierZoom;
+    if (typeof next !== 'number' || next < 0) { return; }
+    zoom = next;
+    fit();
+  });
+
   if (document.fonts && document.fonts.ready) { document.fonts.ready.then(measure); }
   window.addEventListener('load', measure);
   window.addEventListener('resize', onResize);
