@@ -76,7 +76,7 @@ async function request<T>(path: string, method = "GET", body?: Body): Promise<T>
     // The one failure the server cannot describe, because it never heard the
     // request. Naming the command to fix it saves a search.
     throw new ApiError(
-      "Could not reach the Dossier server.",
+      "Could not reach the Dossierbuild server.",
       0,
       "Start it with: uvicorn dossier.api:app --port 8000",
     );

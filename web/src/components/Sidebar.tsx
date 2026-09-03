@@ -54,8 +54,8 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
               WebkitMaskPosition: "center",
             }}
           />
-          <span className="font-display text-lg font-semibold tracking-tight">
-            Dossier<span className="text-accent">.</span>
+          <span className="whitespace-nowrap font-display text-lg font-semibold tracking-tight">
+            Dossierbuild<span className="text-accent">.</span>
           </span>
         </div>
         <button

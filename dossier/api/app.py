@@ -5,7 +5,7 @@ Run it with:
     uvicorn dossier.api:app --reload --port 8000
 
 It also serves the built React app from ``web/dist`` (see ``static.py``), so
-running Dossier is one process on one port rather than two servers that can
+running Dossierbuild is one process on one port rather than two servers that
 disagree about which of them is current.
 """
 
@@ -37,7 +37,7 @@ ALLOWED_ORIGINS = [
 ]
 
 app = FastAPI(
-    title="Dossier",
+    title="Dossierbuild",
     version="0.3.0",
     summary="A master profile in, a print-ready resume out.",
 )

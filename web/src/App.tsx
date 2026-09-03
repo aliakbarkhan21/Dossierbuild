@@ -102,7 +102,7 @@ export default function App() {
     return (
       <main className="grid min-h-screen place-items-center p-8">
         <div className="card max-w-md p-6 text-center">
-          <h1 className="font-display text-xl">Dossier cannot reach its server</h1>
+          <h1 className="font-display text-xl">Dossierbuild cannot reach its server</h1>
           <p className="mt-2 text-sm text-muted">{bootError}</p>
           <button type="button" className="btn btn-primary mt-4" onClick={() => void boot()}>
             Try again

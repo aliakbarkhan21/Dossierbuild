@@ -1,4 +1,4 @@
-# Dossier
+# Dossierbuild
 
 An AI-assisted resume builder. You maintain one complete "master profile" of
 everything you have done; each application gets a version tailored to that job,
@@ -20,7 +20,8 @@ cd .. && python -m uvicorn dossier.api:app --port 8000
 ```
 
 Then open <http://localhost:8000>. One process serves both the API and the
-interface, so a machine running Dossier needs Python and Chromium but no Node.
+interface, so a machine running Dossierbuild needs Python and Chromium but no
+Node.
 
 On Windows, `scripts/launch.vbs` does all of that window-less and opens the
 browser once the port answers -- it is what the desktop shortcut runs.
@@ -45,7 +46,7 @@ The LinkedIn import route does not use AI and needs no key.
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                            # 59 checks, about 16 seconds
+pytest                            # 85 checks, about 25 seconds
 ```
 
 Or without pytest -- each script runs on the app's own dependencies:
@@ -65,8 +66,8 @@ python -m playwright install chromium
 ### In a container
 
 ```bash
-docker build -t dossier .
-docker run -p 8000:8000 -v "$PWD/data:/data" -e GEMINI_API_KEY=... dossier
+docker build -t dossierbuild .
+docker run -p 8000:8000 -v "$PWD/data:/data" -e GEMINI_API_KEY=... dossierbuild
 ```
 
 ---
@@ -112,7 +113,7 @@ One file, `data/profile.json`, holding facts only:
 
 ```jsonc
 {
-  "schema_version": 1,
+  "schema_version": 3,
   "basics":  { "name": "", "headline": "", "email": "", "phone": "",
                "location": "", "links": [{ "id": "lnk_…", "label": "", "url": "" }] },
   "summary": { "id": "sum_main", "text": "" },
@@ -126,7 +127,11 @@ One file, `data/profile.json`, holding facts only:
                        "bullets": [] }],
   "skills":         [{ "id": "skg_…", "label": "Languages", "items": ["Python", "SQL"] }],
   "certifications": [{ "id": "crt_…", "name": "", "issuer": "", "issued": null, "url": "" }],
-  "awards":         [{ "id": "awd_…", "title": "", "awarded_by": "", "date": null, "note": "" }]
+  // Displayed as "Honors". The key stays `awards`: renaming a stored field to
+  // change a heading is a migration that costs every saved file and buys nothing.
+  "awards":         [{ "id": "awd_…", "title": "", "awarded_by": "", "date": null, "note": "" }],
+  // Things you produced, as against things you were given.
+  "achievements":   [{ "id": "ach_…", "title": "", "context": "", "date": null, "note": "" }]
 }
 ```
 

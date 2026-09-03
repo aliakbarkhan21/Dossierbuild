@@ -1,9 +1,9 @@
 @echo off
-rem Stops the background Dossier server started by the desktop shortcut.
+rem Stops the background Dossierbuild server started by the desktop shortcut.
 rem Only needed because the shortcut runs window-less -- there is no console
 rem to close.
 
-echo Stopping Dossier...
+echo Stopping Dossierbuild...
 for /f "tokens=5" %%p in ('netstat -ano ^| findstr /R /C:":8000 .*LISTENING"') do (
     taskkill /F /PID %%p >nul 2>&1
 )

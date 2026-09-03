@@ -92,7 +92,7 @@ def migrate(raw: dict[str, Any]) -> dict[str, Any]:
         raise ProfileError(f"schema_version should be a whole number, found {version!r}.")
     if version > SCHEMA_VERSION:
         raise ProfileError(
-            f"This profile was written by a newer version of Dossier "
+            f"This profile was written by a newer version of Dossierbuild "
             f"(schema {version}, this build understands {SCHEMA_VERSION})."
         )
     while version < SCHEMA_VERSION:

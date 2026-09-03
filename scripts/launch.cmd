@@ -1,5 +1,5 @@
 @echo off
-rem Dossier launcher -- what the desktop shortcut ultimately runs.
+rem Dossierbuild launcher -- what the desktop shortcut ultimately runs.
 rem
 rem Keeping the work in a script rather than in the shortcut itself means the
 rem shortcut never has to be rebuilt: change the behaviour here and the
@@ -19,14 +19,14 @@ if /I "%~1"=="/quiet" set "QUIET=1"
 set "PORT=8000"
 set "URL=http://127.0.0.1:%PORT%/"
 
-title Dossier
+title Dossierbuild
 cd /d "%~dp0.."
 
 rem If a server is already up, a second one would fail on the port. Just
 rem surface the running app instead.
 powershell -NoProfile -Command "try { $c = New-Object Net.Sockets.TcpClient; $c.Connect('127.0.0.1', %PORT%); $c.Close(); exit 1 } catch { exit 0 }"
 if errorlevel 1 (
-    echo Dossier is already running -- opening it in your browser.
+    echo Dossierbuild is already running -- opening it in your browser.
     start "" "%URL%"
     if not defined QUIET ping -n 3 127.0.0.1 >nul
     exit /b 0
@@ -46,7 +46,7 @@ if not exist "web\dist\index.html" (
 )
 
 echo.
-echo   Dossier is starting. Your browser will open in a moment.
+echo   Dossierbuild is starting. Your browser will open in a moment.
 echo.
 
 rem Open the browser only once the port answers. Starting it immediately shows
@@ -60,5 +60,5 @@ python -m uvicorn dossier.api:app --host 127.0.0.1 --port %PORT%
 
 if defined QUIET exit /b 0
 echo.
-echo   Dossier has stopped.
+echo   Dossierbuild has stopped.
 pause

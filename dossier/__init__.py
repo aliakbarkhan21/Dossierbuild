@@ -1,4 +1,4 @@
-"""Dossier -- an AI-assisted resume builder.
+"""Dossierbuild -- an AI-assisted resume builder.
 
 Package layout:
     core/     the product, with no interface attached

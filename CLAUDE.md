@@ -1,4 +1,4 @@
-# Dossier — architecture and conventions
+# Dossierbuild — architecture and conventions
 
 An AI-assisted resume builder. One master profile of everything you have done;
 each application gets a version tailored to that job, printed to a real PDF.
