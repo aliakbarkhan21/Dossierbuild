@@ -1,26 +1,29 @@
-# Dossierbuild dependencies
-# Phase 1: master profile schema, storage, editor, resume import
-streamlit>=1.40
+# Dossier dependencies.
+#
+# The interface is not in here: the frontend is a React app built with npm and
+# served as static files, so a machine running Dossier needs Python and a
+# browser engine, not Node.
+
 pydantic>=2.7
 
-# Resume import (phase 1b) -- text extraction from an existing resume
-pypdf>=4.2
-python-docx>=1.1
-
-# AI parsing / tailoring (phase 1b import parse, phase 3 tailoring)
-google-genai>=1.0
-python-dotenv>=1.0
-
-# PDF generation (phase 2)
-jinja2>=3.1
-playwright>=1.44
-
-# Image handling: the brand mark, the favicon, and the resume portrait.
-# Streamlit pulls this in anyway; declared because we import it directly.
-pillow>=10.0
-
-# HTTP API (phase 1). The React frontend talks to this; the Streamlit UI
-# drives the same core directly.
+# HTTP API. The React frontend talks to this, and uvicorn also serves the
+# built frontend itself -- see dossier/api/static.py.
 fastapi>=0.115
 uvicorn[standard]>=0.30
 python-multipart>=0.0.9
+
+# Resume import -- text extraction from an existing CV. pypdf also reads the
+# generated PDF back to check its text layer.
+pypdf>=4.2
+python-docx>=1.1
+
+# AI parsing, and the tailoring still to come.
+google-genai>=1.0
+python-dotenv>=1.0
+
+# Rendering: profile -> HTML -> PDF.
+jinja2>=3.1
+playwright>=1.44
+
+# The resume portrait: normalised on upload, embedded as a data URI.
+pillow>=10.0

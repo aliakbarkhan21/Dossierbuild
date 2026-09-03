@@ -9,6 +9,3 @@ addopts = "-q"
 # The PDF checks launch a real browser; without this a slow one looks like a
 # hang rather than a test that takes six seconds.
 console_output_style = "count"
-filterwarnings = [
-    "ignore::DeprecationWarning:streamlit.*",
-]

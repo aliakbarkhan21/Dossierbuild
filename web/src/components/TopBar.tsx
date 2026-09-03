@@ -89,6 +89,15 @@ interface Props {
   title: string;
   subtitle?: ReactNode;
   action?: ReactNode;
+  /**
+   * A second row inside the sticky header -- the profile's section tabs.
+   *
+   * It lives here rather than sticking itself to a hand-measured offset below
+   * the header. The offset was 57px, and adding one control to the row above
+   * made the header taller than that, which slid the tabs underneath it. A
+   * nested element cannot go out of step with a height it is part of.
+   */
+  below?: ReactNode;
   sidebarHidden: boolean;
   onShowSidebar: () => void;
   onOpenPalette: () => void;
@@ -98,36 +107,40 @@ export function TopBar({
   title,
   subtitle,
   action,
+  below,
   sidebarHidden,
   onShowSidebar,
   onOpenPalette,
 }: Props) {
   return (
-    <header className="sticky top-0 z-20 flex items-center gap-4 border-b border-line bg-bg/85 px-6 py-3 backdrop-blur">
-      {sidebarHidden && (
-        <button type="button" className="btn btn-quiet px-1.5 py-1" onClick={onShowSidebar}>
-          <PanelLeftOpen size={16} />
-        </button>
-      )}
+    <header className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur">
+      <div className="flex items-center gap-4 px-6 py-3">
+        {sidebarHidden && (
+          <button type="button" className="btn btn-quiet px-1.5 py-1" onClick={onShowSidebar}>
+            <PanelLeftOpen size={16} />
+          </button>
+        )}
 
-      <div className="min-w-0">
-        <h1 className="truncate font-display text-xl leading-tight">{title}</h1>
-        {subtitle && <div className="mt-0.5 truncate text-xs text-muted">{subtitle}</div>}
-      </div>
+        <div className="min-w-0">
+          <h1 className="truncate font-display text-xl leading-tight">{title}</h1>
+          {subtitle && <div className="mt-0.5 truncate text-xs text-muted">{subtitle}</div>}
+        </div>
 
-      <div className="ml-auto flex items-center gap-3">
-        <SaveState />
-        <button
-          type="button"
-          onClick={onOpenPalette}
-          className="btn btn-quiet gap-1.5 text-xs"
-          title="Command palette"
-        >
-          <Command size={14} />
-          <kbd className="font-mono text-2xs">K</kbd>
-        </button>
-        {action}
+        <div className="ml-auto flex items-center gap-3">
+          <SaveState />
+          <button
+            type="button"
+            onClick={onOpenPalette}
+            className="btn btn-quiet gap-1.5 text-xs"
+            title="Command palette"
+          >
+            <Command size={14} />
+            <kbd className="font-mono text-2xs">K</kbd>
+          </button>
+          {action}
+        </div>
       </div>
+      {below}
     </header>
   );
 }

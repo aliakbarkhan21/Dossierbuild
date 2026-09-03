@@ -94,6 +94,14 @@ export interface Award {
   note: string;
 }
 
+export interface Achievement {
+  id: string;
+  title: string;
+  context: string;
+  date: string | null;
+  note: string;
+}
+
 export interface Profile {
   schema_version: number;
   basics: Basics;
@@ -104,6 +112,7 @@ export interface Profile {
   skills: SkillGroup[];
   certifications: Certification[];
   awards: Award[];
+  achievements: Achievement[];
 }
 
 /** The list sections, in editor order. Keys match the profile's own fields. */
@@ -114,6 +123,7 @@ export const LIST_SECTIONS = [
   "skills",
   "certifications",
   "awards",
+  "achievements",
 ] as const;
 export type ListSection = (typeof LIST_SECTIONS)[number];
 

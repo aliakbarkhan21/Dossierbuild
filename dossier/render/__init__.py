@@ -7,9 +7,9 @@ The split here is deliberate and worth stating once:
 * ``html``    -- Jinja2 turning the two into one self-contained HTML document.
 * ``pdf``     -- headless Chromium printing that document.
 
-Nothing in this package imports Streamlit. The renderer is a library the UI
-calls, which keeps it testable from a plain script and means the same call
-produces the same bytes whether it came from a button or a terminal.
+Nothing in this package imports a web framework. The renderer is a library
+the interface calls, which keeps it testable from a plain script and means the
+same call produces the same bytes whether it came from a button or a terminal.
 """
 
 from .design import Design, TEMPLATES, load_design, save_design

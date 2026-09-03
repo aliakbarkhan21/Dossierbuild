@@ -77,7 +77,25 @@ def test_a_malformed_profile_is_refused_before_it_reaches_the_disk() -> None:
     broken["experience"][0]["start"] = "2025-13"  # no thirteenth month
     response = client.put("/api/profile", json=broken)
     assert response.status_code == 422
-    assert "start" in response.text
+
+    body = response.json()
+    # Names the place in the words on screen, one-based like the entry
+    # headings, and states the shape wanted rather than quoting the regex.
+    assert "Experience" in body["error"]
+    assert "entry 1" in body["error"]
+    assert "Start" in body["error"]
+    assert "2025-06" in body["error"]
+    assert "pattern" not in body["error"]
+    assert body["fix"]
+
+
+def test_a_half_typed_date_is_refused_the_same_way() -> None:
+    """The exact shape autosave used to post mid-keystroke."""
+    broken = sample()
+    broken["experience"][0]["end"] = "2025-"
+    response = client.put("/api/profile", json=broken)
+    assert response.status_code == 422
+    assert "End" in response.json()["error"]
 
 
 def test_quality_report_agrees_with_itself() -> None:

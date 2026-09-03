@@ -1,12 +1,14 @@
-"""Dossierbuild -- an AI-assisted resume builder.
+"""Dossier -- an AI-assisted resume builder.
 
 Package layout:
-    schema.py    the master profile data contract (Pydantic models)
-    storage.py   loading, validating and safely writing profile.json
-    quality.py   the bullet-writing standard, enforced as code
-    ids.py       stable short identifiers for entries and bullets
-    ui/          Streamlit interface
-    importer/    reading an existing resume back into the schema
+    core/     the product, with no interface attached
+    ingest/   PDF / DOCX / LinkedIn -> profile, and the merge review
+    ai/       every call that leaves this machine for a model
+    render/   profile + design -> HTML -> PDF
+    api/      FastAPI over core, and the server that hosts the frontend
+
+The interface is not in here. It is a React app under ``web/``, built to
+static files and served by ``api/static.py``.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"

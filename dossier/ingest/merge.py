@@ -111,6 +111,8 @@ def _identity(section: str, entry: Any) -> str:
         return f"{_norm(entry.name)}|{_norm(entry.issuer)}"
     if section == "awards":
         return f"{_norm(entry.title)}|{_norm(entry.awarded_by)}"
+    if section == "achievements":
+        return f"{_norm(entry.title)}|{_norm(entry.context)}"
     return _norm(str(entry))
 
 
@@ -132,7 +134,11 @@ def _detail(section: str, entry: Any) -> str:
             span = format_date(single, blank="")
 
     extras = []
-    issuer = getattr(entry, "issuer", "") or getattr(entry, "awarded_by", "")
+    issuer = (
+        getattr(entry, "issuer", "")
+        or getattr(entry, "awarded_by", "")
+        or getattr(entry, "context", "")
+    )
     if issuer:
         extras.append(issuer)
     if bullets:

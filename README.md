@@ -1,11 +1,12 @@
-# Dossierbuild
+# Dossier
 
 An AI-assisted resume builder. You maintain one complete "master profile" of
 everything you have done; each application gets a version tailored to that job,
 rendered to a real PDF.
 
-**Status: phases 1 and 2 complete.** Profile schema, storage, editor and
-import; four print templates, a live preview and real PDF output.
+**Status: phases 0-3 complete.** Profile schema, storage, editor and import;
+eight print templates, a live preview that is the printed page, and real PDF
+output. The interface is React over a FastAPI core; Streamlit is gone.
 
 ---
 
@@ -13,7 +14,22 @@ import; four print templates, a live preview and real PDF output.
 
 ```bash
 pip install -r requirements.txt
-streamlit run app.py
+python -m playwright install chromium      # the PDF pipeline needs a browser
+cd web && npm install && npm run build     # the interface, built to web/dist
+cd .. && python -m uvicorn dossier.api:app --port 8000
+```
+
+Then open <http://localhost:8000>. One process serves both the API and the
+interface, so a machine running Dossier needs Python and Chromium but no Node.
+
+On Windows, `scripts/launch.vbs` does all of that window-less and opens the
+browser once the port answers -- it is what the desktop shortcut runs.
+`scripts/stop.cmd` stops it.
+
+While working on the frontend, run Vite instead for hot reload:
+
+```bash
+cd web && npm run dev      # 5173, proxying /api to 8000
 ```
 
 Optional, and only needed for resume import (and later, AI tailoring):
@@ -50,7 +66,7 @@ python -m playwright install chromium
 
 ```bash
 docker build -t dossier .
-docker run -p 8501:8501 -v "$PWD/data:/data" -e GEMINI_API_KEY=... dossier
+docker run -p 8000:8000 -v "$PWD/data:/data" -e GEMINI_API_KEY=... dossier
 ```
 
 ---
@@ -58,7 +74,6 @@ docker run -p 8501:8501 -v "$PWD/data:/data" -e GEMINI_API_KEY=... dossier
 ## What exists
 
 ```
-app.py                      Streamlit entry point (being replaced)
 dossier/
   core/
     schema.py               the master profile contract (Pydantic v2)
@@ -78,10 +93,14 @@ dossier/
     html.py                 Jinja2 -> one self-contained HTML document
     pdf.py                  Chromium prints it; pypdf reads it back
     photo.py                the portrait, normalised and embedded
+    text.py                 the profile as plain text, for forms
     templates/              _base + Classic, Modern, Minimalist, Compact,
                             Executive, Gazette, Sidebar, Editorial
   api/                      FastAPI over core
-  ui/                       Streamlit workspace
+    static.py               serves web/dist, so shipping is one process
+web/                        React + Vite + TypeScript + Tailwind
+  src/styles/tokens.css     the design system, in both themes
+scripts/                    self-checks, and the desktop launcher
 data/                       your data. gitignored. backed up on every save.
 ```
 
@@ -205,7 +224,7 @@ within 0.1 pixels, so the page-break lines are where the breaks will be.
 
 Printing happens in a subprocess, because Playwright's synchronous API refuses
 to start inside a thread that already has an event loop -- which is exactly
-what Streamlit runs scripts in. The PDF is then read *back* with pypdf: page
+what an async web server hands it. The PDF is then read *back* with pypdf: page
 count, word count, and a check that the name, email and phone are really in the
 text layer. A resume that looks perfect and parses as an empty document is the
 failure nobody notices until the application has already been rejected.

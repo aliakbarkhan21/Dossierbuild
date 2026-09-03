@@ -280,6 +280,24 @@ def _build_section(profile: Profile, key: str) -> Section | None:
             lines.append(line)
         return Section(key, label, "lines", lines=lines) if lines else None
 
+    if key == "achievements":
+        lines = []
+        for a in profile.achievements:
+            if not a.title.strip():
+                continue
+            parts = [a.title.strip()]
+            if a.context.strip():
+                parts.append(a.context.strip())
+            if a.date:
+                from ..core.schema import format_date
+
+                parts.append(format_date(a.date, blank=""))
+            line = " · ".join(p for p in parts if p)
+            if a.note.strip():
+                line += f". {a.note.strip()}"
+            lines.append(line)
+        return Section(key, label, "lines", lines=lines) if lines else None
+
     return None
 
 

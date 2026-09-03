@@ -65,7 +65,24 @@ def _v1_to_v2(raw: dict[str, Any]) -> dict[str, Any]:
     return raw
 
 
-MIGRATIONS: dict[int, Callable[[dict[str, Any]], dict[str, Any]]] = {1: _v1_to_v2}
+def _v2_to_v3(raw: dict[str, Any]) -> dict[str, Any]:
+    """Phase 3 split recognitions in two.
+
+    ``awards`` kept its key and gained the heading "Honors"; ``achievements``
+    is new and holds outcomes you produced rather than prizes you were given.
+    Nothing moves between them automatically -- a machine cannot tell "Dean's
+    List" from "Ranked 3rd of 400 teams" reliably, and guessing wrong would
+    silently reclassify someone's record.
+    """
+    raw.setdefault("achievements", [])
+    raw["schema_version"] = 3
+    return raw
+
+
+MIGRATIONS: dict[int, Callable[[dict[str, Any]], dict[str, Any]]] = {
+    1: _v1_to_v2,
+    2: _v2_to_v3,
+}
 
 
 def migrate(raw: dict[str, Any]) -> dict[str, Any]:
@@ -75,7 +92,7 @@ def migrate(raw: dict[str, Any]) -> dict[str, Any]:
         raise ProfileError(f"schema_version should be a whole number, found {version!r}.")
     if version > SCHEMA_VERSION:
         raise ProfileError(
-            f"This profile was written by a newer version of Dossierbuild "
+            f"This profile was written by a newer version of Dossier "
             f"(schema {version}, this build understands {SCHEMA_VERSION})."
         )
     while version < SCHEMA_VERSION:
@@ -120,6 +137,7 @@ def dedupe_ids(profile: Profile) -> list[str]:
         "skills": "skg",
         "certifications": "crt",
         "awards": "awd",
+        "achievements": "ach",
     }
     for section in LIST_SECTIONS:
         for entry in getattr(profile, section):

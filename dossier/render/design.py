@@ -261,7 +261,8 @@ RESUME_SECTIONS: tuple[tuple[str, str], ...] = (
     ("education", "Education"),
     ("skills", "Skills"),
     ("certifications", "Certifications"),
-    ("awards", "Awards"),
+    ("awards", "Honors"),
+    ("achievements", "Achievements"),
 )
 
 SECTION_KEYS: tuple[str, ...] = tuple(key for key, _label in RESUME_SECTIONS)

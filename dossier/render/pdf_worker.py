@@ -2,9 +2,9 @@
 
 This exists as a subprocess rather than a function call for one practical
 reason: Playwright's synchronous API refuses to start inside a thread that
-already has a running asyncio event loop, and Streamlit runs every script in
-exactly such a thread. Isolating the browser also means a hung render can be
-killed on a timeout without taking the app with it.
+already has a running asyncio event loop, which is exactly what an async web
+server hands it. Isolating the browser also means a hung render can be killed
+on a timeout without taking the server with it.
 
 Contract: argv is ``<html file> <pdf out> <options json>``. Anything printed
 to stdout is JSON; anything wrong is a non-zero exit with a readable message

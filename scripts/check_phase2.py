@@ -87,7 +87,7 @@ def _() -> None:
     # Deduplicated, unknown keys dropped, missing ones appended.
     assert d.order[0] == "skills" and len(set(d.order)) == len(d.order)
     assert set(d.order) == {"summary", "experience", "projects", "education",
-                            "skills", "certifications", "awards"}
+                            "skills", "certifications", "awards", "achievements"}
 
 
 @check("moving and hiding sections produce new designs, not mutations")
@@ -133,7 +133,8 @@ def _() -> None:
 def _() -> None:
     context = build_context(sample(), Design())
     keys = [s.key for s in context.sections]
-    assert "certifications" not in keys and "awards" not in keys, keys
+    for empty in ("certifications", "awards", "achievements"):
+        assert empty not in keys, keys
     assert keys[0] == "summary", keys
 
 

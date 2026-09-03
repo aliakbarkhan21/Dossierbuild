@@ -31,6 +31,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 from ..core.schema import (
+    Achievement,
     Award,
     Basics,
     Certification,
@@ -154,6 +155,13 @@ class RawAward(BaseModel):
     note: str = ""
 
 
+class RawAchievement(BaseModel):
+    title: str = ""
+    context: str = ""
+    date: str = ""
+    note: str = ""
+
+
 class RawLink(BaseModel):
     label: str = ""
     url: str = ""
@@ -175,6 +183,7 @@ class RawResume(BaseModel):
     skills: list[RawSkillGroup] = Field(default_factory=list)
     certifications: list[RawCertification] = Field(default_factory=list)
     awards: list[RawAward] = Field(default_factory=list)
+    achievements: list[RawAchievement] = Field(default_factory=list)
 
 
 SYSTEM_INSTRUCTION = """\
@@ -201,6 +210,12 @@ Rules, in order of importance:
    detail. Coursework and modules belong to the education entry.
 7. If the text is garbled or interleaved (common with two-column PDFs), extract
    what is unambiguous and leave the rest empty rather than guessing at it.
+8. Honors (`awards`) are conferred by someone else: prizes, scholarships,
+   dean's list, "Employee of the Month". Achievements are outcomes the person
+   produced: a ranking, a competition placing, a record, a published result.
+   If a line does not clearly say which it is, put it in `awards` -- that is
+   where a reader will look first, and moving one entry is easier than
+   noticing it went missing.
 """
 
 
@@ -452,6 +467,12 @@ def to_profile(raw: RawResume) -> Profile:
     profile.awards = [
         Award(title=a.title, awarded_by=a.awarded_by, date=_date(a.date), note=a.note)
         for a in raw.awards
+        if a.title
+    ]
+
+    profile.achievements = [
+        Achievement(title=a.title, context=a.context, date=_date(a.date), note=a.note)
+        for a in raw.achievements
         if a.title
     ]
 

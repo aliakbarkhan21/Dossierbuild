@@ -25,7 +25,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstr
 
 from .ids import new_id
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # --------------------------------------------------------------------------
 # Shared field types
@@ -193,9 +193,31 @@ class Certification(DBModel):
 
 
 class Award(DBModel):
+    """A recognition someone else conferred: a prize, a scholarship, a place
+    on a dean's list. Displayed as "Honors"; the key stays ``awards`` because
+    renaming a stored field to change a heading is a migration that buys
+    nothing -- the label lives in the presentation layer, where labels go."""
+
     id: str = Field(default_factory=lambda: new_id("awd"))
     title: str = ""
     awarded_by: str = ""
+    date: OptDate = None
+    note: str = ""
+
+
+class Achievement(DBModel):
+    """Something you did, as against something you were given.
+
+    Distinct from ``Award`` on purpose. "Dean's List" is conferred by an
+    institution and belongs under Honors; "Ranked 3rd of 400 teams" is an
+    outcome you produced, and reads as a boast in the wrong section and as
+    evidence in the right one. Keeping them apart also keeps the two headings
+    honest when only one has anything in it.
+    """
+
+    id: str = Field(default_factory=lambda: new_id("ach"))
+    title: str = ""
+    context: str = ""
     date: OptDate = None
     note: str = ""
 
@@ -215,6 +237,7 @@ class Profile(DBModel):
     skills: list[SkillGroup] = Field(default_factory=list)
     certifications: list[Certification] = Field(default_factory=list)
     awards: list[Award] = Field(default_factory=list)
+    achievements: list[Achievement] = Field(default_factory=list)
 
     @classmethod
     def empty(cls) -> "Profile":
@@ -231,6 +254,7 @@ class Profile(DBModel):
             or self.skills
             or self.certifications
             or self.awards
+            or self.achievements
         )
 
 
@@ -243,7 +267,8 @@ SECTION_ORDER: tuple[tuple[str, str], ...] = (
     ("education", "Education"),
     ("skills", "Skills"),
     ("certifications", "Certifications"),
-    ("awards", "Awards"),
+    ("awards", "Honors"),
+    ("achievements", "Achievements"),
 )
 
 LIST_SECTIONS: tuple[str, ...] = (
@@ -253,6 +278,7 @@ LIST_SECTIONS: tuple[str, ...] = (
     "skills",
     "certifications",
     "awards",
+    "achievements",
 )
 
 BULLET_SECTIONS: tuple[str, ...] = ("experience", "projects", "education")
@@ -324,7 +350,9 @@ def entry_label(entry: object) -> str:
     if isinstance(entry, Certification):
         return entry.name or "Untitled certification"
     if isinstance(entry, Award):
-        return entry.title or "Untitled award"
+        return entry.title or "Untitled honor"
+    if isinstance(entry, Achievement):
+        return entry.title or "Untitled achievement"
     return "Entry"
 
 
@@ -347,5 +375,6 @@ ENTRY_MODELS.update(
         "skills": SkillGroup,
         "certifications": Certification,
         "awards": Award,
+        "achievements": Achievement,
     }
 )

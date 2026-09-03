@@ -6,8 +6,8 @@ minted once and never regenerated. Later phases depend on this:
   * AI tailoring returns rewritten bullets keyed by id, so a rewrite can be
     matched back to its original even though the text has changed. Matching on
     text would fail precisely because rewriting is what changed the text.
-  * The Streamlit editor keys its widgets by id, so reordering an entry moves
-    its widget state with it instead of leaving values behind.
+  * The editor keys each row by id, so reordering an entry carries its state
+    with it instead of leaving values behind on the row that took its place.
 
 Six hex characters is 16.7 million possibilities -- ample for a document with a
 few dozen entries, and short enough to read comfortably in the JSON file.

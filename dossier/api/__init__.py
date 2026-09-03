@@ -1,4 +1,4 @@
-"""HTTP over the same core the Streamlit app drives.
+"""HTTP over the core, and the server that hosts the interface.
 
 This package holds no product logic. Every route validates its input, calls
 into ``dossier.core`` / ``ingest`` / ``ai`` / ``render``, and turns whatever

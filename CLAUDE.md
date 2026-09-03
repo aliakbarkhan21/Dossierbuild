@@ -27,34 +27,42 @@ dossier/
     pdf.py         Chromium in a subprocess; pypdf reads the result back.
     photo.py       the portrait: normalised on upload, embedded as a data URI.
     templates/     _base + _macros + eight layouts.
-  api/       FastAPI over core. What the React frontend will talk to.
-  ui/        Streamlit. Being replaced — see "Where this is going".
+    text.py        the profile as plain text, for forms that take no file.
+  api/       FastAPI over core, and the server that hosts the frontend.
+    static.py      serves web/dist, so shipping is one process on one port.
+web/         React + Vite + TypeScript + Tailwind. The interface.
+  src/styles/tokens.css   the design system: every colour, in both themes.
 scripts/     self-checks, runnable with nothing but the app's deps.
+             launch.cmd / launch.vbs / stop.cmd back the desktop shortcut.
 tests/       the same checks, one pytest case each.
 ```
 
 ### The dependency rule
 
-`core`, `ingest`, `ai` and `render` **must not import Streamlit, FastAPI, or
-any UI library.** They are the product; the UI is one
-way to drive it. This rule is what makes the frontend replaceable, and it is
-already honoured — do not break it for convenience.
+`core`, `ingest`, `ai` and `render` **must not import FastAPI, or any other
+web or UI library.** They are the product; the interface is one way to drive
+it. This rule is what made replacing the entire frontend a matter of deleting
+one directory — it earned its keep once, and it will again.
 
 ---
 
 ## Where this is going
 
-The Streamlit UI is being replaced by **FastAPI + React (Vite) + Tailwind**.
-Decided 2026-09-03 after an audit: Streamlit reruns the whole script on every
+Streamlit was replaced by **FastAPI + React (Vite) + Tailwind**, decided
+2026-09-03 after an audit: Streamlit reruns the whole script on every
 keystroke, which makes "no jank" unreachable, and `ui/theme.py` had grown to
-1,700 lines of CSS targeting Streamlit's private DOM. The Python that matters
-is already UI-agnostic, so the migration replaces the shell, not the product.
+1,738 lines of CSS targeting Streamlit's private DOM. The Python that mattered
+was already UI-agnostic, so the migration replaced the shell, not the product.
 
-Phases: **0** repo foundations · **1** `core/` + FastAPI, Streamlit still
-running · **2** React UI to parity · **3** delete Streamlit · **4** AI
-tailoring · **5** variants, history, cover letters.
+Phases: **0** repo foundations ✓ · **1** `core/` + FastAPI ✓ · **2** React UI
+to parity ✓ · **3** delete Streamlit ✓ · **4** AI tailoring · **5** variants,
+history, cover letters.
 
 Each phase ends with a working app, on its own branch, committed.
+
+Phase 3 removed `app.py`, `dossier/ui/` and `.streamlit/`. If you need to see
+what the old interface did, it is in git, not gone: `git show
+phase-2-react:dossier/ui/insights.py` and so on.
 
 ---
 
@@ -68,7 +76,14 @@ migration — do not special-case it in the template.
 **Schema changes ship with a migration.** `storage.MIGRATIONS` upgrades a raw
 dict one version at a time before validation. A field with a default would
 load without one; write it anyway, or the version number stops meaning
-anything. See `_v1_to_v2`.
+anything. See `_v1_to_v2` and `_v2_to_v3`, and `tests/test_migrations.py`,
+which walks a version-1 dict all the way forward and fails if any step is
+missing.
+
+**A heading is not a schema change.** "Awards" became "Honors" by editing two
+label tuples; the stored key is still `awards`. Renaming a field to change a
+word on screen is a migration that buys nothing and costs everyone's saved
+files. Labels live in `schema.SECTION_ORDER` and `design.RESUME_SECTIONS`.
 
 **The preview is the print.** Both come from one HTML document rendered by the
 same engine. They are measured equal to 0.1px (`scripts/measure` in the
@@ -116,37 +131,60 @@ comment noise on obvious lines.
 ```bash
 pip install -r requirements.txt
 python -m playwright install chromium      # the PDF pipeline needs a browser
-streamlit run app.py
+cd web && npm install && npm run build     # the interface, built to web/dist
+python -m uvicorn dossier.api:app --port 8000        # then localhost:8000
 
 pip install -r requirements-dev.txt
-pytest                                     # 59 checks, ~16s (4 real PDF renders)
-python scripts/check_phase2.py             # the same checks, no pytest needed
+pytest                                     # 78 checks, ~24s (real PDF renders)
+python scripts/check_phase2.py             # the render checks, no pytest needed
 ```
+
+One process serves both the API and the interface: `api/static.py` mounts
+`web/dist` at the root, so a machine running Dossier needs Python and Chromium
+but no Node. The desktop shortcut runs exactly this, window-less, via
+`scripts/launch.vbs`.
+
+While working on the frontend, run Vite instead — `cd web && npm run dev` on
+5173, proxying `/api` to 8000 — for hot reload. The static mount stays out of
+the way when `web/dist` does not exist.
 
 Environment: `GEMINI_API_KEY`, optional `GEMINI_MODEL`, optional
 `DOSSIER_DATA_DIR`. Nothing else. No secrets in the repo.
 
 ---
 
-## Streamlit traps (while the Streamlit UI still exists)
+## Traps worth remembering
 
-Recorded because each one cost a debugging round, and the UI will not be gone
-for a few phases yet.
+Each of these cost a debugging round.
 
-- The theme is frozen at startup from `.streamlit/config.toml`. Runtime
-  theming is CSS custom properties only. A slider's filled track is baked at
-  startup and **cannot** be re-themed; toggles and checkboxes can.
-- `st.pills` and `st.segmented_control` share the `stButtonGroup` testid.
-  Scope by a keyed container or rules will silently style the wrong widget.
-- The script runs top to bottom, so anything rendered *above* the editors
-  reports the state before the current edit. Reserve a container early and
-  fill it at the end of the run.
-- A keyed widget's value lives in the browser and is re-sent on every rerun,
-  so it beats a model that was just replaced. Undo needs the widget *keys* to
-  change (a revision stamp), not the session-state entries deleted.
-- Assigning to a widget's key from a button in the page body raises — the
-  widget already exists this run. Park the request and apply it at the top of
-  the next run.
-- A subprocess must be given `stdin=subprocess.DEVNULL` on Windows; the
+- **A subprocess must be given `stdin=subprocess.DEVNULL` on Windows.** The
   inherited handle is invalid under pytest capture and under the window-less
-  launcher, and `Popen` fails before the browser starts.
+  launcher, and `Popen` fails before Chromium starts.
+- **Font stacks must be `| safe` inside `<style>`.** Jinja's autoescape turns
+  the quotes in `"Source Serif 4", Georgia, serif` into entities, every
+  template silently falls back to Times, and nothing errors.
+- **`flex: none` on the preview sheet.** As a flex item it shrinks below A4,
+  and the preview stops being the print. This is the difference between a
+  preview and a lie.
+- **No hand-measured sticky offsets.** The section tabs stuck at `top-[57px]`,
+  a measurement of the header above them; adding one control to that header
+  made it taller and the tabs slid underneath. Nest the thing instead — see
+  `TopBar`'s `below` slot.
+- **Merge candidate keys must not embed entry ids.** Ids are minted at
+  validation, so a key built from one is different in the response than it was
+  in the request, and `/plan` never matches `/apply`.
+- **zustand v5 selectors returning object literals need `useShallow`.** A new
+  object every render is a new value every render, which is an infinite loop.
+- **Tailwind cannot see `text-${tone}`.** Class names are extracted from the
+  source as literal strings; interpolated ones compile to nothing. Use a map
+  of literal classes.
+- **A field that writes every keystroke into the model will save a
+  half-typed value.** `2025-06` passes through `2025-`, which the schema
+  rejects, and autosave posted it. Inputs with a format hold their own draft
+  and commit only what parses — see `MonthInput`.
+- **A Jinja comment cannot sit inside an expression.** `{# #}` between the
+  entries of a `{% set x = {...} %}` dict is `unexpected char '#'`, not a
+  comment. Put it above the tag.
+- **FastAPI derives a response model from the return annotation.** A route
+  returning `FileResponse | JSONResponse` fails at import until it is given
+  `response_model=None`.

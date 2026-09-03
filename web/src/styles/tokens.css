@@ -233,6 +233,14 @@
     border-color: var(--c-accent);
     box-shadow: var(--ring-accent);
   }
+  /* Driven by aria-invalid so the styling and the screen-reader state cannot
+     drift apart: there is only one thing to set. */
+  .field[aria-invalid="true"] {
+    border-color: var(--c-poor);
+  }
+  .field[aria-invalid="true"]:focus {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-poor) 22%, transparent);
+  }
 
   .btn {
     display: inline-flex;

@@ -11,6 +11,7 @@
  */
 
 import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useShell } from "../App";
@@ -144,17 +145,30 @@ const SECTIONS: Record<ListSection, SectionSpec> = {
     teaches: "",
   },
   awards: {
-    label: "Awards",
-    singular: "award",
+    label: "Honors",
+    singular: "honor",
     blank: () => ({ id: "", title: "", awarded_by: "", date: null, note: "" }),
     fields: [
       { key: "title", label: "Title", placeholder: "Dean's List", half: true },
-      { key: "awarded_by", label: "Awarded by", half: true },
+      { key: "awarded_by", label: "Awarded by", placeholder: "FAST NUCES", half: true },
       { key: "date", label: "Date", kind: "month", half: true },
       { key: "note", label: "Note", placeholder: "Top 5% of the cohort", half: true },
     ],
     bullets: false,
-    teaches: "",
+    teaches: "Things you were given: prizes, scholarships, a place on a list.",
+  },
+  achievements: {
+    label: "Achievements",
+    singular: "achievement",
+    blank: () => ({ id: "", title: "", context: "", date: null, note: "" }),
+    fields: [
+      { key: "title", label: "What you did", placeholder: "Ranked 3rd of 400 teams", half: true },
+      { key: "context", label: "Where", placeholder: "NUCES Hackathon", half: true },
+      { key: "date", label: "Date", kind: "month", half: true },
+      { key: "note", label: "Note", placeholder: "Built the routing engine", half: true },
+    ],
+    bullets: false,
+    teaches: "Things you produced: a ranking, a placing, a record. Lead with the number.",
   },
 };
 
@@ -169,7 +183,8 @@ const TAB_LABELS: Record<Tab, string> = {
   education: "Education",
   skills: "Skills",
   certifications: "Certifications",
-  awards: "Awards",
+  awards: "Honors",
+  achievements: "Achievements",
 };
 
 export function ProfileScreen() {
@@ -227,12 +242,11 @@ export function ProfileScreen() {
             {saving ? "Saving" : dirty ? "Save changes" : "Saved"}
           </button>
         }
-      />
-
-      <nav
-        aria-label="Profile sections"
-        className="sticky top-[57px] z-10 flex gap-1 overflow-x-auto border-b border-line bg-bg/85 px-6 py-2 backdrop-blur"
-      >
+        below={
+          <nav
+            aria-label="Profile sections"
+            className="flex gap-1 overflow-x-auto border-t border-line px-6 py-2"
+          >
         {TABS.map((key) => {
           const active = key === tab;
           return (
@@ -257,7 +271,9 @@ export function ProfileScreen() {
             </button>
           );
         })}
-      </nav>
+          </nav>
+        }
+      />
 
       <div className="mx-auto w-full max-w-4xl flex-1 p-6">
         {isBlank(profile) && tab === "basics" && <FirstRun />}
@@ -317,12 +333,61 @@ function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className="field" />;
 }
 
+/** The schema's own date rule, mirrored so the field can check before saving. */
+const MONTH_RE = /^\d{4}(-(0[1-9]|1[0-2]))?$/;
+
+const MONTH_NAMES = [
+  "jan", "feb", "mar", "apr", "may", "jun",
+  "jul", "aug", "sep", "oct", "nov", "dec",
+];
+
 /**
- * A month, stored as "YYYY-MM" or "YYYY" and left alone when it is neither.
+ * Read a typed or pasted date, or return null if it is not one yet.
+ *
+ * Generous about separators and month names because the common way this field
+ * gets filled is a paste out of a CV, and "June 2025" is a date by any
+ * reasonable reading. Strict about what it returns: only the two shapes the
+ * schema accepts ever leave here.
+ */
+function normaliseMonth(text: string): string | null {
+  let s = text
+    .toLowerCase()
+    .replace(/[‐-―−]/g, "-") // dashes pasted out of Word
+    .replace(/[/.,]/g, "-")
+    .trim();
+
+  for (const [index, name] of MONTH_NAMES.entries()) {
+    // "june 2025" and "jun-2025" both reduce to "2025-06".
+    const named = new RegExp(`^${name}[a-z]*[\\s-]+(\\d{4})$|^(\\d{4})[\\s-]+${name}[a-z]*$`);
+    const hit = named.exec(s);
+    if (hit) return `${hit[1] ?? hit[2]}-${String(index + 1).padStart(2, "0")}`;
+  }
+
+  s = s.replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  if (!s) return null;
+  if (MONTH_RE.test(s)) return s;
+
+  // "2025-6" is unambiguous; the schema just wants the zero.
+  const loose = /^(\d{4})-(\d{1,2})$/.exec(s);
+  if (loose) {
+    const month = Number(loose[2]);
+    if (month >= 1 && month <= 12) return `${loose[1]}-${String(month).padStart(2, "0")}`;
+  }
+  return null;
+}
+
+/**
+ * A month, stored as "YYYY-MM" or "YYYY".
  *
  * `<input type="month">` looks tidy and cannot express a year-only date,
  * which the schema deliberately allows: LinkedIn stores plenty of them, and
  * turning "2024" into January 2024 is inventing a fact.
+ *
+ * The text being typed is held here rather than in the profile. Typing
+ * "2025-06" passes through "2025-", which is not a date, and writing that to
+ * the profile meant autosave posted it and the server rejected the whole save
+ * with a regex for a message. The draft is committed only once it parses, so
+ * a half-typed date is now simply a half-typed date.
  */
 function MonthInput({
   value,
@@ -333,15 +398,45 @@ function MonthInput({
   onChange: (value: string | null) => void;
   placeholder?: string;
 }) {
+  const [draft, setDraft] = useState(value ?? "");
+
+  // Follow the value when it changes underneath: an undo, an import, or the
+  // read-back after a save.
+  useEffect(() => {
+    setDraft(value ?? "");
+  }, [value]);
+
+  const invalid = draft.trim() !== "" && normaliseMonth(draft) === null;
+
   return (
-    <input
-      className="field font-mono"
-      value={value ?? ""}
-      placeholder={placeholder ?? "2025-06 or 2025"}
-      onChange={(event) => onChange(event.target.value.trim() || null)}
-      inputMode="numeric"
-      pattern="\d{4}(-\d{2})?"
-    />
+    <div>
+      <input
+        className="field font-mono"
+        value={draft}
+        placeholder={placeholder ?? "2025-06 or 2025"}
+        aria-invalid={invalid}
+        onChange={(event) => {
+          const text = event.target.value;
+          setDraft(text);
+          if (text.trim() === "") onChange(null);
+          else {
+            const parsed = normaliseMonth(text);
+            if (parsed) onChange(parsed);
+          }
+        }}
+        onBlur={() => {
+          // Tidy up on the way out: "2025-6" and "June 2025" become the
+          // stored shape, and anything unreadable stays on screen, marked,
+          // rather than being silently discarded.
+          const parsed = normaliseMonth(draft);
+          if (parsed) setDraft(parsed);
+        }}
+        inputMode="numeric"
+      />
+      {invalid && (
+        <p className="mt-1 text-2xs text-poor">Not saved yet. Use 2025-06, or 2025 for a year.</p>
+      )}
+    </div>
   );
 }
 

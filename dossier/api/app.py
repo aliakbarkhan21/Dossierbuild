@@ -4,10 +4,9 @@ Run it with:
 
     uvicorn dossier.api:app --reload --port 8000
 
-It serves the same ``data/`` directory the Streamlit app reads, on purpose:
-during the migration both interfaces drive one engine and one set of files,
-so nothing has to be kept in sync and there is no moment where the app has two
-truths.
+It also serves the built React app from ``web/dist`` (see ``static.py``), so
+running Dossier is one process on one port rather than two servers that can
+disagree about which of them is current.
 """
 
 from __future__ import annotations
@@ -18,9 +17,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# The Streamlit entry point does this too. Both are entry points, and an API
-# that reported "no AI key" while the app beside it had one would send someone
-# hunting for a bug that is really a missing line here.
+# Before the routers import, because they read the key at import time. An API
+# that reported "no AI key" while .env sat beside it would send someone hunting
+# for a bug that is really a missing line here.
 load_dotenv()
 
 from . import errors, static  # noqa: E402

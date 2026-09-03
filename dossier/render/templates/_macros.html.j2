@@ -138,6 +138,13 @@
   leaving a row of empty boxes on the page. These are a few hundred bytes of
   path data that cannot fail, are aria-hidden so they never reach the text
   layer a parser reads, and take their colour from the heading.
+
+  Achievements get a rising line rather than a second trophy: honors are
+  given, achievements are produced, and the two headings should not look
+  interchangeable at a glance.
+
+  A Jinja comment cannot sit inside the dict literal below -- it is one
+  expression, and `{#` there is a syntax error, not a comment.
 #}
 {% set ICON_PATHS = {
   'summary': '<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-5.5 7-5.5s7 1.9 7 5.5"/>',
@@ -146,7 +153,8 @@
   'education': '<path d="M12 4l9 4.5-9 4.5-9-4.5z"/><path d="M6.5 11.2v4.3c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3v-4.3"/>',
   'skills': '<path d="M12 4.5l2.3 4.9 5.2.7-3.8 3.6.9 5.2-4.6-2.5-4.6 2.5.9-5.2L4.5 10.1l5.2-.7z"/>',
   'certifications': '<circle cx="12" cy="9.5" r="4.5"/><path d="M8.5 14.2L7 21l5-2.4L17 21l-1.5-6.8"/>',
-  'awards': '<path d="M7 5h10v3a5 5 0 0 1-10 0z"/><path d="M9.5 19.5h5M12 13v6.5M7 6H4.6v1.4A3 3 0 0 0 7 10.3M17 6h2.4v1.4A3 3 0 0 1 17 10.3"/>'
+  'awards': '<path d="M7 5h10v3a5 5 0 0 1-10 0z"/><path d="M9.5 19.5h5M12 13v6.5M7 6H4.6v1.4A3 3 0 0 0 7 10.3M17 6h2.4v1.4A3 3 0 0 1 17 10.3"/>',
+  'achievements': '<path d="M4 19h16"/><path d="M6.5 15.5l3.8-4.4 3 2.8 4.7-5.6"/><path d="M18 8.3h-3.1M18 8.3v3.1"/>'
 } %}
 
 {% macro icon(key) -%}
