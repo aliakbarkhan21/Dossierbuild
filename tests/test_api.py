@@ -240,3 +240,55 @@ def test_a_bad_portrait_is_refused_politely(payload: bytes) -> None:
     response = client.post("/api/profile/photo", files=files)
     assert response.status_code == 400
     assert response.json()["fix"]
+
+
+# --------------------------------------------------------------------------
+# Plain text
+# --------------------------------------------------------------------------
+
+
+def test_plain_text_carries_the_whole_profile() -> None:
+    """The format that exists for application forms with no file upload."""
+    client.put("/api/profile", json=sample())
+    response = client.post("/api/render/text", json={})
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/plain")
+    assert ".txt" in response.headers["content-disposition"]
+
+    body = response.text
+    assert "A. STUDENT" in body
+    assert "a@example.com" in body
+    # Unabridged on purpose: a section the design happens to hide is still
+    # material the person may want to paste.
+    assert "Cut nightly ETL runtime from 42 to 9 minutes." in body
+    assert "Northgate Labs" in body
+
+
+# --------------------------------------------------------------------------
+# Serving the built frontend
+# --------------------------------------------------------------------------
+
+
+def test_an_unknown_api_path_stays_json() -> None:
+    """The SPA catch-all must not answer a missing endpoint with HTML.
+
+    Returning the shell would surface in the frontend as a JSON parse error
+    pointing at '<', which says nothing about the real mistake.
+    """
+    response = client.get("/api/no-such-thing")
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/json")
+
+
+def test_a_client_route_serves_the_app_when_it_is_built() -> None:
+    """A reload on /resume is a GET for a path with no file behind it."""
+    from dossier.api import static
+
+    if not static.build_present():
+        pytest.skip("web/dist not built; nothing to serve")
+
+    response = client.get("/resume")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "<div id=\"root\"" in response.text

@@ -23,7 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # hunting for a bug that is really a missing line here.
 load_dotenv()
 
-from . import errors  # noqa: E402
+from . import errors, static  # noqa: E402
 from .routes import design, ingest, profile, render  # noqa: E402
 
 # The Vite dev server runs on a different port, which makes every call
@@ -79,4 +79,10 @@ def health() -> dict[str, object]:
         "pdf_available": browser_ok,
         "pdf_detail": "" if browser_ok else browser_detail,
         "ai_available": api_key_present(),
+        "web_build": static.build_present(),
     }
+
+
+# Last, and it has to be: the frontend's catch-all route would otherwise
+# swallow every endpoint registered after it.
+static.install(app)

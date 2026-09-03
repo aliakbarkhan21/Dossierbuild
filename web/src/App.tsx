@@ -32,9 +32,22 @@ const ShellContext = createContext<Shell>({
 
 export const useShell = () => useContext(ShellContext);
 
+/** Whether a keystroke is being typed into something that owns its own undo. */
+function isTyping(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  return (
+    el.tagName === "INPUT" ||
+    el.tagName === "TEXTAREA" ||
+    el.tagName === "SELECT" ||
+    el.isContentEditable
+  );
+}
+
 export default function App() {
   const boot = useStore((s) => s.boot);
   const save = useStore((s) => s.save);
+  const undo = useStore((s) => s.undo);
   const ready = useStore((s) => s.ready);
   const bootError = useStore((s) => s.bootError);
   const [sidebarHidden, setSidebarHidden] = useState(false);
@@ -48,14 +61,36 @@ export default function App() {
   // is exactly where someone's hands are when they think to save.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+      if (!(event.metaKey || event.ctrlKey)) return;
+      const key = event.key.toLowerCase();
+
+      if (key === "s") {
         event.preventDefault();
         void save();
+        return;
+      }
+
+      // Ctrl+Z inside a field belongs to the field. Taking it would mean a
+      // mistyped word could only be fixed by reverting the whole edit, which
+      // is worse than the browser behaviour it replaced.
+      if (key === "z" && !event.shiftKey && !isTyping(event.target)) {
+        event.preventDefault();
+        undo();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [save]);
+  }, [save, undo]);
+
+  // Autosave waits for a pause in typing, so closing the tab mid-sentence can
+  // still outrun it.
+  useEffect(() => {
+    function onLeave(event: BeforeUnloadEvent) {
+      if (useStore.getState().dirty) event.preventDefault();
+    }
+    window.addEventListener("beforeunload", onLeave);
+    return () => window.removeEventListener("beforeunload", onLeave);
+  }, []);
 
   const shell: Shell = {
     sidebarHidden,

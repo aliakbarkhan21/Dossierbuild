@@ -7,7 +7,7 @@
  * what to do.
  */
 
-import { Command, PanelLeftOpen } from "lucide-react";
+import { Command, PanelLeftOpen, Undo2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { useShallow } from "zustand/react/shallow";
@@ -15,25 +15,73 @@ import { useShallow } from "zustand/react/shallow";
 import { useStore } from "../lib/store";
 
 function SaveState() {
-  const { dirty, saving, savedAt } = useStore(useShallow((s) => ({
-    dirty: s.dirty,
-    saving: s.saving,
-    savedAt: s.savedAt,
-  })));
+  const { dirty, saving, savedAt, autosave, setAutosave, undo, canUndo } = useStore(
+    useShallow((s) => ({
+      dirty: s.dirty,
+      saving: s.saving,
+      savedAt: s.savedAt,
+      autosave: s.autosave,
+      setAutosave: s.setAutosave,
+      undo: s.undo,
+      canUndo: s.past.length > 0,
+    })),
+  );
 
   const [tone, text] = saving
     ? ["bg-fair", "Saving"]
     : dirty
-      ? ["bg-fair", "Unsaved changes"]
+      ? ["bg-fair", autosave ? "Saving shortly" : "Unsaved changes"]
       : savedAt
         ? ["bg-good", `Saved ${savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`]
         : ["bg-line-strong", "Loaded from disk"];
 
   return (
-    <span className="flex items-center gap-1.5 text-xs text-muted" aria-live="polite">
-      <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${tone}`} />
-      {text}
-    </span>
+    <div className="flex items-center gap-2">
+      <span className="flex items-center gap-1.5 text-xs text-muted" aria-live="polite">
+        <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${tone}`} />
+        <span className="hidden sm:inline">{text}</span>
+      </span>
+
+      <button
+        type="button"
+        onClick={undo}
+        disabled={!canUndo}
+        className="btn btn-quiet px-1.5 py-1 disabled:opacity-40"
+        title="Undo the last change (Ctrl+Z)"
+        aria-label="Undo the last change"
+      >
+        <Undo2 size={15} />
+      </button>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={autosave}
+        onClick={() => setAutosave(!autosave)}
+        className="btn btn-quiet gap-1.5 px-2 py-1 text-xs"
+        title={
+          autosave
+            ? "Autosave is on: changes are written a moment after you stop typing."
+            : "Autosave is off: use Ctrl+S or the Save button."
+        }
+      >
+        <span
+          aria-hidden
+          className={[
+            "relative h-3.5 w-6 rounded-full transition-colors duration-150 ease-out",
+            autosave ? "bg-accent" : "bg-line-strong",
+          ].join(" ")}
+        >
+          <span
+            className={[
+              "absolute top-0.5 h-2.5 w-2.5 rounded-full bg-paper transition-all duration-150 ease-out",
+              autosave ? "left-3" : "left-0.5",
+            ].join(" ")}
+          />
+        </span>
+        <span className="hidden md:inline">Autosave</span>
+      </button>
+    </div>
   );
 }
 

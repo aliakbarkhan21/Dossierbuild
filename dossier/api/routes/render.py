@@ -17,6 +17,7 @@ from ...render.context import build_context, suggested_filename
 from ...render.design import Design, load_design
 from ...render.html import render_html, render_thumbnail
 from ...render.pdf import pdf_report, render_pdf
+from ...render.text import plain_text
 
 router = APIRouter(prefix="/api/render", tags=["render"])
 
@@ -63,6 +64,18 @@ def print_html(request: RenderRequest) -> Response:
     return Response(
         content=html,
         media_type="text/html; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/text", response_class=Response)
+def text(request: RenderRequest) -> Response:
+    """The profile as plain text, for application forms that take no file."""
+    profile, design = request.resolve()
+    filename = suggested_filename(profile, design, "txt")
+    return Response(
+        content=plain_text(profile),
+        media_type="text/plain; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 

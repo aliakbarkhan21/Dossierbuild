@@ -126,6 +126,7 @@ export const api = {
   thumbnail: (input: RenderInput & { template: string }) =>
     requestText("/api/render/thumbnail", input),
   printHtml: (input: RenderInput) => requestText("/api/render/html", input),
+  plainText: (input: RenderInput) => requestText("/api/render/text", input),
   report: (input: RenderInput) => request<FitReport>("/api/render/report", "POST", input),
 
   async pdf(input: RenderInput): Promise<PdfResult> {

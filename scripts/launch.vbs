@@ -1,4 +1,4 @@
-' Starts Dossierbuild with no console window.
+' Starts Dossier with no console window.
 '
 ' The desktop shortcut points here rather than straight at launch.cmd: a .cmd
 ' always brings a console with it, and the only way to be rid of it is to have

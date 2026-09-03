@@ -6,7 +6,7 @@
  * Everything on the left changes one thing and shows the result immediately.
  */
 
-import { Download, FileCode2, Loader2, RotateCcw, Trash2, Upload } from "lucide-react";
+import { Download, FileCode2, FileType2, Loader2, RotateCcw, Trash2, Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useShell } from "../App";
@@ -56,7 +56,7 @@ export function ResumeScreen() {
   const [filter, setFilter] = useState("All");
   const [preview, setPreview] = useState("");
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<"pdf" | "html" | null>(null);
+  const [busy, setBusy] = useState<"pdf" | "html" | "text" | null>(null);
   const [report, setReport] = useState<FitReport | null>(null);
 
   // Two keys, because the two renders have different reasons to be redone:
@@ -171,6 +171,19 @@ export function ResumeScreen() {
     }
   }
 
+  async function downloadText() {
+    setBusy("text");
+    try {
+      const text = await api.plainText({ profile: profile!, design: design! });
+      download(new Blob([text], { type: "text/plain" }), "Profile.txt");
+      toast.success("Profile.txt downloaded", "Everything you have, for pasting into a form.");
+    } catch (error) {
+      if (error instanceof ApiError) toast.error(error.message, error.fix);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <>
       <TopBar
@@ -262,6 +275,16 @@ export function ResumeScreen() {
             <button type="button" className="btn" onClick={downloadHtml} disabled={busy !== null}>
               <FileCode2 size={14} />
               HTML
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={downloadText}
+              disabled={busy !== null}
+              title="Your whole profile as text, for forms that take no file"
+            >
+              <FileType2 size={14} />
+              Text
             </button>
           </div>
 
