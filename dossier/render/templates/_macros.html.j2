@@ -137,9 +137,9 @@
 #}
 {% macro portrait(r, size) -%}
 {%- if r.photo -%}
-<img class="portrait {{ r.photo_shape }}" style="--pw: {{ size }}" src="{{ r.photo }}" alt="{{ r.name }}">
+<img class="portrait" style="--pw: {{ size }}" src="{{ r.photo }}" alt="{{ r.name }}">
 {%- elif r.initials -%}
-<div class="portrait mono {{ r.photo_shape }}" style="--pw: {{ size }}" aria-hidden="true"><span>{{ r.initials }}</span></div>
+<div class="portrait mono" style="--pw: {{ size }}" aria-hidden="true"><span>{{ r.initials }}</span></div>
 {%- endif -%}
 {%- endmacro %}
 

@@ -515,7 +515,6 @@ class Design(BaseModel):
     show_headline: bool = True
     show_page_numbers: bool = False
     show_photo: bool = True
-    photo_shape: str = "circle"
     date_format: str = "month"
 
     # Every validator below repairs rather than raises. A design that cannot
@@ -581,11 +580,6 @@ class Design(BaseModel):
     @classmethod
     def _hidden(cls, v: list[str]) -> list[str]:
         return [k for k in dict.fromkeys(v) if k in SECTION_KEYS]
-
-    @field_validator("photo_shape")
-    @classmethod
-    def _photo_shape(cls, v: str) -> str:
-        return v if v in ("circle", "square") else "circle"
 
     # -- derived values the templates read ---------------------------------
 

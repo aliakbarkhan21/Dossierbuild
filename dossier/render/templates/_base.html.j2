@@ -278,8 +278,11 @@ ul.bul li::before {
   flex: none;
   display: block;
 }
-.portrait.circle { border-radius: 50%; }
-.portrait.square { border-radius: 2pt; }
+/* Square, always. A round crop throws away the corners of a photograph the
+   person chose, and it is the frame every one of these layouts was measured
+   for -- the round one only ever fitted two of them. The radius is enough to
+   soften the corner at 300dpi and not enough to read as a decision. */
+.portrait { border-radius: 2pt; }
 .portrait.mono {
   display: flex;
   align-items: center;

@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useShell } from "../App";
 import { Frame } from "../components/Frame";
+import { PhotoCropper } from "../components/PhotoCropper";
 import { TopBar } from "../components/TopBar";
 import { ApiError, api, download } from "../lib/api";
 import { useShallow } from "zustand/react/shallow";
@@ -892,6 +893,10 @@ function PortraitControls({
   onProfile: (mutate: (profile: Profile) => void) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  // The file waits here while the crop is chosen. Uploading first and cropping
+  // afterwards would mean the server had already thrown away the pixels the
+  // person is about to ask for.
+  const [pending, setPending] = useState<File | null>(null);
   const has = Boolean(profile.basics.photo);
 
   async function upload(file: File) {
@@ -901,6 +906,7 @@ function PortraitControls({
       onProfile((draft) => {
         draft.basics.photo = photo;
       });
+      setPending(null);
       toast.success("Portrait added");
     } catch (error) {
       if (error instanceof ApiError) toast.error(error.message, error.fix);
@@ -911,6 +917,16 @@ function PortraitControls({
 
   return (
     <div>
+      {pending && (
+        <PhotoCropper
+          file={pending}
+          busy={busy}
+          onCancel={() => setPending(null)}
+          onSave={(cropped) =>
+            void upload(new File([cropped], "portrait.jpg", { type: "image/jpeg" }))
+          }
+        />
+      )}
       <span className="label">Portrait</span>
       <div className="flex items-center gap-2">
         <label className="btn cursor-pointer">
@@ -922,7 +938,9 @@ function PortraitControls({
             className="sr-only"
             onChange={(event) => {
               const file = event.target.files?.[0];
-              if (file) void upload(file);
+              if (file) setPending(file);
+              // Cleared so that choosing the same file twice -- after a
+              // cancel -- still fires a change event.
               event.target.value = "";
             }}
           />
@@ -942,21 +960,6 @@ function PortraitControls({
             <Trash2 size={14} />
           </button>
         )}
-        <div className="ml-auto flex gap-0.5 rounded-md bg-sunken p-0.5">
-          {(["circle", "square"] as const).map((shape) => (
-            <button
-              key={shape}
-              type="button"
-              onClick={() => onChange({ photo_shape: shape })}
-              className={[
-                "rounded px-2 py-1 text-2xs capitalize transition-colors duration-150",
-                design.photo_shape === shape ? "bg-surface text-ink shadow-subtle" : "text-muted",
-              ].join(" ")}
-            >
-              {shape}
-            </button>
-          ))}
-        </div>
       </div>
       {/* A look can turn the portrait off -- Formal does, because a photo on a
           resume is a liability in the countries Formal is aimed at. Without a

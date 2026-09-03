@@ -33,7 +33,8 @@ dossier/
     context.py     the profile flattened into exactly what a template needs.
     html.py        Jinja2. One self-contained document, preview or print.
     pdf.py         Chromium in a subprocess; pypdf reads the result back.
-    photo.py       the portrait: normalised on upload, embedded as a data URI.
+    photo.py       the portrait: squared and resized on upload, embedded as a
+                   data URI. The crop itself is chosen in PhotoCropper.
     templates/     _base + _macros + eight templates + _layouts (four body
                    treatments, composed over any of them).
     text.py        the profile as plain text, for forms that take no file.

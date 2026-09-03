@@ -8,8 +8,14 @@ megabyte of noise through both. The schema holds the file name.
 
 **Normalised on the way in, not on the way out.** A phone camera hands over a
 4000x3000 JPEG. Every render would then embed four megabytes, and the PDF
-would carry it too. It is cropped square and resized once, at upload, to a
-size that still looks sharp at 300dpi in a 30mm frame.
+would carry it too. It is squared and resized once, at upload, to a size that
+still looks sharp at 300dpi in a 30mm frame.
+
+**The crop is chosen in the browser, not here.** ``components/PhotoCropper``
+sends a square the person framed themselves. The ``fit`` below is therefore a
+no-op on anything the app sends, and stays because this endpoint is reachable
+without it -- a square guessed at from the top third is a poor portrait, but
+it is better than a stretched one.
 
 **Embedded as a data URI, never linked.** The rendered HTML is handed to
 Chromium as a temporary file and to the user as a download; a ``file://``
@@ -65,11 +71,12 @@ def save_photo(data: bytes) -> str:
     # Phone photos carry their orientation in EXIF rather than in the pixels;
     # without this a portrait shot arrives on its side.
     image = ImageOps.exif_transpose(image)
+    # A square already: a plain resample. Anything else is centred
+    # horizontally and weighted towards the top, because the middle of a
+    # portrait is a chest and the face is above it.
     image = ImageOps.fit(
         image.convert("RGB"), (STORED_PX, STORED_PX), method=Image.LANCZOS, centering=(0.5, 0.35)
     )
-    # Centred horizontally but weighted towards the top: on a portrait, the
-    # middle of the frame is a chest, and the face is above it.
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     path = DATA_DIR / PHOTO_NAME

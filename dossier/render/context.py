@@ -91,7 +91,6 @@ class ResumeContext:
     contact: list[ContactItem]
     sections: list[Section]
     photo: str = ""
-    photo_shape: str = "circle"
     initials: str = ""
     """``photo`` is a data URI or "", so a template can simply ask ``if r.photo``.
 
@@ -359,7 +358,6 @@ def build_context(
         contact=build_contact(profile, design),
         sections=sections,
         photo=portrait,
-        photo_shape=design.photo_shape,
         initials=initials(name) if design.wants_photo else "",
     )
 
@@ -395,7 +393,6 @@ def trim(context: ResumeContext, entries: int = 2, bullets: int = 2, groups: int
         contact=context.contact,
         sections=kept,
         photo=context.photo,
-        photo_shape=context.photo_shape,
         initials=context.initials,
     )
 

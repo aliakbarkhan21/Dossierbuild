@@ -145,7 +145,6 @@ export interface Design {
   show_headline: boolean;
   show_page_numbers: boolean;
   show_photo: boolean;
-  photo_shape: "circle" | "square";
 }
 
 export interface Option {
