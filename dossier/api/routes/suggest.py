@@ -23,6 +23,8 @@ class SuggestRequest(BaseModel):
     """"bullet" or "summary"."""
     note: str = ""
     entry_label: str = ""
+    section: str = ""
+    entry_id: str = ""
     profile: Profile | None = None
     model: str | None = None
 
@@ -47,6 +49,8 @@ def draft(request: SuggestRequest) -> DraftOut:
                 profile,
                 request.note,
                 entry_label=request.entry_label,
+                section=request.section,
+                entry_id=request.entry_id,
                 model=request.model,
             )
         else:

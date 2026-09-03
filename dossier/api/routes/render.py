@@ -9,6 +9,8 @@ autosave a correctness requirement rather than a convenience.
 from __future__ import annotations
 
 from fastapi import APIRouter, Response
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 from ...core.schema import Profile
@@ -26,6 +28,7 @@ class RenderRequest(BaseModel):
     profile: Profile | None = None
     design: Design | None = None
     zoom: float = Field(default=0.0, ge=0.0, le=3.0)
+    fit: Literal["width", "page"] = "width"
 
     def resolve(self) -> tuple[Profile, Design]:
         return (self.profile or load_profile(), self.design or load_design())
@@ -44,7 +47,7 @@ def preview(request: RenderRequest) -> Response:
     JSON string would only mean unwrapping it again.
     """
     profile, design = request.resolve()
-    html = render_html(profile, design, preview=True, zoom=request.zoom)
+    html = render_html(profile, design, preview=True, zoom=request.zoom, fit=request.fit)
     return Response(content=html, media_type="text/html; charset=utf-8")
 
 

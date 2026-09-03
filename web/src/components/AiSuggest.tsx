@@ -24,10 +24,15 @@ interface Props {
   kind: "summary" | "bullet";
   /** Shown on the role a bullet belongs to, so the model knows the context. */
   entryLabel?: string;
+  /** Which entry, so the server can hand the model its real facts -- the
+   *  stack, the organisation, the bullets already written. Without these a
+   *  suggestion can only reword the sentence it was given. */
+  section?: string;
+  entryId?: string;
   onInsert: (text: string) => void;
 }
 
-export function AiSuggest({ kind, entryLabel = "", onInsert }: Props) {
+export function AiSuggest({ kind, entryLabel = "", section = "", entryId = "", onInsert }: Props) {
   const [open, setOpen] = useState(false);
   const health = useStore((s) => s.health);
 
@@ -48,6 +53,8 @@ export function AiSuggest({ kind, entryLabel = "", onInsert }: Props) {
         <Panel
           kind={kind}
           entryLabel={entryLabel}
+          section={section}
+          entryId={entryId}
           onClose={() => setOpen(false)}
           onInsert={(text) => {
             onInsert(text);
@@ -62,11 +69,15 @@ export function AiSuggest({ kind, entryLabel = "", onInsert }: Props) {
 function Panel({
   kind,
   entryLabel,
+  section,
+  entryId,
   onClose,
   onInsert,
 }: {
   kind: "summary" | "bullet";
   entryLabel: string;
+  section: string;
+  entryId: string;
   onClose: () => void;
   onInsert: (text: string) => void;
 }) {
@@ -83,6 +94,8 @@ function Panel({
         kind,
         note,
         entry_label: entryLabel,
+        section,
+        entry_id: entryId,
         profile: profile ?? undefined,
       });
       setDraft(result);

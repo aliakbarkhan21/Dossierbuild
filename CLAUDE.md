@@ -260,6 +260,11 @@ Each of these cost a debugging round.
   instead is worse — a semicolon inside a SQL comment cut a statement in half
   and produced a syntax error pointing at an English word. Migrations are
   tuples of whole statements.
+- **One scroller, and it is the content pane.** `html, body` are locked to
+  the viewport with `overflow: hidden`. Without that, anything tall enough
+  gives the *document* a scrollbar, which moves the sidebar and the header
+  along with the page and leaves the app sitting in a band of empty
+  background.
 - **A `transform` does not affect layout.** The preview desk stayed pane-width
   while the scaled sheet overflowed it, so zooming past fit clipped the page
   and offered no scrollbar — which read as "150% does nothing". The desk needs

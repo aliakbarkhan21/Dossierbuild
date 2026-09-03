@@ -170,6 +170,17 @@
     color-scheme: dark;
   }
 
+  /* The shell is exactly one viewport tall and the content pane inside it does
+     the scrolling. Saying so here as well means nothing can give the document
+     itself a scrollbar -- one that moves the sidebar and the header along with
+     the page, leaving the app sitting in a band of empty background. There is
+     one scroller, and it is the pane that holds the screen. */
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   body {
     background: var(--c-bg);
     color: var(--c-text);

@@ -57,6 +57,8 @@ def _variables(
     zoom: float,
     breaks: bool,
     fitbar: bool,
+    fit: str,
+    scroll: bool,
     desk_pad: int,
     desk_bg: str,
 ) -> dict:
@@ -86,6 +88,8 @@ def _variables(
         "zoom": zoom,
         "breaks": breaks,
         "fitbar": fitbar,
+        "fit": fit,
+        "scroll": scroll,
         "desk_pad": desk_pad,
         "desk_bg": desk_bg,
         "design": design,
@@ -100,6 +104,8 @@ def render_html(
     zoom: float = 0.0,
     breaks: bool = True,
     fitbar: bool = True,
+    fit: str = "width",
+    scroll: bool = True,
     desk_pad: int = 16,
     desk_bg: str = "#EDEDF1",
     context: ResumeContext | None = None,
@@ -108,7 +114,12 @@ def render_html(
 
     ``preview`` adds the grey desk, the white sheet, the page-break rules and
     the fit readout; without it the markup is exactly what Chromium should
-    print. ``zoom`` of 0 means "fit the width available", anything else is a
+    print. ``zoom`` of 0 means "fit automatically", anything else is a literal
+    scale. ``fit`` picks what automatic means: "width" fills the pane, which is
+    right for a column beside an editor, and "page" fits a whole sheet inside
+    the window and centres it, which is right for a full-screen read.
+
+    ``zoom`` of 0 means "fit the width available", anything else is a
     literal scale.
     """
     resume = context if context is not None else build_context(profile, design)
@@ -121,6 +132,8 @@ def render_html(
             zoom=zoom,
             breaks=breaks,
             fitbar=fitbar,
+            fit=fit,
+            scroll=scroll,
             desk_pad=desk_pad,
             desk_bg=desk_bg,
         ),
@@ -146,6 +159,11 @@ def render_thumbnail(profile: Profile, design: Design, template_key: str, zoom: 
         zoom=zoom,
         breaks=False,
         fitbar=False,
+        fit="width",
+        # A 168px card is a fixed window onto a page. Its own scrollbars offer
+        # to move a picture nobody is reading, and eight of them side by side
+        # is just clutter.
+        scroll=False,
         desk_pad=0,
         desk_bg="transparent",
         context=context,

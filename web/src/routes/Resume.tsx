@@ -391,7 +391,10 @@ function FullPage({
 
   useEffect(() => {
     api
-      .preview({ profile, design, zoom: 0 })
+      // "page" rather than a zoom: the whole sheet has to be inside the
+      // window and centred, which depends on the window, so the fit is
+      // computed there rather than guessed here.
+      .preview({ profile, design, zoom: 0, fit: "page" })
       .then(setHtml)
       .catch((error: unknown) => {
         if (error instanceof ApiError) toast.error(error.message, error.fix);

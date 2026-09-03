@@ -71,13 +71,22 @@ asked about it in an interview and will not be able to answer.
 
 What a good line does:
 1. Opens with a past-tense verb of result: Built, Cut, Shipped, Migrated,
-   Automated, Rewrote, Resolved. Never an -ing verb, never "Responsible for".
+   Automated, Rewrote, Resolved, Instrumented. Never an -ing verb, never
+   "Responsible for".
 2. Names the specific thing -- the tool, the system, the audience -- in the
    words the person used.
-3. Says what changed, not what they were present for.
-4. Runs to one line. Under 200 characters, and shorter is better.
+3. Carries a mechanism: not only *what* was built but *what it was built with*
+   and *what it acts on*. "Built a savings tracker" is a label. "Built a
+   savings tracker in Python that parses bank statements into monthly
+   categories" is a bullet. This is where the length comes from.
+4. Says what changed, not what they were present for.
+5. One line. Under 200 characters.
 
-Banned as filler, in any tense: {banned}.
+Precision is not the same as grandeur. A stronger line names a real component,
+a real format, a real audience; it does not reach for a bigger adjective.
+These are banned in any tense, and so is anything with their flavour:
+{banned}. If a word could appear on any resume in the world, it is the wrong
+word.
 
 Return exactly one line, with no bullet character and no trailing full stop.
 """
@@ -124,11 +133,61 @@ def _finish(
     )
 
 
+def _entry_facts(profile: Profile, section: str, entry_id: str) -> tuple[str, str]:
+    """``(label, facts)`` for the entry a bullet is being written for.
+
+    This is what stops a suggestion being a paraphrase. Given only the user's
+    sentence, the model can reword it and nothing more -- "I created a savings
+    tracker with an AI chatbot" comes back as "Built a savings tracker
+    featuring an AI chatbot", which is the same line in a different suit.
+
+    The entry already holds real material: the stack the project was built
+    with, the organisation the role was at, the modules a course covered. Those
+    are the user's own facts, so using them is elaboration rather than
+    invention -- and the audit already permits them, because
+    ``_known_vocabulary`` draws from exactly the same places.
+    """
+    for entry in getattr(profile, section, None) or []:
+        if entry.id != entry_id:
+            continue
+
+        lines: list[str] = []
+        if section == "projects":
+            lines.append(f"Project: {entry.name}")
+            if entry.tagline:
+                lines.append(f"What it is: {entry.tagline}")
+            if entry.tech:
+                lines.append(f"Built with: {', '.join(entry.tech)}")
+            label = entry.name
+        elif section == "education":
+            lines.append(f"Course: {entry.credential} at {entry.institution}")
+            if entry.coursework:
+                lines.append(f"Modules: {', '.join(entry.coursework)}")
+            label = f"{entry.credential} — {entry.institution}"
+        else:
+            lines.append(f"Role: {entry.role} at {entry.organisation}")
+            if getattr(entry, "employment_type", ""):
+                lines.append(f"Type: {entry.employment_type}")
+            label = f"{entry.role} — {entry.organisation}"
+
+        written = [b.text for b in entry.bullets if b.text.strip()]
+        if written:
+            lines.append("")
+            lines.append("Bullets already written here. Do not repeat one:")
+            lines += [f"- {t}" for t in written]
+
+        return label, "\n".join(lines)
+
+    return "", ""
+
+
 def suggest_bullet(
     profile: Profile,
     note: str,
     *,
     entry_label: str = "",
+    section: str = "",
+    entry_id: str = "",
     model: str | None = None,
 ) -> Draft:
     """Turn a line of "here is what I did" into a resume bullet."""
@@ -138,24 +197,42 @@ def suggest_bullet(
             "With less than that the model would be inventing the rest."
         )
 
+    label, facts = _entry_facts(profile, section, entry_id)
+    words = len(note.split())
+    # A resume bullet earns its line by being more precise than the sentence
+    # someone would say out loud, not by being the same sentence with better
+    # verbs. Asking for a target length is blunt, but it is the instruction
+    # the model actually follows -- "be more detailed" is not.
+    target = f"{words + 8} to {words + 14}"
+
     prompt = "\n".join(
-        [
-            f"THE ROLE: {entry_label}" if entry_label else "",
+        part
+        for part in [
+            f"THE ENTRY THIS BULLET BELONGS TO:\n{facts}" if facts else "",
+            f"THE ROLE: {entry_label or label}" if (entry_label or label) else "",
             "",
-            "WHAT THEY DID, in their own words. This is the only source of",
-            "facts you have. Do not add to it:",
+            "WHAT THEY DID, in their own words:",
             "---",
             note.strip(),
             "---",
             "",
+            f"Their sentence is {words} words. Write about {target} words.",
+            "",
+            "You get the extra length from the entry above, not from",
+            "imagination. Name the tools it was built with, what it acted on,",
+            "and what it produced -- all of which are stated there. If the",
+            "entry names a stack, say which parts of it did this. Do NOT add a",
+            "number, a percentage, a duration or an outcome that appears",
+            "nowhere above; if there is no metric, the line simply has none.",
+            "",
             # Their own vocabulary, so the draft uses the spellings they use
-            # rather than introducing a synonym that reads as a different tool.
-            "Technologies this person has listed elsewhere, for spelling and",
-            "capitalisation only -- do NOT introduce one that is not in the",
-            f"sentence above: {', '.join(sorted(build_vocabulary(profile)))[:600]}",
+            # rather than a synonym that reads as a different tool.
+            "Spellings to match, where the entry uses them: "
+            f"{', '.join(sorted(build_vocabulary(profile)))[:400]}",
             "",
             "Write the bullet.",
         ]
+        if part != ""
     )
     drafted, used = generate(
         prompt,
@@ -165,7 +242,9 @@ def suggest_bullet(
         model=model,
         task="bullet suggestion",
     )
-    return _finish(drafted.text, profile, note, used, is_summary=False)
+    # The entry's own facts count as given: they are already in the profile,
+    # which is what the audit checks against.
+    return _finish(drafted.text, profile, f"{note}\n{facts}", used, is_summary=False)
 
 
 def suggest_summary(profile: Profile, *, note: str = "", model: str | None = None) -> Draft:

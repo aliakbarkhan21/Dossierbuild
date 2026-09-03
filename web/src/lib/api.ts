@@ -111,6 +111,8 @@ export interface RenderInput {
   profile?: Profile;
   design?: Design;
   zoom?: number;
+  /** What a zoom of 0 means: fill the pane's width, or fit a whole page. */
+  fit?: "width" | "page";
 }
 
 export const api = {
@@ -157,6 +159,8 @@ export const api = {
     kind: "summary" | "bullet";
     note?: string;
     entry_label?: string;
+    section?: string;
+    entry_id?: string;
     profile?: Profile;
   }) => request<Draft>("/api/suggest", "POST", body),
 

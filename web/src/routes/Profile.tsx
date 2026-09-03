@@ -917,6 +917,8 @@ function EntryList({
               bullets={(entry.bullets as { id: string; text: string }[]) ?? []}
               onChange={(next) => mutate(index, "bullets", next)}
               entryLabel={entryTitle(section, entry)}
+              section={section}
+              entryId={(entry.id as string) ?? ""}
             />
           )}
         </article>
@@ -956,10 +958,14 @@ function Bullets({
   bullets,
   onChange,
   entryLabel,
+  section,
+  entryId,
 }: {
   bullets: { id: string; text: string }[];
   onChange: (next: { id: string; text: string }[]) => void;
   entryLabel: string;
+  section: string;
+  entryId: string;
 }) {
   return (
     <div className="mt-4">
@@ -970,6 +976,8 @@ function Bullets({
         <AiSuggest
           kind="bullet"
           entryLabel={entryLabel}
+          section={section}
+          entryId={entryId}
           onInsert={(text) => onChange([...bullets, { id: "", text }])}
         />
       </div>
