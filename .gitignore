@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Everything in data/ is yours: the profile, its backups, the portrait, the
+# saved design, UI preferences. This is deny-by-default rather than a list of
+# file names -- a public repo should not depend on someone remembering to add
+# the next one.
+data/*
+!data/.gitkeep
+
+# API keys
+.env
+
+# Generated output
+output/
+
+# Claude Code session transcripts, if one is ever copied in here
+*.jsonl

@@ -1,0 +1,133 @@
+{% extends "_base.html.j2" %}
+{% import "_macros.html.j2" as m %}
+
+{#
+  Sidebar: a full-height accent column carrying the portrait, the contact
+  details and the skills, with the reading matter beside it.
+
+  The column stretches rather than being given a height -- ``align-items:
+  stretch`` on the row means it always ends level with the longest column,
+  whichever that turns out to be, and keeps doing so as the profile grows.
+
+  It sits inside the page margins for the same reason Modern's panel does:
+  bleeding to the paper edge costs the page margins, and page two would then
+  start its text on the trim line.
+#}
+
+{% set RAIL = ('skills', 'certifications') %}
+
+{% block extra_css %}
+.cols {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+.rail {
+  flex: 0 0 54mm;
+  width: 54mm;
+  background: var(--accent);
+  color: #fff;
+  padding: {{ margin_mm * 0.45 }}mm {{ margin_mm * 0.4 }}mm;
+}
+.main {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-left: 7mm;
+}
+
+.rail-head { text-align: center; }
+.rail .portrait {
+  margin: 0 auto 6pt;
+  border: 1.6pt solid rgba(255, 255, 255, .5);
+}
+.rail .portrait.mono { background: rgba(255, 255, 255, .16); }
+.rail-name {
+  font-family: var(--f-head);
+  font-size: calc(var(--fs) * 1.5);
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0;
+  color: #fff;
+}
+.rail-role {
+  margin: 3pt 0 0;
+  font-size: calc(var(--fs) * .78);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .78);
+}
+
+.rail .sec { margin-top: 11pt; }
+.rail .sec > h2 {
+  color: #fff;
+  font-size: calc(var(--fs) * .88);
+  letter-spacing: .16em;
+  border-bottom: .8pt solid rgba(255, 255, 255, .45);
+  padding-bottom: 2.5pt;
+  margin-bottom: 5pt;
+}
+.rail { font-size: calc(var(--fs) * .88); }
+.rail a { color: #fff; }
+.rail .stack li { color: rgba(255, 255, 255, .92); }
+
+/* Each skill on its own line with a hairline under it: the reference layouts
+   put a progress bar here, which claims a precision nobody can defend -- "SQL
+   at 80%" of what? The rule keeps the rhythm without the false measurement. */
+.rail .skill-line {
+  padding: 2.5pt 0;
+  border-bottom: .6pt solid rgba(255, 255, 255, .28);
+  break-inside: avoid;
+}
+.rail .skill-group-label {
+  margin-top: 6pt;
+  font-weight: 700;
+  color: rgba(255, 255, 255, .75);
+  font-size: calc(var(--fs) * .78);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.rail .lines li { color: rgba(255, 255, 255, .92); }
+
+.main .sec:first-child { margin-top: 0; }
+.main .sec > h2 {
+  border-bottom: .8pt solid var(--rule);
+  padding-bottom: 2.5pt;
+}
+{% endblock %}
+
+{% block content %}
+<div class="cols">
+  <aside class="rail">
+    <div class="rail-head">
+      {{ m.portrait(r, '30mm') }}
+      <h1 class="rail-name">{{ r.name }}</h1>
+      {%- if r.headline %}<p class="rail-role">{{ r.headline }}</p>{% endif %}
+    </div>
+
+    {%- if r.contact %}
+    <section class="sec">
+      <h2>Details</h2>
+      {{ m.contact_stack(r.contact) }}
+    </section>
+    {%- endif %}
+
+    {%- for s in r.only(RAIL) %}
+    <section class="sec sec-{{ s.key }}">
+      <h2>{{ s.label }}</h2>
+      {%- if s.kind == 'groups' %}
+        {%- for label, items in s.groups %}
+        <div class="skill-group-label">{{ label }}</div>
+        {%- for item in items %}
+        <div class="skill-line">{{ item }}</div>
+        {%- endfor %}
+        {%- endfor %}
+      {%- else %}
+      <ul class="lines">{% for line in s.lines %}<li>{{ line }}</li>{% endfor %}</ul>
+      {%- endif %}
+    </section>
+    {%- endfor %}
+  </aside>
+
+  <div class="main">{{ m.sections(r.excluding(RAIL)) }}</div>
+</div>
+{% endblock %}

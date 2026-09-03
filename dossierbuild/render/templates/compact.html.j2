@@ -1,0 +1,68 @@
+{% extends "_base.html.j2" %}
+{% import "_macros.html.j2" as m %}
+
+{#
+  Compact: for the profile that has outgrown one page but has not earned two.
+
+  Everything here buys back vertical space without shrinking the body text,
+  which is the mistake people make first. The header goes on one line, section
+  headings sit in the same line as a rule instead of above one, and skills run
+  in two columns. Roughly a fifth of a page comes back, and the text is still
+  10.5pt.
+#}
+
+{% block extra_css %}
+.hdr {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8pt;
+  border-bottom: 1.2pt solid var(--accent);
+  padding-bottom: 4pt;
+  margin-bottom: 8pt;
+}
+.hdr-name { font-size: calc(var(--fs) * 1.75); }
+.hdr-headline { margin: 0; font-size: calc(var(--fs) * .95); text-align: right; }
+.contact { margin-top: 4pt; font-size: calc(var(--fs) * .88); }
+
+.sec { margin-top: calc(var(--gap) * .78); }
+.sec > h2 {
+  display: flex;
+  align-items: center;
+  gap: 6pt;
+  font-size: calc(var(--fs) * .95);
+  margin-bottom: 3.5pt;
+}
+.sec > h2::after {
+  content: "";
+  flex: 1;
+  height: .6pt;
+  background: var(--rule);
+}
+
+.entry { margin-top: 5.5pt; }
+ul.bul { margin-top: 1.5pt; }
+ul.bul li { margin-top: 1.5pt; }
+.entry-second { margin-top: 0; }
+
+/* Two columns of skills, because a skill row is short and a full-width one
+   wastes two thirds of its line. Column breaks are allowed here -- unlike an
+   entry, a skills list reads the same either way. */
+.sec-skills { column-count: 2; column-gap: 8mm; }
+.sec-skills > h2 { column-span: all; }
+.skill-row { break-inside: avoid; grid-template-columns: 1fr; gap: 0; }
+.skill-label { font-size: calc(var(--fs) * .92); }
+.skill-items { color: var(--body); }
+
+.sec-certifications .lines, .sec-awards .lines { column-count: 2; column-gap: 8mm; }
+{% endblock %}
+
+{% block content %}
+<header class="hdr">
+  <h1 class="hdr-name">{{ r.name }}</h1>
+  {%- if r.headline %}<p class="hdr-headline">{{ r.headline }}</p>{% endif %}
+</header>
+{{ m.contact(r.contact) }}
+
+{{ m.sections(r.sections) }}
+{% endblock %}

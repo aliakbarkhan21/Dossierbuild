@@ -1,0 +1,45 @@
+{% extends "_base.html.j2" %}
+{% import "_macros.html.j2" as m %}
+
+{#
+  Classic: the layout a hiring manager has read a thousand times, done well.
+  Centred header, a ruled heading per section, one column. Nothing here asks
+  the reader to work out where to look next, and nothing here can confuse a
+  parser -- which is the entire point of the shape.
+#}
+
+{% block extra_css %}
+.hdr {
+  text-align: center;
+  padding-bottom: 8pt;
+  border-bottom: 1.4pt solid var(--accent);
+  margin-bottom: 12pt;
+}
+.hdr-name {
+  font-size: calc(var(--fs) * 2.15);
+  letter-spacing: .015em;
+}
+.hdr-headline {
+  font-size: calc(var(--fs) * 1.02);
+  font-style: italic;
+  margin-bottom: 5pt;
+}
+.contact { justify-content: center; }
+
+.sec > h2 {
+  border-bottom: .6pt solid var(--rule);
+  padding-bottom: 2.5pt;
+  margin-bottom: 6pt;
+}
+.entry-second { margin-top: 1pt; }
+{% endblock %}
+
+{% block content %}
+<header class="hdr">
+  <h1 class="hdr-name">{{ r.name }}</h1>
+  {%- if r.headline %}<p class="hdr-headline">{{ r.headline }}</p>{% endif %}
+  {{ m.contact(r.contact) }}
+</header>
+
+{{ m.sections(r.sections) }}
+{% endblock %}

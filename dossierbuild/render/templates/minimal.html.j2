@@ -1,0 +1,70 @@
+{% extends "_base.html.j2" %}
+{% import "_macros.html.j2" as m %}
+
+{#
+  Minimalist: no rules, no bands, no bullets-as-decoration. Structure comes
+  from a left gutter -- section names and dates live there, content lives to
+  the right -- so the eye has one straight edge to run down.
+
+  The gutter is a grid column, not a float or a table, so the DOM order stays
+  heading, then content: a parser reads it as a single sensible column even
+  though it looks like two.
+#}
+
+{% block extra_css %}
+.hdr { margin-bottom: 13pt; }
+.hdr-name {
+  font-size: calc(var(--fs) * 2.0);
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+.hdr-headline { font-size: calc(var(--fs) * 1.02); }
+.contact { margin-top: 5pt; }
+
+.sec {
+  display: grid;
+  grid-template-columns: 30mm 1fr;
+  gap: 0 6mm;
+  margin-top: calc(var(--gap) * 1.15);
+}
+.sec > h2 {
+  grid-column: 1;
+  font-family: var(--f-body);
+  font-size: calc(var(--fs) * .76);
+  font-weight: 600;
+  letter-spacing: .1em;
+  color: var(--muted);
+  margin: 1.5pt 0 0;
+  text-align: left;
+  /* The gutter is sized for the longest label there is; breaking a word
+     inside it would read as a typo, so this opts out of the global
+     break-anywhere rule and lets a longer one simply wrap. */
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+.sec > :not(h2) { grid-column: 2; }
+/* Every direct child after the heading sits in the right column; entries are
+   emitted as siblings, so they line up without a wrapper element. */
+.sec > .entry { grid-column: 2; }
+
+.entry-title { font-weight: 600; }
+.entry-sub { font-weight: 400; color: var(--muted); }
+.entry-meta { font-variant-numeric: tabular-nums; }
+ul.bul li::before {
+  background: none;
+  border: .8pt solid var(--accent);
+  opacity: .6;
+}
+.skill-label { font-weight: 600; }
+.entry { margin-top: 10pt; }
+{% endblock %}
+
+{% block content %}
+<header class="hdr">
+  <h1 class="hdr-name">{{ r.name }}</h1>
+  {%- if r.headline %}<p class="hdr-headline">{{ r.headline }}</p>{% endif %}
+  {{ m.contact(r.contact) }}
+</header>
+
+{{ m.sections(r.sections) }}
+{% endblock %}

@@ -1,0 +1,16 @@
+# Dossierbuild dependencies
+# Phase 1: master profile schema, storage, editor, resume import
+streamlit>=1.40
+pydantic>=2.7
+
+# Resume import (phase 1b) -- text extraction from an existing resume
+pypdf>=4.2
+python-docx>=1.1
+
+# AI parsing / tailoring (phase 1b import parse, phase 3 tailoring)
+google-genai>=1.0
+python-dotenv>=1.0
+
+# PDF generation (phase 2) -- installed early so the env is stable
+jinja2>=3.1
+playwright>=1.44

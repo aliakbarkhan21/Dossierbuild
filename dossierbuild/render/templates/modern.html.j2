@@ -1,0 +1,83 @@
+{% extends "_base.html.j2" %}
+{% import "_macros.html.j2" as m %}
+
+{#
+  Modern: an accent panel at the top, then a narrow side column for the things
+  a reader scans (contact, skills, study) beside a wide column for the things
+  they read (summary, experience, projects).
+
+  The panel sits *inside* the page margins rather than bleeding to the paper
+  edge, and that is a deliberate retreat. A full-bleed band needs zero page
+  margins, and zero page margins put page two's text against the paper edge --
+  Chromium has no concept of bleed on a second page. An inset panel prints
+  identically on every page and, unlike the bleed version, makes the preview's
+  measurements exactly equal to the printer's.
+#}
+
+{% set SIDE = ('skills', 'education', 'certifications', 'awards') %}
+
+{% block extra_css %}
+.band {
+  background: var(--accent);
+  color: #fff;
+  padding: {{ margin_mm * 0.42 }}mm {{ margin_mm * 0.5 }}mm {{ margin_mm * 0.38 }}mm;
+}
+.band .hdr-name { color: #fff; font-size: calc(var(--fs) * 2.05); }
+.band .hdr-headline { color: rgba(255,255,255,.86); font-size: calc(var(--fs) * 1.02); }
+.band .contact { color: rgba(255,255,255,.92); margin-top: 5pt; }
+.band .contact a { color: #fff; text-decoration: underline; text-decoration-color: rgba(255,255,255,.45); }
+
+.cols {
+  display: flex;
+  align-items: flex-start;
+  gap: 8mm;
+  margin-top: {{ margin_mm * 0.5 }}mm;
+}
+.main { flex: 1 1 auto; min-width: 0; }
+.side { flex: 0 0 52mm; width: 52mm; min-width: 0; }
+
+.side .sec { margin-top: 9pt; }
+.side .sec:first-child { margin-top: 0; }
+.side .sec > h2 {
+  font-size: calc(var(--fs) * .92);
+  border-bottom: .6pt solid var(--rule);
+  padding-bottom: 2pt;
+}
+.side { font-size: calc(var(--fs) * .93); }
+.side-group { margin-top: 4pt; }
+.side-group:first-child { margin-top: 0; }
+.side-label { font-weight: 700; color: var(--ink); }
+.side-entry { margin-top: 6pt; break-inside: avoid; }
+.side-entry:first-child { margin-top: 0; }
+.side-title { font-weight: 700; color: var(--ink); }
+.side-sub { color: var(--body); }
+.side-meta { color: var(--muted); font-size: calc(var(--fs) * .85); }
+.side .bul { padding-left: 9pt; margin-top: 2pt; }
+.side .bul li::before { left: -7pt; }
+
+.main .sec > h2 { border-bottom: none; letter-spacing: .12em; }
+.main .sec > h2::after {
+  content: "";
+  display: block;
+  width: 26pt;
+  height: 1.6pt;
+  background: var(--accent);
+  margin-top: 3pt;
+  opacity: .85;
+}
+{% endblock %}
+
+{% block content %}
+<header class="band">
+  <h1 class="hdr-name">{{ r.name }}</h1>
+  {%- if r.headline %}<p class="hdr-headline">{{ r.headline }}</p>{% endif %}
+  {{ m.contact(r.contact) }}
+</header>
+
+<div class="cols">
+  <div class="main">{{ m.sections(r.excluding(SIDE)) }}</div>
+  <aside class="side">
+    {%- for s in r.only(SIDE) %}{{ m.side_section(s) }}{% endfor %}
+  </aside>
+</div>
+{% endblock %}

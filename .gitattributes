@@ -1,0 +1,6 @@
+# One line ending in the repo, whatever the machine. Without this, a Windows
+# checkout commits CRLF and every file looks rewritten on a Linux CI box.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.jpg binary

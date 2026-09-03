@@ -1,0 +1,156 @@
+{% extends "_base.html.j2" %}
+{% import "_macros.html.j2" as m %}
+
+{#
+  Editorial: a centred portrait and masthead, a narrow left column of
+  small-caps blocks, and the reading matter on a dotted rail.
+
+  The rail is the point of the layout. A resume is a chronology, and drawing
+  the line makes the eye follow it down the page instead of hopping between
+  bold titles. Each entry gets a dot on that line -- laid out with a border
+  and a pseudo-element rather than a graphic, so it costs nothing in the PDF
+  and cannot fail to print.
+
+  Sections are split by *width need*, not by importance: skills and
+  certifications are lists of short nouns and read fine at 44mm; everything
+  with sentences in it needs the wide column.
+#}
+
+{% set SIDE = ('skills', 'certifications') %}
+
+{% block extra_css %}
+.hdr {
+  text-align: center;
+  padding-bottom: 8pt;
+  margin-bottom: 9pt;
+  border-bottom: .7pt solid var(--rule);
+}
+.hdr .portrait { margin: 0 auto 6pt; }
+.hdr-name {
+  font-size: calc(var(--fs) * 1.95);
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.hdr-headline {
+  font-size: calc(var(--fs) * .84);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  margin-top: 4pt;
+}
+.contact { justify-content: center; margin-top: 5pt; }
+
+.cols { display: flex; align-items: flex-start; gap: 8mm; }
+.side { flex: 0 0 44mm; width: 44mm; min-width: 0; text-align: center; }
+.main { flex: 1 1 auto; min-width: 0; }
+
+/* The left column's headings are set between rules and centred, which is what
+   keeps a narrow column from reading as an afterthought. */
+.side .sec > h2 {
+  text-align: center;
+  font-size: calc(var(--fs) * .8);
+  letter-spacing: .22em;
+  text-indent: .22em;
+  border-top: .6pt solid var(--rule);
+  border-bottom: .6pt solid var(--rule);
+  padding: 2.5pt 0;
+  margin-bottom: 5pt;
+}
+.side { font-size: calc(var(--fs) * .9); }
+.side .sec { margin-top: 10pt; }
+.side .sec:first-child { margin-top: 0; }
+.side-item {
+  padding: 2.5pt 0;
+  border-bottom: .5pt dotted var(--rule);
+  break-inside: avoid;
+}
+.side-item:last-child { border-bottom: none; }
+.side-group-label {
+  margin-top: 5pt;
+  font-size: calc(var(--fs) * .76);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+}
+.side .stack { text-align: center; }
+.side .stack li { margin-top: 3pt; word-break: break-word; }
+
+/* Icon-led headings in the main column. */
+.main .sec > h2 {
+  display: flex;
+  align-items: center;
+  gap: 5pt;
+  letter-spacing: .16em;
+  font-size: calc(var(--fs) * .95);
+  margin-bottom: 6pt;
+}
+.sec-icon {
+  width: calc(var(--fs) * 1.25);
+  height: calc(var(--fs) * 1.25);
+  flex: none;
+}
+
+.sec-body {
+  position: relative;
+  padding-left: 11pt;
+  border-left: .6pt solid var(--rule);
+}
+.sec-body .entry { position: relative; margin-top: 9pt; }
+.sec-body .entry:first-of-type { margin-top: 0; }
+.sec-body .entry::before {
+  content: "";
+  position: absolute;
+  left: -13.6pt;
+  top: calc(var(--fs) * var(--lh) / 2 - 2.5pt);
+  width: 5pt;
+  height: 5pt;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2pt #fff;
+}
+.entry-title { font-weight: 600; }
+.entry-sub { font-weight: 400; color: var(--muted); }
+{% endblock %}
+
+{% block content %}
+<header class="hdr">
+  {{ m.portrait(r, '28mm') }}
+  <h1 class="hdr-name">{{ r.name }}</h1>
+  {%- if r.headline %}<p class="hdr-headline">{{ r.headline }}</p>{% endif %}
+  {{ m.contact(r.contact) }}
+</header>
+
+<div class="cols">
+  <aside class="side">
+    {%- if r.contact %}
+    <section class="sec">
+      <h2>Details</h2>
+      {{ m.contact_stack(r.contact) }}
+    </section>
+    {%- endif %}
+    {%- for s in r.only(SIDE) %}
+    <section class="sec sec-{{ s.key }}">
+      <h2>{{ s.label }}</h2>
+      {%- if s.kind == 'groups' %}
+        {%- for label, items in s.groups %}
+        <div class="side-group-label">{{ label }}</div>
+        {%- for item in items %}<div class="side-item">{{ item }}</div>{% endfor %}
+        {%- endfor %}
+      {%- else %}
+        {%- for line in s.lines %}<div class="side-item">{{ line }}</div>{% endfor %}
+      {%- endif %}
+    </section>
+    {%- endfor %}
+  </aside>
+
+  <div class="main">
+    {%- for s in r.excluding(SIDE) %}
+    <section class="sec sec-{{ s.key }}">
+      <h2>{{ m.icon(s.key) }}{{ s.label }}</h2>
+      <div class="sec-body">{{ m.body(s) }}</div>
+    </section>
+    {%- endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "_base.html.j2" %}
+{% import "_macros.html.j2" as m %}
+
+{#
+  Gazette: a masthead, banded headings, and dotted leaders running from each
+  role out to its dates. Formal in the way a printed programme is formal.
+
+  The leader is drawn by CSS, not typed as a row of full stops: it stretches
+  to whatever gap is left after the title and the date have taken their room,
+  so it is always exactly the right length and never lands in the text layer a
+  parser reads.
+#}
+
+{% block extra_css %}
+.hdr { text-align: center; margin-bottom: 11pt; }
+.hdr-name {
+  font-size: calc(var(--fs) * 2.25);
+  letter-spacing: .02em;
+}
+.hdr-headline {
+  font-style: italic;
+  font-size: calc(var(--fs) * 1.05);
+  margin-bottom: 5pt;
+}
+.contact { justify-content: center; }
+
+/* A band rather than a rule: two hairlines with the heading centred between
+   them, which is what makes the page read as a printed document. */
+.sec > h2 {
+  text-align: center;
+  letter-spacing: .3em;
+  text-indent: .3em;
+  padding: 3pt 0;
+  margin-bottom: 7pt;
+  border-top: .7pt solid var(--accent);
+  border-bottom: .7pt solid var(--accent);
+}
+
+.summary {
+  font-style: italic;
+  text-align: center;
+  max-width: 86%;
+  margin: 0 auto;
+}
+
+.entry-line > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.entry-line > div:first-child::after {
+  content: "";
+  flex: 1 1 auto;
+  min-width: 14pt;
+  margin: 0 6pt 2.5pt;
+  border-bottom: .7pt dotted var(--rule);
+}
+.entry-second > div:first-child::after { border-bottom: none; }
+/* Making that block a flex row turns its spans into flex items, and the
+   whitespace a browser would normally render between them disappears. These
+   two put the word spaces back where the markup implied them. */
+.entry-line > div:first-child > .entry-sep { margin-right: .3em; }
+.entry-line > div:first-child > .entry-note { margin-left: .35em; }
+.entry-title { font-size: calc(var(--fs) * 1.05); }
+.entry-sub { font-style: italic; font-weight: 400; }
+.entry-meta { font-variant-numeric: tabular-nums; }
+
+/* A typographic bullet in place of the drawn dot, matching the formality of
+   the headings. */
+ul.bul li::before {
+  content: "\2756";
+  position: absolute;
+  left: -12pt;
+  top: 0;
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
+  color: var(--accent);
+  opacity: .85;
+  font-size: calc(var(--fs) * .62);
+  line-height: calc(var(--fs) * var(--lh) / .62 * .62);
+}
+ul.bul { padding-left: 14pt; }
+
+.skill-label { letter-spacing: .04em; }
+{% endblock %}
+
+{% block content %}
+<header class="hdr">
+  <h1 class="hdr-name">{{ r.name }}</h1>
+  {%- if r.headline %}<p class="hdr-headline">{{ r.headline }}</p>{% endif %}
+  {{ m.contact(r.contact) }}
+</header>
+
+{{ m.sections(r.sections) }}
+{% endblock %}

@@ -1,0 +1,156 @@
+{#
+  Shared markup. Every template calls these, so the *content* of a section is
+  identical everywhere and only its dressing changes -- which is what makes
+  switching template a safe operation rather than a re-proofread.
+#}
+
+{% macro contact(items) -%}
+{%- if items -%}
+<ul class="contact">
+  {%- for c in items %}
+  <li>{% if c.href %}<a href="{{ c.href }}">{{ c.text }}</a>{% else %}{{ c.text }}{% endif %}</li>
+  {%- endfor %}
+</ul>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro entry(e) -%}
+<div class="entry">
+  <div class="entry-head">
+    <div class="entry-line">
+      <div>
+        <span class="entry-title">{{ e.title }}</span>
+        {%- if e.subtitle %}{% if e.title %}<span class="entry-sep">,</span> {% endif %}<span class="entry-sub">{{ e.subtitle }}</span>{% endif %}
+        {%- if e.note %} <span class="entry-note">({{ e.note }})</span>{% endif %}
+      </div>
+      {%- if e.dates %}<div class="entry-meta">{{ e.dates }}</div>{% endif %}
+    </div>
+    {%- if e.place or e.detail or e.url %}
+    <div class="entry-line entry-second">
+      <div class="entry-note">{{ e.place }}{% if e.place and e.detail %} · {% endif %}{{ e.detail }}</div>
+      {%- if e.url %}<div class="entry-link"><a href="{{ e.url }}">{{ e.url_text }}</a></div>{% endif %}
+    </div>
+    {%- endif %}
+  </div>
+  {%- if e.bullets %}
+  <ul class="bul">
+    {%- for b in e.bullets %}
+    <li>{{ b }}</li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  {%- if e.tags %}
+  <p class="tags">{% if e.tag_label %}<b>{{ e.tag_label }}:</b> {% endif %}{{ e.tags | join(' · ') }}</p>
+  {%- endif %}
+</div>
+{%- endmacro %}
+
+{% macro body(s) -%}
+{%- if s.kind == 'text' -%}
+<p class="summary">{{ s.text }}</p>
+{%- elif s.kind == 'entries' -%}
+{%- for e in s.entries %}{{ entry(e) }}{% endfor -%}
+{%- elif s.kind == 'groups' -%}
+{%- for label, items in s.groups %}
+<div class="skill-row"><div class="skill-label">{{ label }}</div><div class="skill-items">{{ items | join(', ') }}</div></div>
+{%- endfor -%}
+{%- elif s.kind == 'lines' -%}
+<ul class="lines">
+  {%- for line in s.lines %}
+  <li>{{ line }}</li>
+  {%- endfor %}
+</ul>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro section(s) -%}
+<section class="sec sec-{{ s.key }}">
+  <h2>{{ s.label }}</h2>
+  {{ body(s) }}
+</section>
+{%- endmacro %}
+
+{% macro sections(items) -%}
+{%- for s in items %}{{ section(s) }}{% endfor -%}
+{%- endmacro %}
+
+{#
+  The side column of the two-column template. Same facts, less furniture: no
+  date column, no bullet indent, because 55mm of width cannot carry them.
+#}
+{% macro side_section(s) -%}
+<section class="sec sec-{{ s.key }}">
+  <h2>{{ s.label }}</h2>
+  {%- if s.kind == 'text' %}
+  <p class="summary">{{ s.text }}</p>
+  {%- elif s.kind == 'groups' %}
+    {%- for label, items in s.groups %}
+    <div class="side-group"><div class="side-label">{{ label }}</div><div>{{ items | join(', ') }}</div></div>
+    {%- endfor %}
+  {%- elif s.kind == 'lines' %}
+  <ul class="lines">
+    {%- for line in s.lines %}<li>{{ line }}</li>{% endfor %}
+  </ul>
+  {%- elif s.kind == 'entries' %}
+    {%- for e in s.entries %}
+    <div class="side-entry">
+      <div class="side-title">{{ e.title }}</div>
+      {%- if e.subtitle %}<div class="side-sub">{{ e.subtitle }}</div>{% endif %}
+      {%- if e.dates %}<div class="side-meta">{{ e.dates }}</div>{% endif %}
+      {%- if e.note or e.detail %}<div class="side-meta">{{ e.note }}{% if e.note and e.detail %} · {% endif %}{{ e.detail }}</div>{% endif %}
+      {%- if e.bullets %}
+      <ul class="bul">{% for b in e.bullets %}<li>{{ b }}</li>{% endfor %}</ul>
+      {%- endif %}
+    </div>
+    {%- endfor %}
+  {%- endif %}
+</section>
+{%- endmacro %}
+
+{#
+  The portrait. Falls back to a monogram rather than to nothing: in a layout
+  built around a round frame, an empty frame reads as a broken image, while
+  two letters read as a decision.
+#}
+{% macro portrait(r, size) -%}
+{%- if r.photo -%}
+<img class="portrait {{ r.photo_shape }}" style="--pw: {{ size }}" src="{{ r.photo }}" alt="{{ r.name }}">
+{%- elif r.initials -%}
+<div class="portrait mono {{ r.photo_shape }}" style="--pw: {{ size }}" aria-hidden="true"><span>{{ r.initials }}</span></div>
+{%- endif -%}
+{%- endmacro %}
+
+{# Contact as a stacked block, for a side column too narrow for one line. #}
+{% macro contact_stack(items) -%}
+{%- if items -%}
+<ul class="stack">
+  {%- for c in items %}
+  <li>{% if c.href %}<a href="{{ c.href }}">{{ c.text }}</a>{% else %}{{ c.text }}{% endif %}</li>
+  {%- endfor %}
+</ul>
+{%- endif -%}
+{%- endmacro %}
+
+{#
+  Section icons, drawn inline rather than pulled from a font.
+
+  An icon font would need a network fetch that Chromium might print without,
+  leaving a row of empty boxes on the page. These are a few hundred bytes of
+  path data that cannot fail, are aria-hidden so they never reach the text
+  layer a parser reads, and take their colour from the heading.
+#}
+{% set ICON_PATHS = {
+  'summary': '<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-5.5 7-5.5s7 1.9 7 5.5"/>',
+  'experience': '<rect x="3" y="7.5" width="18" height="12" rx="1.6"/><path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5"/>',
+  'projects': '<path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/>',
+  'education': '<path d="M12 4l9 4.5-9 4.5-9-4.5z"/><path d="M6.5 11.2v4.3c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3v-4.3"/>',
+  'skills': '<path d="M12 4.5l2.3 4.9 5.2.7-3.8 3.6.9 5.2-4.6-2.5-4.6 2.5.9-5.2L4.5 10.1l5.2-.7z"/>',
+  'certifications': '<circle cx="12" cy="9.5" r="4.5"/><path d="M8.5 14.2L7 21l5-2.4L17 21l-1.5-6.8"/>',
+  'awards': '<path d="M7 5h10v3a5 5 0 0 1-10 0z"/><path d="M9.5 19.5h5M12 13v6.5M7 6H4.6v1.4A3 3 0 0 0 7 10.3M17 6h2.4v1.4A3 3 0 0 1 17 10.3"/>'
+} %}
+
+{% macro icon(key) -%}
+{%- if key in ICON_PATHS -%}
+<svg class="sec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{{ ICON_PATHS[key] | safe }}</svg>
+{%- endif -%}
+{%- endmacro %}

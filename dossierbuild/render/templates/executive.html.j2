@@ -1,0 +1,77 @@
+{% extends "_base.html.j2" %}
+{% import "_macros.html.j2" as m %}
+
+{#
+  Executive: the name set large in the accent, a role line under it, and a
+  rule under every heading. One column, so it stays parser-safe, but it reads
+  as designed rather than typed -- the difference is almost entirely the
+  hierarchy of the first 30mm.
+
+  Skills run in a grid because a skills section is a list of nouns: at full
+  width each group wastes two thirds of its line, and a resume is short of
+  vertical space, never horizontal.
+#}
+
+{% block extra_css %}
+.hdr {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8mm;
+  padding-bottom: 7pt;
+  border-bottom: 2pt solid var(--accent);
+  margin-bottom: 10pt;
+}
+.hdr-name {
+  font-size: calc(var(--fs) * 2.3);
+  color: var(--accent);
+  letter-spacing: -.015em;
+  text-transform: uppercase;
+}
+.hdr-role {
+  margin: 1pt 0 5pt;
+  font-size: calc(var(--fs) * 1.0);
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sec > h2 {
+  font-size: calc(var(--fs) * 1.05);
+  letter-spacing: .13em;
+  padding-bottom: 2.5pt;
+  border-bottom: 1pt solid var(--accent);
+  margin-bottom: 6pt;
+}
+
+.entry-title { font-size: calc(var(--fs) * 1.06); }
+.entry-sub { color: var(--accent); }
+
+/* Two columns of skill groups, each kept whole. */
+.sec-skills .skill-row {
+  display: block;
+  break-inside: avoid;
+  margin-top: 5pt;
+}
+.sec-skills { column-count: 2; column-gap: 9mm; }
+.sec-skills > h2 { column-span: all; }
+.sec-skills .skill-label {
+  color: var(--accent);
+  font-size: calc(var(--fs) * .92);
+  letter-spacing: .04em;
+}
+{% endblock %}
+
+{% block content %}
+<header class="hdr">
+  <div>
+    <h1 class="hdr-name">{{ r.name }}</h1>
+    {%- if r.headline %}<p class="hdr-role">{{ r.headline }}</p>{% endif %}
+    {{ m.contact(r.contact) }}
+  </div>
+  {{ m.portrait(r, '24mm') }}
+</header>
+
+{{ m.sections(r.sections) }}
+{% endblock %}
