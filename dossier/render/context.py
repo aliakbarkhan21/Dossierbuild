@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from ..schema import Profile, entry_label, format_range
+from ..core.schema import Profile, entry_label, format_range
 from .design import Design, SECTION_LABELS
 from .photo import STORED_PX, photo_data_uri
 
@@ -256,7 +256,7 @@ def _build_section(profile: Profile, key: str) -> Section | None:
             if c.issuer.strip():
                 parts.append(c.issuer.strip())
             if c.issued:
-                from ..schema import format_date
+                from ..core.schema import format_date
 
                 parts.append(format_date(c.issued, blank=""))
             lines.append(" · ".join(p for p in parts if p))
@@ -271,7 +271,7 @@ def _build_section(profile: Profile, key: str) -> Section | None:
             if a.awarded_by.strip():
                 parts.append(a.awarded_by.strip())
             if a.date:
-                from ..schema import format_date
+                from ..core.schema import format_date
 
                 parts.append(format_date(a.date, blank=""))
             line = " · ".join(p for p in parts if p)

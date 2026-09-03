@@ -20,7 +20,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
-from ..schema import Profile
+from ..core.schema import Profile
 from .context import ResumeContext, build_context, trim
 from .design import MONO_STACK, Design, mm_to_px
 

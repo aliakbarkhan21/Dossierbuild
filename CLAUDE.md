@@ -11,29 +11,32 @@ repo. Update it when a decision is made, not afterwards.
 ## The shape of the thing
 
 ```
-dossierbuild/
-  schema.py        the master profile contract (Pydantic v2). Facts only.
-  storage.py       load / validate / atomic save / migrate. DATA_DIR is env-configurable.
-  settings.py      small UI preferences, low stakes, never validated hard.
-  quality.py       the bullet-writing standard, as code.
-  ids.py           stable short ids.
-  importer/        PDF·DOCX·LinkedIn·Gemini -> profile, plus a merge review.
-  render/          profile + design -> HTML -> PDF.
+dossier/
+  core/      the product, with no interface attached
+    schema.py      the master profile contract (Pydantic v2). Facts only.
+    storage.py     load / validate / atomic save / migrate. DATA_DIR is env-configurable.
+    settings.py    small UI preferences, low stakes, never validated hard.
+    quality.py     the bullet-writing standard, as code.
+    ids.py         stable short ids.
+  ingest/    PDF·DOCX·LinkedIn -> profile, plus the merge review. No AI.
+  ai/        every call that leaves this machine for a model. Currently: resume parsing.
+  render/    profile + design -> HTML -> PDF.
     design.py      every presentation choice, validated. Curated, not open-ended.
     context.py     the profile flattened into exactly what a template needs.
     html.py        Jinja2. One self-contained document, preview or print.
     pdf.py         Chromium in a subprocess; pypdf reads the result back.
     photo.py       the portrait: normalised on upload, embedded as a data URI.
     templates/     _base + _macros + eight layouts.
-  ui/              Streamlit. Being replaced — see "Where this is going".
-scripts/           self-checks, runnable with nothing but the app's deps.
-tests/             the same checks, one pytest case each.
+  api/       FastAPI over core. What the React frontend will talk to.
+  ui/        Streamlit. Being replaced — see "Where this is going".
+scripts/     self-checks, runnable with nothing but the app's deps.
+tests/       the same checks, one pytest case each.
 ```
 
 ### The dependency rule
 
-`schema`, `storage`, `quality`, `importer` and `render` **must not import
-Streamlit, FastAPI, or any UI library.** They are the product; the UI is one
+`core`, `ingest`, `ai` and `render` **must not import Streamlit, FastAPI, or
+any UI library.** They are the product; the UI is one
 way to drive it. This rule is what makes the frontend replaceable, and it is
 already honoured — do not break it for convenience.
 

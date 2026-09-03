@@ -27,8 +27,8 @@ from typing import Any
 import streamlit as st
 import streamlit.components.v1 as components
 
-from dossierbuild.render.design import ACCENTS as ACCENT_SWATCHES
-from dossierbuild.ui.assets import logo_data_uri
+from dossier.render.design import ACCENTS as ACCENT_SWATCHES
+from dossier.ui.assets import logo_data_uri
 
 # --------------------------------------------------------------------------
 # Typography
@@ -1563,7 +1563,7 @@ def brand(title: str = "Dossierbuild", subtitle: str = "Resume workspace") -> No
 
     The mark is an empty span rather than an image -- it is painted by the
     stylesheet through a CSS mask so it inherits the theme's text colour. See
-    ``dossierbuild.ui.assets`` for why.
+    ``dossier.ui.assets`` for why.
     """
     st.markdown(
         f'<span class="db-brand-sub">{subtitle}</span>'

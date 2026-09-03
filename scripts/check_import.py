@@ -15,9 +15,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from dossierbuild.importer import ai_parse, extract, linkedin
-from dossierbuild.importer.merge import apply_merge_plan, build_merge_plan
-from dossierbuild.schema import Experience, Profile, SkillGroup, TextBlock, format_date
+from dossier.ai import parse as ai_parse
+from dossier.ingest import extract, linkedin
+from dossier.ingest.merge import apply_merge_plan, build_merge_plan
+from dossier.core.schema import Experience, Profile, SkillGroup, TextBlock, format_date
 
 from _harness import check, run
 
@@ -209,7 +210,7 @@ def _() -> None:
 
 @check("applying a plan produces ids that are still unique")
 def _() -> None:
-    from dossierbuild.schema import all_ids
+    from dossier.core.schema import all_ids
 
     current = Profile.empty()
     imported = linkedin.parse_export(make_export()).profile

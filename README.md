@@ -58,31 +58,31 @@ docker run -p 8501:8501 -v "$PWD/data:/data" -e GEMINI_API_KEY=... dossier
 ## What exists
 
 ```
-app.py                      Streamlit entry point
-dossierbuild/
-  schema.py                 the master profile contract (Pydantic v2)
-  storage.py                load / validate / atomic save / migrate
-  quality.py                the bullet-writing standard, as code
-  ids.py                    stable short ids
-  ui/
-    theme.py                app styling (not the resume's styling)
-    profile_editor.py       the section-by-section editor
-    import_page.py          import review screen
-    resume_page.py          template gallery, design controls, preview, export
-    insights.py             strength meters, career timeline, search
+app.py                      Streamlit entry point (being replaced)
+dossier/
+  core/
+    schema.py               the master profile contract (Pydantic v2)
+    storage.py              load / validate / atomic save / migrate
+    quality.py              the bullet-writing standard, as code
+    settings.py             UI preferences
+    ids.py                  stable short ids
+  ingest/
+    linkedin.py             LinkedIn data-export ZIP -> profile  (no AI)
+    extract.py              PDF / DOCX / text -> plain text       (no AI)
+    merge.py                folding an import into what exists
+  ai/
+    parse.py                resume text -> profile                (Gemini)
   render/
     design.py               the presentation choices, validated
     context.py              profile -> exactly what a template needs
     html.py                 Jinja2 -> one self-contained HTML document
     pdf.py                  Chromium prints it; pypdf reads it back
-    pdf_worker.py           the browser, in its own process
-    templates/              _base + Classic, Modern, Minimalist, Compact
-  importer/
-    linkedin.py             LinkedIn data-export ZIP -> profile  (no AI)
-    extract.py              PDF / DOCX / text -> plain text       (no AI)
-    ai_parse.py             resume text -> profile                (Gemini)
-    merge.py                folding an import into what exists
-data/profile.json           your data. gitignored. backed up on every save.
+    photo.py                the portrait, normalised and embedded
+    templates/              _base + Classic, Modern, Minimalist, Compact,
+                            Executive, Gazette, Sidebar, Editorial
+  api/                      FastAPI over core
+  ui/                       Streamlit workspace
+data/                       your data. gitignored. backed up on every save.
 ```
 
 ---

@@ -34,7 +34,7 @@ import zipfile
 from dataclasses import dataclass, field
 from typing import Iterable
 
-from ..schema import (
+from ..core.schema import (
     Award,
     Certification,
     Education,

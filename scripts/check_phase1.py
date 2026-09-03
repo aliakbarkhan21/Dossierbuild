@@ -15,8 +15,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pydantic import ValidationError
 
-from dossierbuild.quality import build_vocabulary, check_text, mentions_specific
-from dossierbuild.schema import (
+from dossier.core.quality import build_vocabulary, check_text, mentions_specific
+from dossier.core.schema import (
     SCHEMA_VERSION,
     Education,
     Experience,
@@ -29,7 +29,7 @@ from dossierbuild.schema import (
     format_range,
     iter_bullets,
 )
-from dossierbuild.storage import ProfileError, dedupe_ids, load_profile, migrate, save_profile
+from dossier.core.storage import ProfileError, dedupe_ids, load_profile, migrate, save_profile
 
 from _harness import check, run
 

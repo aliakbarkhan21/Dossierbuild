@@ -25,7 +25,7 @@ from pydantic import ValidationError
 from .ids import new_id
 from .schema import SCHEMA_VERSION, LIST_SECTIONS, Profile
 
-PACKAGE_ROOT = Path(__file__).resolve().parent
+PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = PACKAGE_ROOT.parent
 
 # Where everything of the user's lives: the profile, its backups, the

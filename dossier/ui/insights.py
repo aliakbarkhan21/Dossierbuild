@@ -19,8 +19,8 @@ from datetime import date
 
 import streamlit as st
 
-from ..quality import MAX_CHARS, MIN_CHARS, NUMBER_RE, build_vocabulary, mentions_specific
-from ..schema import (
+from ..core.quality import MAX_CHARS, MIN_CHARS, NUMBER_RE, build_vocabulary, mentions_specific
+from ..core.schema import (
     LIST_SECTIONS,
     Profile,
     entry_label,

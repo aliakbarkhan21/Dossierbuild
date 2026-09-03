@@ -20,7 +20,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from ..schema import LIST_SECTIONS, Profile, SkillGroup, entry_label, format_date, format_range
+from ..core.schema import LIST_SECTIONS, Profile, SkillGroup, entry_label, format_date, format_range
 
 
 # --------------------------------------------------------------------------

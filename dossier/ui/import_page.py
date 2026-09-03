@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import streamlit as st
 
-from ..importer import ai_parse, extract, linkedin
-from ..importer.merge import MergePlan, apply_merge_plan, build_merge_plan
-from ..schema import Profile
+from ..ai import parse as ai_parse
+from ..ingest import extract, linkedin
+from ..ingest.merge import MergePlan, apply_merge_plan, build_merge_plan
+from ..core.schema import Profile
 from . import theme
 
 PLAN_KEY = "merge_plan"

@@ -20,7 +20,7 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..schema import Profile
+from ..core.schema import Profile
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -62,7 +62,7 @@ def render_pdf(
     colour produce different HTML, and the HTML is what matters here.
     """
     options = {"margin_mm": margin_mm, "page_numbers": page_numbers}
-    with tempfile.TemporaryDirectory(prefix="dossierbuild-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="dossier-") as tmp:
         folder = Path(tmp)
         html_file = folder / "resume.html"
         pdf_file = folder / "resume.pdf"
@@ -73,7 +73,7 @@ def render_pdf(
                 [
                     sys.executable,
                     "-m",
-                    "dossierbuild.render.pdf_worker",
+                    "dossier.render.pdf_worker",
                     str(html_file),
                     str(pdf_file),
                     json.dumps(options),

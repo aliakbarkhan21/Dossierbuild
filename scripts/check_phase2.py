@@ -17,11 +17,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from dossierbuild.render.context import build_context, display_url, normalise_url, suggested_filename
-from dossierbuild.render.design import ACCENTS, PAIRINGS, TEMPLATES, Design, load_design, save_design
-from dossierbuild.render.html import render_html, render_thumbnail
-from dossierbuild.render.pdf import chromium_ready, pdf_report, render_pdf
-from dossierbuild.schema import Basics, Education, Experience, Link, Profile, Project, SkillGroup, TextBlock
+from dossier.render.context import build_context, display_url, normalise_url, suggested_filename
+from dossier.render.design import ACCENTS, PAIRINGS, TEMPLATES, Design, load_design, save_design
+from dossier.render.html import render_html, render_thumbnail
+from dossier.render.pdf import chromium_ready, pdf_report, render_pdf
+from dossier.core.schema import Basics, Education, Experience, Link, Profile, Project, SkillGroup, TextBlock
 
 from _harness import check, run
 

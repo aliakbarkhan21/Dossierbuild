@@ -25,7 +25,7 @@ from pathlib import Path
 
 from PIL import Image, ImageOps
 
-from ..storage import DATA_DIR
+from ..core.storage import DATA_DIR
 
 PHOTO_NAME = "photo.jpg"
 # 512px across a 30mm frame is a shade over 430dpi -- past the point print

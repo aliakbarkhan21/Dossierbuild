@@ -30,7 +30,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from ..schema import (
+from ..core.schema import (
     Award,
     Basics,
     Certification,
@@ -42,7 +42,7 @@ from ..schema import (
     SkillGroup,
     TextBlock,
 )
-from .linkedin import parse_date
+from ..ingest.linkedin import parse_date
 
 DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 
@@ -94,7 +94,7 @@ class MissingAPIKey(RuntimeError):
 # The shape the model fills in
 # --------------------------------------------------------------------------
 #
-# Deliberately a separate, flatter set of models from dossierbuild.schema:
+# Deliberately a separate, flatter set of models from dossier.core.schema:
 #   * no id fields, so ids stay ours to assign
 #   * plain strings everywhere, with "" for missing -- structured-output
 #     handles a required string far more reliably than a nullable union
