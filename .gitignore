@@ -19,3 +19,9 @@ output/
 
 # Claude Code session transcripts, if one is ever copied in here
 *.jsonl
+
+# Frontend build artefacts and dependencies
+web/node_modules/
+web/dist/
+web/vite.log
+web/tsconfig.tsbuildinfo

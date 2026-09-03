@@ -1,0 +1,286 @@
+@import "tailwindcss";
+
+/*
+  The design system. Every colour, space, radius, shadow and type size in the
+  app resolves to something declared here -- if a component hardcodes a hex or
+  a pixel, that is the bug, not the value.
+
+  Two layers, on purpose:
+
+  1. `:root` / `.dark` hold the *decisions* as plain CSS variables. Switching
+     theme swaps this block and nothing else.
+  2. `@theme inline` publishes those variables to Tailwind, so `bg-surface`
+     and `text-muted` are real utilities that follow the theme at runtime
+     rather than being compiled to a fixed colour.
+
+  Dark is designed, not inverted. The accent lightens (a mid-green that reads
+  on white is muddy on near-black), the paper keeps a green cast rather than
+  falling to flat grey, and every text level was checked against its own
+  background rather than assumed.
+*/
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* --- surfaces ------------------------------------------------------- */
+  --c-bg: #faf9f7;
+  --c-surface: #ffffff;
+  --c-raised: #ffffff;
+  --c-sunken: #f2f1ee;
+
+  /* --- ink ------------------------------------------------------------ */
+  --c-text: #17181a;
+  /* 6.6:1 on white. The lowest level any sentence is allowed to use. */
+  --c-muted: #5a5954;
+  /* 3.4:1 -- metadata and decoration only, never a sentence. */
+  --c-faint: #8b8880;
+
+  /* --- lines ---------------------------------------------------------- */
+  --c-line: #e7e5e1;
+  --c-line-strong: #d5d2cc;
+
+  /* --- one accent, used sparingly ------------------------------------- */
+  --c-accent: #2c6a54;
+  --c-accent-hover: #235544;
+  --c-accent-soft: #e3efe9;
+  --c-on-accent: #ffffff;
+
+  /* --- verdicts ------------------------------------------------------- */
+  --c-good: #2f7355;
+  --c-fair: #8a6318;
+  --c-poor: #a4443f;
+  --c-good-soft: #e4efe8;
+  --c-fair-soft: #f6eddb;
+  --c-poor-soft: #f7e5e3;
+
+  /* --- depth ---------------------------------------------------------- */
+  --shadow-subtle: 0 1px 2px rgb(16 18 20 / 0.05);
+  --shadow-raised: 0 1px 2px rgb(16 18 20 / 0.06), 0 6px 16px rgb(16 18 20 / 0.07);
+  --shadow-overlay: 0 8px 24px rgb(16 18 20 / 0.10), 0 24px 64px rgb(16 18 20 / 0.14);
+  --ring-accent: 0 0 0 3px rgb(44 106 84 / 0.22);
+}
+
+.dark {
+  --c-bg: #0f1211;
+  --c-surface: #161a19;
+  --c-raised: #1b201e;
+  --c-sunken: #0a0d0c;
+
+  --c-text: #e9edea;
+  /* 7.2:1 on the surface colour. */
+  --c-muted: #a2aca7;
+  /* 4.5:1 -- still legible, unlike the near-invisible grey it replaces. */
+  --c-faint: #7d8884;
+
+  --c-line: #242a28;
+  --c-line-strong: #343c39;
+
+  --c-accent: #5fbe96;
+  --c-accent-hover: #7bd0ab;
+  --c-accent-soft: #17281f;
+  --c-on-accent: #071310;
+
+  --c-good: #6cc39b;
+  --c-fair: #d3a45c;
+  --c-poor: #e0847c;
+  --c-good-soft: #16241d;
+  --c-fair-soft: #241d10;
+  --c-poor-soft: #251413;
+
+  /* Shadows do almost nothing on a dark ground; the border does the work,
+     and the shadow only separates overlays from the page behind them. */
+  --shadow-subtle: 0 1px 2px rgb(0 0 0 / 0.30);
+  --shadow-raised: 0 2px 4px rgb(0 0 0 / 0.32), 0 8px 24px rgb(0 0 0 / 0.36);
+  --shadow-overlay: 0 12px 32px rgb(0 0 0 / 0.50), 0 32px 80px rgb(0 0 0 / 0.55);
+  --ring-accent: 0 0 0 3px rgb(95 190 150 / 0.26);
+}
+
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-raised: var(--c-raised);
+  --color-sunken: var(--c-sunken);
+
+  --color-ink: var(--c-text);
+  --color-muted: var(--c-muted);
+  --color-faint: var(--c-faint);
+
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+
+  --color-accent: var(--c-accent);
+  --color-accent-hover: var(--c-accent-hover);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-on-accent: var(--c-on-accent);
+
+  --color-good: var(--c-good);
+  --color-fair: var(--c-fair);
+  --color-poor: var(--c-poor);
+  --color-good-soft: var(--c-good-soft);
+  --color-fair-soft: var(--c-fair-soft);
+  --color-poor-soft: var(--c-poor-soft);
+
+  /* Type. A serif for the things you read slowly -- the wordmark, page
+     titles, the numbers on a stat -- and a sans for everything you use. */
+  --font-display: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1.45;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.55;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.6;
+  --text-lg: 1rem;
+  --text-lg--line-height: 1.55;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.35;
+  --text-2xl: 1.625rem;
+  --text-2xl--line-height: 1.2;
+  --text-3xl: 2.125rem;
+  --text-3xl--line-height: 1.12;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  --shadow-subtle: var(--shadow-subtle);
+  --shadow-raised: var(--shadow-raised);
+  --shadow-overlay: var(--shadow-overlay);
+
+  /* Motion. One easing, three durations, nothing bouncy: a resume builder
+     should feel quick and certain, not playful. */
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 250ms;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--c-bg);
+    color: var(--c-text);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    color: var(--c-text);
+    letter-spacing: -0.012em;
+    font-weight: 600;
+  }
+
+  /* A focus ring that is always visible when it should be, and never when a
+     mouse did the focusing. */
+  :focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--c-accent-soft);
+    color: var(--c-text);
+  }
+
+  /* Someone who has asked their system to stop animating things means it. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* The three shapes the whole interface is built from. Declared once here
+     rather than as a repeated string of utilities in thirty components. */
+  .card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-subtle);
+  }
+
+  .field {
+    width: 100%;
+    background: var(--c-surface);
+    border: 1px solid var(--c-line-strong);
+    border-radius: var(--radius-sm);
+    padding: 0.4rem 0.6rem;
+    color: var(--c-text);
+    transition: border-color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out);
+  }
+  .field::placeholder { color: var(--c-faint); }
+  .field:focus {
+    outline: none;
+    border-color: var(--c-accent);
+    box-shadow: var(--ring-accent);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--c-line-strong);
+    background: var(--c-surface);
+    color: var(--c-text);
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background-color var(--duration-fast) var(--ease-out),
+                border-color var(--duration-fast) var(--ease-out),
+                color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+  }
+  .btn:hover:not(:disabled) { border-color: var(--c-accent); color: var(--c-accent); }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .btn-primary {
+    background: var(--c-accent);
+    border-color: var(--c-accent);
+    color: var(--c-on-accent);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--c-accent-hover);
+    border-color: var(--c-accent-hover);
+    color: var(--c-on-accent);
+  }
+
+  .btn-quiet {
+    background: transparent;
+    border-color: transparent;
+    color: var(--c-muted);
+  }
+  .btn-quiet:hover:not(:disabled) { background: var(--c-sunken); color: var(--c-text); }
+
+  .label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--c-faint);
+    margin-bottom: 0.3rem;
+  }
+}
