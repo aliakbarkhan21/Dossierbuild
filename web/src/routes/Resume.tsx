@@ -229,7 +229,7 @@ export function ResumeScreen() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {shown.map((t) => (
                 <TemplateCard
                   key={t.key}
@@ -252,7 +252,7 @@ export function ResumeScreen() {
         </div>
 
         <div className="flex min-w-0 flex-col gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-sm font-semibold">Preview</h2>
             <div className="ml-auto flex gap-0.5 rounded-md bg-sunken p-0.5">
               {ZOOMS.map((z) => (
@@ -334,7 +334,7 @@ function Looks({
   return (
     <section>
       <h2 className="mb-2 text-sm font-semibold">Start from a look</h2>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {options.looks.map((look) => {
           const active = matches(look.values);
           return (

@@ -11,7 +11,7 @@
  */
 
 import { GripVertical, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useShell } from "../App";
@@ -201,6 +201,31 @@ export function ProfileScreen() {
 
   const requested = params.get("section") as Tab | null;
   const tab: Tab = requested && TABS.includes(requested) ? requested : "basics";
+  const focus = params.get("focus");
+
+  /**
+   * Land on the exact line the Health screen sent you to.
+   *
+   * The tab comes from the same query string, so by the time this runs the
+   * right section has already rendered and the node exists. The parameter is
+   * dropped afterwards: it describes one arrival, and leaving it in the URL
+   * would re-focus the field on every later render and fight the cursor.
+   */
+  useEffect(() => {
+    if (!focus) return;
+    const field = document.querySelector<HTMLTextAreaElement>(`[data-block-id="${focus}"]`);
+    if (field) {
+      field.scrollIntoView({ block: "center", behavior: "smooth" });
+      field.focus({ preventScroll: true });
+      // Focus alone is a thin outline that is easy to miss after a scroll.
+      field.classList.add("ring-2", "ring-accent");
+      setTimeout(() => field.classList.remove("ring-2", "ring-accent"), 1800);
+    }
+    const next = new URLSearchParams(params);
+    next.delete("focus");
+    setParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus]);
 
   if (!profile) return null;
 
@@ -245,7 +270,7 @@ export function ProfileScreen() {
         below={
           <nav
             aria-label="Profile sections"
-            className="flex gap-1 overflow-x-auto border-t border-line px-6 py-2"
+            className="flex gap-1 overflow-x-auto border-t border-line px-4 py-2 sm:px-6"
           >
         {TABS.map((key) => {
           const active = key === tab;
@@ -633,7 +658,8 @@ function SummaryForm({ profile, edit }: { profile: Profile; edit: Edit }) {
         named specifically enough that nobody else could have written it.
       </p>
       <textarea
-        className="field mt-4 min-h-32 resize-y leading-relaxed"
+        data-block-id={profile.summary.id}
+        className="field mt-4 min-h-32 resize-y leading-relaxed transition-shadow duration-300"
         value={text}
         onChange={(event) => edit((d) => void (d.summary.text = event.target.value))}
         placeholder="Computer Science and AI undergraduate who ships working tools…"
@@ -659,14 +685,80 @@ function EntryList({
   const spec = SECTIONS[section];
   const entries = (profile as unknown as Record<string, Record<string, unknown>[]>)[section] ?? [];
 
+  // Which card is in the air, and which one it would land on.
+  const [dragging, setDragging] = useState<number | null>(null);
+  const [over, setOver] = useState<number | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  // The live values the pointer handlers read. State drives the rendering;
+  // these exist because the handler that commits the move runs outside React's
+  // render and would otherwise close over the indices as they were at
+  // pointerdown.
+  const from = useRef<number | null>(null);
+  const to = useRef<number | null>(null);
+
   const mutate = (index: number, key: string, value: unknown) =>
     edit((draft) => {
       const list = (draft as unknown as Record<string, Record<string, unknown>[]>)[section]!;
       list[index]![key] = value;
     });
 
+  const move = (start: number, end: number) =>
+    edit((draft) => {
+      const list = (draft as unknown as Record<string, unknown[]>)[section]!;
+      list.splice(end, 0, list.splice(start, 1)[0]);
+    });
+
+  /**
+   * Reordering by pointer rather than by HTML5 drag-and-drop.
+   *
+   * The native API looks like the obvious choice and is the wrong one here: it
+   * does not fire for touch at all, so the handle would still be decoration on
+   * a phone, and it cannot be driven by synthetic events, so none of this
+   * could be tested. Pointer events cover mouse, touch and pen with one path.
+   */
+  function startDrag(index: number, event: React.PointerEvent) {
+    // Left button only; a right-click on the handle should open a menu.
+    if (event.button !== 0) return;
+    event.preventDefault();
+    from.current = index;
+    to.current = index;
+    setDragging(index);
+    setOver(index);
+
+    const onMove = (moved: PointerEvent) => {
+      const cards = listRef.current?.querySelectorAll<HTMLElement>("article[data-entry-index]");
+      if (!cards) return;
+      for (const card of cards) {
+        const box = card.getBoundingClientRect();
+        if (moved.clientY >= box.top && moved.clientY <= box.bottom) {
+          const hit = Number(card.dataset.entryIndex);
+          to.current = hit;
+          setOver(hit);
+          return;
+        }
+      }
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      if (from.current !== null && to.current !== null && from.current !== to.current) {
+        move(from.current, to.current);
+      }
+      from.current = null;
+      to.current = null;
+      setDragging(null);
+      setOver(null);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  }
+
   return (
-    <section className="flex flex-col gap-4">
+    <section ref={listRef} className="flex flex-col gap-4">
       <header className="flex items-baseline gap-3">
         <h2 className="font-display text-lg">{spec.label}</h2>
         {spec.teaches && <p className="text-sm text-muted">{spec.teaches}</p>}
@@ -695,9 +787,30 @@ function EntryList({
       )}
 
       {entries.map((entry, index) => (
-        <article key={(entry.id as string) || index} className="card p-4">
+        <article
+          key={(entry.id as string) || index}
+          data-entry-index={index}
+          className={[
+            "card p-4 transition-all duration-150",
+            dragging === index ? "opacity-50" : "",
+            over === index && dragging !== null && dragging !== index
+              ? "ring-2 ring-accent"
+              : "",
+          ].join(" ")}
+        >
           <div className="mb-3 flex items-center gap-2">
-            <GripVertical size={14} className="text-faint" aria-hidden />
+            {/* This used to be decoration: a handle that looks draggable and
+                is not is worse than no handle at all. The arrows stay beside
+                it, because a drag is unreachable from a keyboard. */}
+            <span
+              onPointerDown={(event) => startDrag(index, event)}
+              title="Drag to reorder, or use the arrows"
+              // Without this a touch drag scrolls the page instead.
+              style={{ touchAction: "none" }}
+              className="cursor-grab text-faint transition-colors duration-150 hover:text-muted active:cursor-grabbing"
+            >
+              <GripVertical size={14} aria-hidden />
+            </span>
             <span className="text-2xs font-semibold uppercase tracking-wide text-faint">
               {spec.singular} {index + 1}
             </span>
@@ -706,13 +819,8 @@ function EntryList({
                 type="button"
                 className="btn btn-quiet px-1.5 py-1"
                 disabled={index === 0}
-                aria-label="Move up"
-                onClick={() =>
-                  edit((draft) => {
-                    const list = (draft as unknown as Record<string, unknown[]>)[section]!;
-                    list.splice(index - 1, 0, list.splice(index, 1)[0]);
-                  })
-                }
+                aria-label={`Move ${spec.singular} ${index + 1} up`}
+                onClick={() => move(index, index - 1)}
               >
                 ↑
               </button>
@@ -720,13 +828,8 @@ function EntryList({
                 type="button"
                 className="btn btn-quiet px-1.5 py-1"
                 disabled={index === entries.length - 1}
-                aria-label="Move down"
-                onClick={() =>
-                  edit((draft) => {
-                    const list = (draft as unknown as Record<string, unknown[]>)[section]!;
-                    list.splice(index + 1, 0, list.splice(index, 1)[0]);
-                  })
-                }
+                aria-label={`Move ${spec.singular} ${index + 1} down`}
+                onClick={() => move(index, index + 1)}
               >
                 ↓
               </button>
@@ -843,7 +946,8 @@ function Bullets({
           <div key={bullet.id || index} className="flex items-start gap-2">
             <span aria-hidden className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-accent/70" />
             <textarea
-              className="field min-h-16 flex-1 resize-y"
+              data-block-id={bullet.id}
+              className="field min-h-16 flex-1 resize-y transition-shadow duration-300"
               value={bullet.text}
               placeholder="Cut nightly ETL runtime from 42 minutes to 9 by batching Postgres writes"
               onChange={(event) => {

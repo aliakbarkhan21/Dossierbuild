@@ -114,24 +114,33 @@ export function TopBar({
 }: Props) {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur">
-      <div className="flex items-center gap-4 px-6 py-3">
+      <div className="flex items-center gap-2 px-4 py-3 sm:gap-4 sm:px-6">
         {sidebarHidden && (
-          <button type="button" className="btn btn-quiet px-1.5 py-1" onClick={onShowSidebar}>
+          <button
+            type="button"
+            className="btn btn-quiet shrink-0 px-1.5 py-1"
+            onClick={onShowSidebar}
+            aria-label="Show the sidebar"
+          >
             <PanelLeftOpen size={16} />
           </button>
         )}
 
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="truncate font-display text-xl leading-tight">{title}</h1>
           {subtitle && <div className="mt-0.5 truncate text-xs text-muted">{subtitle}</div>}
         </div>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <SaveState />
+          {/* Hidden where it cannot be used. The chip advertises a keyboard
+              shortcut, and a narrow screen is usually a screen with no
+              keyboard -- so on one it is pure width, taken from the title and
+              the primary action, which is what pushed both off the edge. */}
           <button
             type="button"
             onClick={onOpenPalette}
-            className="btn btn-quiet gap-1.5 text-xs"
+            className="btn btn-quiet hidden gap-1.5 text-xs md:inline-flex"
             title="Command palette"
           >
             <Command size={14} />

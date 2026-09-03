@@ -7,7 +7,7 @@
  */
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { CommandPalette, useCommandPalette } from "./components/CommandPalette";
 import { Sidebar } from "./components/Sidebar";
@@ -34,6 +34,31 @@ const ShellContext = createContext<Shell>({
 
 export const useShell = () => useContext(ShellContext);
 
+/**
+ * Where the sidebar stops being a column and becomes a drawer.
+ *
+ * Below this it was taking 232px of a 420px screen, which pushed the page
+ * title and the primary action off the right-hand edge -- the sidebar was
+ * still there, but nothing else was. There is no hand-measured offset here:
+ * the number is the width at which the two-column layout stops fitting, not a
+ * measurement of anything inside it.
+ */
+const DRAWER_BELOW = 1024;
+
+function useNarrow(): boolean {
+  const [narrow, setNarrow] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < DRAWER_BELOW,
+  );
+  useEffect(() => {
+    const query = window.matchMedia(`(max-width: ${DRAWER_BELOW - 1}px)`);
+    const update = () => setNarrow(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return narrow;
+}
+
 /** Whether a keystroke is being typed into something that owns its own undo. */
 function isTyping(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
@@ -52,8 +77,16 @@ export default function App() {
   const undo = useStore((s) => s.undo);
   const ready = useStore((s) => s.ready);
   const bootError = useStore((s) => s.bootError);
-  const [sidebarHidden, setSidebarHidden] = useState(false);
+  const narrow = useNarrow();
+  const [collapsed, setCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const { open, setOpen } = useCommandPalette();
+
+  // Two different states behind one idea. On a wide screen the sidebar is a
+  // column the user may collapse; on a narrow one it is a drawer that is shut
+  // until asked for. Keeping them separate is what lets a phone-sized window
+  // stop being a drawer, and go back to the column the user had, on rotate.
+  const sidebarHidden = narrow ? !drawerOpen : collapsed;
 
   useEffect(() => {
     void boot();
@@ -97,9 +130,23 @@ export default function App() {
     return () => window.removeEventListener("beforeunload", onLeave);
   }, []);
 
+  // A drawer that stayed open over the page you just navigated to would have
+  // to be dismissed by hand every single time.
+  const location = useLocation();
+  useEffect(() => setDrawerOpen(false), [location.pathname]);
+
+  useEffect(() => {
+    if (!narrow || !drawerOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDrawerOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [narrow, drawerOpen]);
+
   const shell: Shell = {
     sidebarHidden,
-    showSidebar: () => setSidebarHidden(false),
+    showSidebar: () => (narrow ? setDrawerOpen(true) : setCollapsed(false)),
     openPalette: () => setOpen(true),
   };
 
@@ -120,7 +167,24 @@ export default function App() {
   return (
     <ShellContext.Provider value={shell}>
       <div className="flex h-screen overflow-hidden">
-        {!sidebarHidden && <Sidebar onCollapse={() => setSidebarHidden(true)} />}
+        {narrow ? (
+          // Over the page rather than beside it. A 232px column on a phone
+          // leaves no room for the thing the column is for navigating to.
+          drawerOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-30 bg-black/40 backdrop-blur-[1px]"
+                onClick={() => setDrawerOpen(false)}
+                aria-hidden
+              />
+              <div className="fixed inset-y-0 left-0 z-40 shadow-raised">
+                <Sidebar onCollapse={() => setDrawerOpen(false)} />
+              </div>
+            </>
+          )
+        ) : (
+          !collapsed && <Sidebar onCollapse={() => setCollapsed(true)} />
+        )}
         <main className="flex min-w-0 flex-1 flex-col overflow-y-auto">
           {ready ? (
             <Routes>

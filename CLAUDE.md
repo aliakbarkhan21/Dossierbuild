@@ -191,6 +191,15 @@ Each of these cost a debugging round.
   a measurement of the header above them; adding one control to that header
   made it taller and the tabs slid underneath. Nest the thing instead — see
   `TopBar`'s `below` slot.
+- **HTML5 drag-and-drop is the wrong API here.** It does not fire for touch at
+  all, so a drag handle stays decoration on a phone, and synthetic events
+  cannot drive it, so the behaviour cannot be tested. `EntryList` reorders with
+  pointer events, which cover mouse, touch and pen in one path — and the ↑/↓
+  buttons stay, because no drag is reachable from a keyboard.
+- **A control that only works with a keyboard is width taken from one that
+  works without.** The ⌘K chip sat beside the title on every screen; on a
+  phone it helped nobody and pushed the page title and the primary action off
+  the right edge. It is `hidden md:inline-flex`.
 - **Merge candidate keys must not embed entry ids.** Ids are minted at
   validation, so a key built from one is different in the response than it was
   in the request, and `/plan` never matches `/apply`.

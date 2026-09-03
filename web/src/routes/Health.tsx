@@ -7,7 +7,7 @@
  * score fairly, and a breakdown that names the specific line to fix.
  */
 
-import { AlertTriangle, CircleAlert, Info } from "lucide-react";
+import { AlertTriangle, ArrowRight, CircleAlert, Info } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -16,10 +16,17 @@ import { TopBar } from "../components/TopBar";
 import { useShallow } from "zustand/react/shallow";
 
 import { useStore } from "../lib/store";
-import type { Severity } from "../lib/types";
+import type { Finding, Severity } from "../lib/types";
 
 /** Below this, a percentage says more about the sample than the writing. */
 const ENOUGH = 5;
+
+const SEVERITY_RANK: Record<Severity, number> = { error: 3, warning: 2, note: 1 };
+
+/** A block is as bad as its worst finding. */
+function rank(findings: Finding[]): number {
+  return Math.max(...findings.map((f) => SEVERITY_RANK[f.severity]));
+}
 
 const SEVERITY: Record<Severity, { label: string; Icon: typeof Info; tone: string }> = {
   error: { label: "Filler", Icon: AlertTriangle, tone: "text-poor" },
@@ -44,15 +51,55 @@ export function HealthScreen() {
     (f) => filter === "all" || f.severity === filter,
   );
 
-  const lookup = new Map<string, string>();
+  /**
+   * Where each block of prose actually lives.
+   *
+   * The old version mapped an id to its text and nothing else, which is why a
+   * finding could show you the offending sentence but not take you to it. The
+   * section and the entry are what turn "Filler" into a link.
+   */
+  const lookup = new Map<string, { text: string; section: string; entry: string }>();
   if (profile) {
-    lookup.set(profile.summary.id, profile.summary.text);
-    for (const section of [profile.experience, profile.projects, profile.education]) {
-      for (const entry of section) {
-        for (const bullet of entry.bullets) lookup.set(bullet.id, bullet.text);
+    lookup.set(profile.summary.id, {
+      text: profile.summary.text,
+      section: "summary",
+      entry: "Summary",
+    });
+    for (const [section, entries] of [
+      ["experience", profile.experience],
+      ["projects", profile.projects],
+      ["education", profile.education],
+    ] as const) {
+      for (const entry of entries) {
+        const label =
+          ("role" in entry && [entry.role, entry.organisation].filter(Boolean).join(" · ")) ||
+          ("name" in entry && entry.name) ||
+          ("credential" in entry && [entry.credential, entry.institution].filter(Boolean).join(" · ")) ||
+          "Untitled";
+        for (const bullet of entry.bullets) {
+          lookup.set(bullet.id, { text: bullet.text, section, entry: label });
+        }
       }
     }
   }
+
+  /**
+   * One card per block, not one per finding.
+   *
+   * Three bullets with two problems each was rendering as six cards, the same
+   * sentence printed twice in a row -- which reads as six things wrong rather
+   * than three. The count in the heading counts blocks for the same reason.
+   */
+  const grouped = new Map<string, Finding[]>();
+  for (const finding of findings) {
+    const list = grouped.get(finding.block_id);
+    if (list) list.push(finding);
+    else grouped.set(finding.block_id, [finding]);
+  }
+  const blocks = [...grouped.entries()].sort(
+    // Worst first: a block carrying filler outranks one with a trailing stop.
+    (a, b) => rank(b[1]) - rank(a[1]),
+  );
 
   const enough = (quality?.bullets ?? 0) >= ENOUGH;
   const score = quality?.score ?? 0;
@@ -83,11 +130,18 @@ export function HealthScreen() {
       <div className="flex flex-col gap-5 p-6">
         <section className="card flex flex-wrap items-center gap-6 p-5">
           <div>
+            {/* An em-dash where the number goes left "— of bullets clean" on
+                screen, which is not a sentence. With too small a sample the
+                honest thing is a phrase, not a punctuation mark. */}
             <div className="flex items-baseline gap-1.5">
-              <span className={`font-display text-3xl ${verdict.text}`}>
-                {enough ? `${score}%` : "—"}
-              </span>
-              <span className="text-sm text-muted">of bullets clean</span>
+              {enough ? (
+                <>
+                  <span className={`font-display text-3xl ${verdict.text}`}>{score}%</span>
+                  <span className="text-sm text-muted">of bullets clean</span>
+                </>
+              ) : (
+                <span className="font-display text-2xl text-muted">Not scored yet</span>
+              )}
             </div>
             <p className="mt-1 max-w-md text-xs text-muted">
               {enough
@@ -117,7 +171,7 @@ export function HealthScreen() {
         <section>
           <div className="mb-2 flex items-center gap-2">
             <h2 className="text-sm font-semibold">
-              {quality?.findings.length ?? 0} thing{quality?.findings.length === 1 ? "" : "s"} to look at
+              {blocks.length} line{blocks.length === 1 ? "" : "s"} to look at
             </h2>
             <div className="ml-auto flex gap-0.5 rounded-md bg-sunken p-0.5">
               {(["all", "error", "warning", "note"] as const).map((key) => (
@@ -149,18 +203,45 @@ export function HealthScreen() {
             </div>
           ) : (
             <ul className="flex flex-col gap-2">
-              {findings.map((finding, index) => {
-                const { Icon, tone: colour, label } = SEVERITY[finding.severity];
+              {blocks.map(([blockId, blockFindings]) => {
+                const where = lookup.get(blockId);
                 return (
-                  <li key={`${finding.block_id}-${index}`} className="card p-3">
-                    <div className="flex items-center gap-1.5">
-                      <Icon size={13} className={colour} />
-                      <span className={`text-2xs font-semibold uppercase tracking-wide ${colour}`}>
-                        {label}
+                  <li key={blockId} className="card p-3">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="text-2xs font-semibold uppercase tracking-wide text-faint">
+                        {where?.entry ?? "Somewhere in your profile"}
                       </span>
+                      {where && (
+                        // The whole reason the section and entry are looked up:
+                        // reading that a line is wrong and then hunting for it
+                        // through nine tabs is most of the work.
+                        <Link
+                          to={`/profile?section=${where.section}&focus=${blockId}`}
+                          className="ml-auto flex items-center gap-1 text-xs text-accent hover:underline"
+                        >
+                          Fix this
+                          <ArrowRight size={12} />
+                        </Link>
+                      )}
                     </div>
-                    <p className="mt-1.5 text-sm">{lookup.get(finding.block_id) ?? ""}</p>
-                    <p className="mt-1 text-xs text-muted">{finding.message}</p>
+
+                    <p className="mt-1.5 text-sm">{where?.text ?? ""}</p>
+
+                    <ul className="mt-1.5 flex flex-col gap-1">
+                      {blockFindings.map((finding, index) => {
+                        const { Icon, tone: colour, label } = SEVERITY[finding.severity];
+                        return (
+                          <li
+                            key={`${finding.block_id}-${index}`}
+                            className="flex items-start gap-1.5 text-xs"
+                          >
+                            <Icon size={12} className={`mt-0.5 shrink-0 ${colour}`} />
+                            <span className={`shrink-0 font-semibold ${colour}`}>{label}</span>
+                            <span className="text-muted">{finding.message}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </li>
                 );
               })}
