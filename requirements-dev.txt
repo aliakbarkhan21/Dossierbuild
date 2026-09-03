@@ -1,0 +1,2 @@
+# Development-only dependencies. The app runs without these.
+pytest>=8.0

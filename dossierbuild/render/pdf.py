@@ -82,6 +82,11 @@ def render_pdf(
                 capture_output=True,
                 text=True,
                 timeout=timeout,
+                # The worker never reads stdin, and inheriting whatever the
+                # parent has is how this breaks: under pytest's capture, and
+                # under the window-less launcher, the inherited handle can be
+                # invalid and Popen fails on Windows before Chromium starts.
+                stdin=subprocess.DEVNULL,
                 creationflags=_NO_WINDOW,
             )
         except subprocess.TimeoutExpired as exc:

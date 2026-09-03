@@ -27,7 +27,12 @@ from .schema import SCHEMA_VERSION, LIST_SECTIONS, Profile
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = PACKAGE_ROOT.parent
-DATA_DIR = PROJECT_ROOT / "data"
+
+# Where everything of the user's lives: the profile, its backups, the
+# portrait, the saved design, UI preferences. Overridable by environment so a
+# container can mount a volume at it -- the one piece of configuration that
+# has to exist before the app can be deployed anywhere.
+DATA_DIR = Path(os.environ.get("DOSSIER_DATA_DIR") or PROJECT_ROOT / "data")
 PROFILE_PATH = DATA_DIR / "profile.json"
 BACKUP_DIR = DATA_DIR / "backups"
 BACKUPS_TO_KEEP = 15

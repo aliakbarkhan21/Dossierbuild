@@ -28,7 +28,14 @@ The LinkedIn import route does not use AI and needs no key.
 ### Checks
 
 ```bash
-python scripts/check_phase1.py    # schema, storage, id stability
+pip install -r requirements-dev.txt
+pytest                            # 59 checks, about 16 seconds
+```
+
+Or without pytest -- each script runs on the app's own dependencies:
+
+```bash
+python scripts/check_phase1.py    # schema, storage, id stability, migration
 python scripts/check_import.py    # LinkedIn export, extraction, merge
 python scripts/check_phase2.py    # design, templates, PDF and its text layer
 ```
@@ -37,6 +44,13 @@ The phase 2 checks print a real PDF, so they need Chromium:
 
 ```bash
 python -m playwright install chromium
+```
+
+### In a container
+
+```bash
+docker build -t dossier .
+docker run -p 8501:8501 -v "$PWD/data:/data" -e GEMINI_API_KEY=... dossier
 ```
 
 ---
