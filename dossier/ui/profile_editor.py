@@ -20,8 +20,8 @@ from typing import Any, Callable
 
 import streamlit as st
 
-from .. import quality
-from ..schema import (
+from ..core import quality
+from ..core.schema import (
     Award,
     Certification,
     Education,

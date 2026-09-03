@@ -27,7 +27,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from ..storage import DATA_DIR
+from ..core.storage import DATA_DIR
 
 DESIGN_PATH = DATA_DIR / "design.json"
 

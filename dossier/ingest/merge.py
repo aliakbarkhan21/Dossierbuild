@@ -20,7 +20,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from ..schema import LIST_SECTIONS, Profile, SkillGroup, entry_label, format_date, format_range
+from ..core.schema import LIST_SECTIONS, Profile, SkillGroup, entry_label, format_date, format_range
 
 
 # --------------------------------------------------------------------------
@@ -172,7 +172,12 @@ def build_merge_plan(current: Profile, candidate: Profile, source: str) -> Merge
             identity = _identity(section, entry)
             plan.candidates.append(
                 MergeCandidate(
-                    key=f"{section}:{index}:{entry.id}",
+                    # Deliberately not the entry id: ids are minted by default_factory,
+                    # so parsing the same candidate JSON twice produces different
+                    # ones. A client that asks for a plan and then posts back the
+                    # keys it accepted would match nothing. Section and position
+                    # are stable for the same input, and unique within a plan.
+                    key=f"{section}:{index}",
                     section=section,
                     entry=entry,
                     label=entry_label(entry),

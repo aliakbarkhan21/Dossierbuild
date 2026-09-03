@@ -11,6 +11,16 @@ python-docx>=1.1
 google-genai>=1.0
 python-dotenv>=1.0
 
-# PDF generation (phase 2) -- installed early so the env is stable
+# PDF generation (phase 2)
 jinja2>=3.1
 playwright>=1.44
+
+# Image handling: the brand mark, the favicon, and the resume portrait.
+# Streamlit pulls this in anyway; declared because we import it directly.
+pillow>=10.0
+
+# HTTP API (phase 1). The React frontend talks to this; the Streamlit UI
+# drives the same core directly.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9

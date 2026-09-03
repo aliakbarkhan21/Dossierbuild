@@ -22,13 +22,13 @@ from dotenv import load_dotenv
 # next to the project rather than in your shell profile.
 load_dotenv()
 
-from dossierbuild.quality import check_text, summarise
-from dossierbuild.schema import LIST_SECTIONS, Profile, iter_bullets
-from dossierbuild.settings import load_settings, save_settings
-from dossierbuild.storage import PROFILE_PATH, ProfileError, load_profile, save_profile
-from dossierbuild.ui import insights, theme
-from dossierbuild.ui.assets import favicon
-from dossierbuild.ui.profile_editor import SECTION_RENDERERS, current_vocabulary
+from dossier.core.quality import check_text, summarise
+from dossier.core.schema import LIST_SECTIONS, Profile, iter_bullets
+from dossier.core.settings import load_settings, save_settings
+from dossier.core.storage import PROFILE_PATH, ProfileError, load_profile, save_profile
+from dossier.ui import insights, theme
+from dossier.ui.assets import favicon
+from dossier.ui.profile_editor import SECTION_RENDERERS, current_vocabulary
 
 # The tab icon is drawn in the saved theme's accent. It has to be settled
 # before set_page_config, which must be the first Streamlit call -- so it reads
@@ -519,12 +519,12 @@ if page == "Master profile":
         )
 
 elif page == "Resume":
-    from dossierbuild.ui.resume_page import render_resume_page
+    from dossier.ui.resume_page import render_resume_page
 
     render_resume_page(profile)
 
 elif page == "Import":
-    from dossierbuild.ui.import_page import render_import_page
+    from dossier.ui.import_page import render_import_page
 
     render_import_page(profile)
 
@@ -676,7 +676,7 @@ def render_sidebar_tail() -> None:
         st.download_button(
             "Download profile.json",
             data=json.dumps(profile.model_dump(mode="json"), indent=2, ensure_ascii=False),
-            file_name=f"dossierbuild-profile-{datetime.now():%Y%m%d}.json",
+            file_name=f"dossier-profile-{datetime.now():%Y%m%d}.json",
             mime="application/json",
             width="stretch",
         )
@@ -691,7 +691,7 @@ def render_sidebar_tail() -> None:
         st.download_button(
             "Download profile.txt",
             data=insights.plain_text(profile),
-            file_name=f"dossierbuild-profile-{datetime.now():%Y%m%d}.txt",
+            file_name=f"dossier-profile-{datetime.now():%Y%m%d}.txt",
             mime="text/plain",
             width="stretch",
         )

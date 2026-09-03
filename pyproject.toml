@@ -1,0 +1,14 @@
+# Configuration only -- deliberately no [project] table and no build backend.
+# Dossier is run, not installed as a library, and declaring a package here
+# would invite `pip install .` to produce a second copy of the code that
+# shadows the working tree.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+# The PDF checks launch a real browser; without this a slow one looks like a
+# hang rather than a test that takes six seconds.
+console_output_style = "count"
+filterwarnings = [
+    "ignore::DeprecationWarning:streamlit.*",
+]

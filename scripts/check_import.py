@@ -15,27 +15,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from dossierbuild.importer import ai_parse, extract, linkedin
-from dossierbuild.importer.merge import apply_merge_plan, build_merge_plan
-from dossierbuild.schema import Experience, Profile, SkillGroup, TextBlock, format_date
+from dossier.ai import parse as ai_parse
+from dossier.ingest import extract, linkedin
+from dossier.ingest.merge import apply_merge_plan, build_merge_plan
+from dossier.core.schema import Experience, Profile, SkillGroup, TextBlock, format_date
 
-PASSED: list[str] = []
-FAILED: list[str] = []
-
-
-def check(name: str):
-    def decorator(fn):
-        try:
-            fn()
-        except AssertionError as exc:
-            FAILED.append(f"{name}\n      {exc}")
-        except Exception as exc:  # noqa: BLE001
-            FAILED.append(f"{name}\n      unexpected {type(exc).__name__}: {exc}")
-        else:
-            PASSED.append(name)
-        return fn
-
-    return decorator
+from _harness import check, run
 
 
 def make_export(**overrides: str) -> bytes:
@@ -225,7 +210,7 @@ def _() -> None:
 
 @check("applying a plan produces ids that are still unique")
 def _() -> None:
-    from dossierbuild.schema import all_ids
+    from dossier.core.schema import all_ids
 
     current = Profile.empty()
     imported = linkedin.parse_export(make_export()).profile
@@ -347,13 +332,7 @@ def _() -> None:
 
 
 def main() -> int:
-    for name in PASSED:
-        print(f"  ok    {name}")
-    for name in FAILED:
-        print(f"  FAIL  {name}")
-    print()
-    print(f"{len(PASSED)} passed, {len(FAILED)} failed")
-    return 1 if FAILED else 0
+    return run(__name__)
 
 
 if __name__ == "__main__":

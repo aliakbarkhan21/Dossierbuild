@@ -15,8 +15,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pydantic import ValidationError
 
-from dossierbuild.quality import build_vocabulary, check_text, mentions_specific
-from dossierbuild.schema import (
+from dossier.core.quality import build_vocabulary, check_text, mentions_specific
+from dossier.core.schema import (
     SCHEMA_VERSION,
     Education,
     Experience,
@@ -29,25 +29,9 @@ from dossierbuild.schema import (
     format_range,
     iter_bullets,
 )
-from dossierbuild.storage import ProfileError, dedupe_ids, load_profile, migrate, save_profile
+from dossier.core.storage import ProfileError, dedupe_ids, load_profile, migrate, save_profile
 
-PASSED: list[str] = []
-FAILED: list[str] = []
-
-
-def check(name: str):
-    def decorator(fn):
-        try:
-            fn()
-        except AssertionError as exc:
-            FAILED.append(f"{name}\n      {exc}")
-        except Exception as exc:  # noqa: BLE001
-            FAILED.append(f"{name}\n      unexpected {type(exc).__name__}: {exc}")
-        else:
-            PASSED.append(name)
-        return fn
-
-    return decorator
+from _harness import check, run
 
 
 def sample_profile() -> Profile:
@@ -300,13 +284,7 @@ def _() -> None:
 
 
 def main() -> int:
-    for name in PASSED:
-        print(f"  ok    {name}")
-    for name in FAILED:
-        print(f"  FAIL  {name}")
-    print()
-    print(f"{len(PASSED)} passed, {len(FAILED)} failed")
-    return 1 if FAILED else 0
+    return run(__name__)
 
 
 if __name__ == "__main__":

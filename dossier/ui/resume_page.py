@@ -20,7 +20,7 @@ from ..render.context import build_context, suggested_filename
 from ..render.design import Design
 from ..render.html import render_html, render_thumbnail
 from ..render.pdf import PDFError, Report, pdf_report, render_pdf
-from ..schema import Profile
+from ..core.schema import Profile
 from . import theme
 
 DESIGN_KEY = "design"

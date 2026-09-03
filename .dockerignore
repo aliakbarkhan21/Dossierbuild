@@ -1,0 +1,14 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+data
+.env
+*.jsonl
+output
+tests
+scripts/launch.cmd
+scripts/launch.vbs
+scripts/stop.cmd

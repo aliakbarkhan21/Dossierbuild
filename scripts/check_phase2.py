@@ -17,29 +17,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from dossierbuild.render.context import build_context, display_url, normalise_url, suggested_filename
-from dossierbuild.render.design import ACCENTS, PAIRINGS, TEMPLATES, Design, load_design, save_design
-from dossierbuild.render.html import render_html, render_thumbnail
-from dossierbuild.render.pdf import chromium_ready, pdf_report, render_pdf
-from dossierbuild.schema import Basics, Education, Experience, Link, Profile, Project, SkillGroup, TextBlock
+from dossier.render.context import build_context, display_url, normalise_url, suggested_filename
+from dossier.render.design import ACCENTS, PAIRINGS, TEMPLATES, Design, load_design, save_design
+from dossier.render.html import render_html, render_thumbnail
+from dossier.render.pdf import chromium_ready, pdf_report, render_pdf
+from dossier.core.schema import Basics, Education, Experience, Link, Profile, Project, SkillGroup, TextBlock
 
-PASSED: list[str] = []
-FAILED: list[str] = []
-
-
-def check(name: str):
-    def decorator(fn):
-        try:
-            fn()
-        except AssertionError as exc:
-            FAILED.append(f"{name}\n      {exc}")
-        except Exception as exc:  # noqa: BLE001
-            FAILED.append(f"{name}\n      unexpected {type(exc).__name__}: {exc}")
-        else:
-            PASSED.append(name)
-        return fn
-
-    return decorator
+from _harness import check, run
 
 
 def sample() -> Profile:
@@ -301,15 +285,7 @@ if READY:
 
 
 def main() -> int:
-    for name in PASSED:
-        print(f"  ok    {name}")
-    for name in FAILED:
-        print(f"  FAIL  {name}")
-    if not READY:
-        print(f"  skip  PDF checks -- {WHY}")
-    print()
-    print(f"{len(PASSED)} passed, {len(FAILED)} failed")
-    return 1 if FAILED else 0
+    return run(__name__, skipped="" if READY else f"PDF checks -- {WHY}")
 
 
 if __name__ == "__main__":

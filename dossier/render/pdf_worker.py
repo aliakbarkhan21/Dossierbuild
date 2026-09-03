@@ -1,4 +1,4 @@
-"""Chromium, in its own process. Run as ``python -m dossierbuild.render.pdf_worker``.
+"""Chromium, in its own process. Run as ``python -m dossier.render.pdf_worker``.
 
 This exists as a subprocess rather than a function call for one practical
 reason: Playwright's synchronous API refuses to start inside a thread that
