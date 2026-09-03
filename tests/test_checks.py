@@ -7,8 +7,9 @@ and each one becomes a test with its own name, so a CI run says *which*
 property broke rather than which script exited non-zero.
 
 Covers exactly what the brief asks tests to cover -- PDF generation, import
-parsing, schema migration and template rendering -- because that is what the
-scripts were written for.
+parsing, schema migration and template rendering -- plus the tailoring
+analysis and its fabrication guard, which are deterministic for the same
+reason and so belong here rather than behind an API key.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ import pytest
 import check_import  # noqa: F401
 import check_phase1  # noqa: F401
 import check_phase2  # noqa: F401
+import check_tailor  # noqa: F401
 from _harness import CHECKS
 
 

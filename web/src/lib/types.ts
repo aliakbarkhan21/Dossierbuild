@@ -270,3 +270,67 @@ export interface MergePlan {
   fields: MergeProposal[];
   candidates: MergeCandidate[];
 }
+
+/* -------------------------------------------------------------------------
+   Tailoring
+   ---------------------------------------------------------------------- */
+
+export type Tier = "required" | "preferred" | "general";
+
+export interface Term {
+  text: string;
+  key: string;
+  weight: number;
+  count: number;
+  tier: Tier;
+}
+
+export interface Evidence {
+  section: string;
+  entry_id: string;
+  entry_label: string;
+  block_id: string;
+  text: string;
+}
+
+export interface EntryScore {
+  section: string;
+  entry_id: string;
+  label: string;
+  score: number;
+  matched: string[];
+}
+
+export interface MatchReport {
+  title: string;
+  company: string;
+  coverage: number;
+  terms: Term[];
+  /** Keyed by term key. An empty list means the term is declared in your
+   *  skills but never described in a bullet -- covered, but weakly. */
+  covered: Record<string, Evidence[]>;
+  missing: Term[];
+  entries: EntryScore[];
+  declared_only: string[];
+}
+
+export interface Suggestion {
+  block_id: string;
+  section: string;
+  entry_label: string;
+  before: string;
+  after: string;
+  reason: string;
+  /** Numbers and names the rewrite asserts that its source did not. */
+  invented: string[];
+  findings_before: number;
+  findings_after: number;
+  terms_added: string[];
+}
+
+export interface RewriteResult {
+  model: string;
+  summary: Suggestion | null;
+  suggestions: Suggestion[];
+  notes: string[];
+}

@@ -23,7 +23,6 @@ what phase 3's accept/revert depends on.
 from __future__ import annotations
 
 import os
-import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -44,52 +43,30 @@ from ..core.schema import (
     TextBlock,
 )
 from ..ingest.linkedin import parse_date
-
-DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
-
-# Tried in order when the chosen model is unreachable. Two things this guards
-# against, both of which have already happened here: Google retires a model for
-# new keys (gemini-2.5-flash returned 404 NOT_FOUND, "no longer available to
-# new users"), and a current model is temporarily saturated (gemini-3.6-flash
-# returned 503 UNAVAILABLE, "experiencing high demand"). Neither is worth
-# failing an import over when a sibling model does the same job -- this is
-# structured extraction, not a task where the exact model matters.
-FALLBACK_MODELS = (
-    "gemini-3.7-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    # The lite tier is last but genuinely useful: it carries far less traffic,
-    # so it answers when the flash models are saturated, and transcription into
-    # a fixed schema is well within what it can do.
-    "gemini-3.5-flash-lite",
-    "gemini-3.1-flash-lite",
+from .client import (
+    API_KEY_VARS,
+    DEFAULT_MODEL,
+    MissingAPIKey,
+    api_key_present,
+    generate,
 )
 
-# Error text that means "try again" rather than "stop". 503 and 429 are
-# congestion and 504 is a slow response -- all temporary, all worth another
-# pass. 404 means the model is gone for this key, so only the *other* models
-# are worth trying.
-RETRYABLE = (
-    "404", "NOT_FOUND",
-    "503", "UNAVAILABLE",
-    "429", "RESOURCE_EXHAUSTED",
-    "504", "DEADLINE_EXCEEDED",
-)
-
-# One pass over the models takes seconds when they are all busy, which is not
-# a real attempt at all. Keep circling back until this budget is spent.
-RETRY_BUDGET_SECONDS = 75
-
-# A stalled request should fail visibly rather than spin. Measured: a healthy
-# call is under 10 seconds with thinking held down.
-REQUEST_TIMEOUT_MS = 45_000
-
-API_KEY_VARS = ("GEMINI_API_KEY", "GOOGLE_API_KEY")
-
-
-class MissingAPIKey(RuntimeError):
-    pass
-
+# Re-exported because the API layer and the import self-checks have always
+# imported them from here, and moving the machinery is not a reason to move
+# everyone's import line.
+__all__ = [
+    "API_KEY_VARS",
+    "DEFAULT_MODEL",
+    "MissingAPIKey",
+    "ParseResult",
+    "RawResume",
+    "api_key_present",
+    "parse_resume_text",
+    "remember_api_key",
+    "to_profile",
+    "use_api_key",
+    "verify_api_key",
+]
 
 # --------------------------------------------------------------------------
 # The shape the model fills in
@@ -226,51 +203,6 @@ class ParseResult:
     raw: RawResume
 
 
-def _client():
-    try:
-        from google import genai
-    except ImportError as exc:  # pragma: no cover
-        raise RuntimeError("google-genai is not installed. Run: pip install google-genai") from exc
-
-    key = next((os.environ[v] for v in API_KEY_VARS if os.environ.get(v)), None)
-    if not key:
-        raise MissingAPIKey(
-            "No Gemini API key found. Paste one into the Import page "
-            "(get one free at aistudio.google.com/apikey), or set "
-            "GEMINI_API_KEY in .env."
-        )
-    from google.genai import types
-
-    return genai.Client(
-        api_key=key,
-        http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS),
-    )
-
-
-def _candidates(model: str | None) -> list[str]:
-    """The model to try, then the fallbacks, without repeats.
-
-    An explicitly requested model still gets the fallbacks behind it: the
-    caller is expressing a preference, not a requirement that the import fail
-    because that one model happens to be down.
-    """
-    ordered = [model or DEFAULT_MODEL, *FALLBACK_MODELS]
-    unique: list[str] = []
-    for name in ordered:
-        if name not in unique:
-            unique.append(name)
-    return unique
-
-
-def _short(message: str) -> str:
-    """The first meaningful line of an API error, for a status line."""
-    first = message.strip().splitlines()[0]
-    for token in ("UNAVAILABLE", "RESOURCE_EXHAUSTED", "DEADLINE_EXCEEDED", "NOT_FOUND"):
-        if token in first:
-            return token.replace("_", " ").lower()
-    return first[:60]
-
-
 def parse_resume_text(
     text: str,
     *,
@@ -279,87 +211,24 @@ def parse_resume_text(
 ) -> ParseResult:
     """Send resume text to Gemini and get a candidate profile back.
 
-    Circles the model list until one answers or the retry budget runs out.
-    A single pass is not a real attempt: when the flash tier is busy every
-    model returns 503 within a second or two, and giving up there reports
-    failure after three seconds of not really trying. Waiting between passes
-    is what actually gets the import through a congested minute.
-
-    ``on_attempt(model, state)`` is called as each request starts and finishes,
-    so the caller can show progress instead of an opaque spinner.
     ``ParseResult.model`` reports which model answered, and the review screen
     prints it -- so a fallback is visible rather than silent.
     """
-    from google.genai import types
-
     if not text.strip():
         raise ValueError("There is no text to parse.")
 
-    client = _client()
-    config = types.GenerateContentConfig(
-        system_instruction=SYSTEM_INSTRUCTION,
-        response_mime_type="application/json",
-        response_schema=RawResume,
+    raw, model_used = generate(
+        f"Extract this resume.\n\n---\n{text}\n---",
+        system=SYSTEM_INSTRUCTION,
+        schema=RawResume,
         # Low but not zero. Extraction wants the most likely reading of an
         # ambiguous line, not creative variety.
         temperature=0.1,
-        # Transcription needs no deliberation, and the default budget doubles
-        # the wait: measured at 19s against 8.8s on the same input, with the
-        # long version sometimes exceeding the request deadline outright.
-        thinking_config=types.ThinkingConfig(thinking_level="LOW"),
+        model=model,
+        on_attempt=on_attempt,
+        task="resume parse",
     )
-    prompt = f"Extract this resume.\n\n---\n{text}\n---"
-
-    candidates = _candidates(model)
-    failures: dict[str, str] = {}
-    last_error: Exception | None = None
-    deadline = time.monotonic() + RETRY_BUDGET_SECONDS
-    round_number = 0
-
-    while True:
-        round_number += 1
-        for name in candidates:
-            if on_attempt:
-                on_attempt(name, "trying")
-            try:
-                response = client.models.generate_content(
-                    model=name, contents=prompt, config=config
-                )
-            except Exception as exc:  # noqa: BLE001 -- inspected, then re-raised
-                message = str(exc)
-                if not any(token in message for token in RETRYABLE):
-                    raise
-                failures[name] = _short(message)
-                last_error = exc
-                if on_attempt:
-                    on_attempt(name, failures[name])
-                continue
-
-            raw = response.parsed
-            if raw is None:
-                raise RuntimeError(
-                    "The model returned nothing usable. This usually means the text was "
-                    "too short or was blocked; try pasting the text in manually."
-                )
-            return ParseResult(profile=to_profile(raw), model=name, raw=raw)
-
-        # A model that is gone for this key will not come back this minute.
-        candidates = [n for n in candidates if failures.get(n) != "not found"]
-        remaining = deadline - time.monotonic()
-        if not candidates or remaining <= 0:
-            break
-        pause = min(round_number * 3, int(remaining) or 1, 10)
-        if on_attempt:
-            on_attempt("", f"all busy -- waiting {pause}s before another pass")
-        time.sleep(pause)
-
-    tried = "; ".join(f"{name} ({reason})" for name, reason in failures.items())
-    raise RuntimeError(
-        f"Gemini is not answering right now. Tried {tried} over "
-        f"{RETRY_BUDGET_SECONDS} seconds. This is congestion on Google's side, "
-        "not your key or your file -- wait a minute and press Parse again, or "
-        "set GEMINI_MODEL in .env to pin a quieter model."
-    ) from last_error
+    return ParseResult(profile=to_profile(raw), model=model_used, raw=raw)
 
 
 # --------------------------------------------------------------------------
@@ -479,17 +348,13 @@ def to_profile(raw: RawResume) -> Profile:
     return profile
 
 
-def api_key_present() -> bool:
-    return any(os.environ.get(v) for v in API_KEY_VARS)
-
-
 # --------------------------------------------------------------------------
 # Supplying the key
 # --------------------------------------------------------------------------
 #
 # The key can arrive two ways: from the environment (a shell variable, or the
 # .env this project loads at startup), or typed into the app. Typing it sets
-# the process environment, which is all _client() reads -- so a key entered
+# the process environment, which is all client() reads -- so a key entered
 # mid-session works immediately, with no restart.
 
 

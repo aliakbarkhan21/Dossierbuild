@@ -18,6 +18,7 @@ import { HealthScreen } from "./routes/Health";
 import { ImportScreen } from "./routes/Import";
 import { ProfileScreen } from "./routes/Profile";
 import { ResumeScreen } from "./routes/Resume";
+import { TailorScreen } from "./routes/Tailor";
 
 interface Shell {
   sidebarHidden: boolean;
@@ -126,6 +127,7 @@ export default function App() {
               <Route path="/" element={<Navigate to="/profile" replace />} />
               <Route path="/profile" element={<ProfileScreen />} />
               <Route path="/resume" element={<ResumeScreen />} />
+              <Route path="/tailor" element={<TailorScreen />} />
               <Route path="/import" element={<ImportScreen />} />
               <Route path="/health" element={<HealthScreen />} />
               <Route path="*" element={<Navigate to="/profile" replace />} />

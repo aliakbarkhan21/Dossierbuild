@@ -10,6 +10,7 @@
 import {
   FileText,
   Download,
+  Target,
   Moon,
   PanelLeftClose,
   Stethoscope,
@@ -25,6 +26,7 @@ import { useStore } from "../lib/store";
 const NAV = [
   { to: "/profile", label: "Profile", icon: User, hint: "Everything you have done" },
   { to: "/resume", label: "Resume", icon: FileText, hint: "Choose a look and print it" },
+  { to: "/tailor", label: "Tailor", icon: Target, hint: "Aim it at one job posting" },
   { to: "/import", label: "Import", icon: Download, hint: "Bring in an existing CV" },
   { to: "/health", label: "Health check", icon: Stethoscope, hint: "How the writing reads" },
 ];

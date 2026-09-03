@@ -13,11 +13,13 @@ import type {
   Extracted,
   FitReport,
   Health,
+  MatchReport,
   MergePlan,
   Parsed,
   PdfResult,
   Profile,
   QualityReport,
+  RewriteResult,
 } from "./types";
 
 export class ApiError extends Error {
@@ -149,6 +151,21 @@ export const api = {
 
   uploadPhoto: (file: File) => upload<{ photo: string }>("/api/profile/photo", file),
   deletePhoto: () => request<{ photo: string }>("/api/profile/photo", "DELETE"),
+
+  analysePosting: (body: { text: string; title?: string; company?: string; profile?: Profile }) =>
+    request<MatchReport>("/api/tailor/analyse", "POST", body),
+  rewriteFor: (body: {
+    text: string;
+    title?: string;
+    company?: string;
+    profile?: Profile;
+    entry_ids?: string[];
+  }) => request<RewriteResult>("/api/tailor/rewrite", "POST", body),
+  applyRewrites: (profile: Profile, accepted: Record<string, string>) =>
+    request<{ profile: Profile; changed: number }>("/api/tailor/apply", "POST", {
+      profile,
+      accepted,
+    }),
 
   extract: (file: File) => upload<Extracted>("/api/ingest/extract", file),
   parse: (text: string) => request<Parsed>("/api/ingest/parse", "POST", { text }),

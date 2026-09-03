@@ -23,7 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()
 
 from . import errors, lifetime, static  # noqa: E402
-from .routes import design, ingest, profile, render  # noqa: E402
+from .routes import design, ingest, profile, render, tailor  # noqa: E402
 
 # The Vite dev server runs on a different port, which makes every call
 # cross-origin. Origins are read from the environment so a deployment can
@@ -59,6 +59,7 @@ app.include_router(profile.router)
 app.include_router(design.router)
 app.include_router(render.router)
 app.include_router(ingest.router)
+app.include_router(tailor.router)
 
 lifetime.install(app)
 

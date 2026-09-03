@@ -17,9 +17,13 @@ dossier/
     storage.py     load / validate / atomic save / migrate. DATA_DIR is env-configurable.
     settings.py    small UI preferences, low stakes, never validated hard.
     quality.py     the bullet-writing standard, as code.
+    jobspec.py     a job posting, read by rules. Weighted terms, coverage, evidence. No AI.
     ids.py         stable short ids.
   ingest/    PDF·DOCX·LinkedIn -> profile, plus the merge review. No AI.
-  ai/        every call that leaves this machine for a model. Currently: resume parsing.
+  ai/        every call that leaves this machine for a model.
+    client.py      the key, the model fallback ladder, the retry budget. Shared.
+    parse.py       resume text -> profile. Transcribes, never composes.
+    tailor.py      profile + posting -> rewrites keyed by block id, each audited.
   render/    profile + design -> HTML -> PDF.
     design.py      every presentation choice, validated. Curated, not open-ended.
     context.py     the profile flattened into exactly what a template needs.
@@ -55,7 +59,7 @@ keystroke, which makes "no jank" unreachable, and `ui/theme.py` had grown to
 was already UI-agnostic, so the migration replaced the shell, not the product.
 
 Phases: **0** repo foundations ✓ · **1** `core/` + FastAPI ✓ · **2** React UI
-to parity ✓ · **3** delete Streamlit ✓ · **4** AI tailoring · **5** variants,
+to parity ✓ · **3** delete Streamlit ✓ · **4** AI tailoring ✓ · **5** variants,
 history, cover letters.
 
 Each phase ends with a working app, on its own branch, committed.
@@ -96,6 +100,22 @@ generated PDF back with pypdf and confirms the name, email and phone are
 really in it. A resume that looks perfect and parses as an empty document is
 the failure nobody notices until the application is rejected.
 
+**Tailoring re-angles facts; it never adds them.** A bullet that gained a
+number the model invented is not an improved bullet, it is a claim the user
+will be asked to defend in an interview and cannot. `ai/tailor.audit` diffs
+every rewrite against its source and reports numbers and names that appear in
+neither the original nor anywhere else in the profile; the UI starts those
+unticked. The prompt asks for the same thing, but the prompt is not the
+guarantee — the diff is. `scripts/check_tailor.py` pins both the catches and
+the non-catches, because a warning that cries wolf is a warning people learn
+to click past.
+
+**The model is never asked what a job requires.** `core/jobspec.py` reads the
+posting by rules and hands the model its conclusions. A hallucinated
+requirement would silently re-angle an entire resume at something the employer
+never asked for — and keeping the analysis deterministic is also why the gap
+report works with no API key, with Gemini down, and inside a test.
+
 **Never lose the profile.** Atomic writes, a timestamped backup on every save,
 and `data/` deny-listed in `.gitignore` by default.
 
@@ -135,8 +155,9 @@ cd web && npm install && npm run build     # the interface, built to web/dist
 python -m uvicorn dossier.api:app --port 8000        # then localhost:8000
 
 pip install -r requirements-dev.txt
-pytest                                     # 78 checks, ~24s (real PDF renders)
+pytest                                     # 115 checks, ~24s (real PDF renders)
 python scripts/check_phase2.py             # the render checks, no pytest needed
+python scripts/check_tailor.py             # the posting reader and the audit
 ```
 
 One process serves both the API and the interface: `api/static.py` mounts
@@ -185,6 +206,21 @@ Each of these cost a debugging round.
 - **A Jinja comment cannot sit inside an expression.** `{# #}` between the
   entries of a `{% set x = {...} %}` dict is `unexpected char '#'`, not a
   comment. Put it above the tag.
+- **A word-boundary match is not a substring match.** "Go" as a required
+  skill matched inside "algorithms", and every profile mentioning an algorithm
+  scored a language nobody had written. Term matching uses
+  `(?<![A-Za-z0-9])term(?![A-Za-z0-9])` throughout `jobspec` and `tailor`.
+- **A posting names one requirement several ways.** "REST APIs and CI/CD"
+  yields `rest`, `api`, `rest api`, `ci`, `cd` and `ci/cd` — six terms for two
+  requirements, enough to outweigh a real third. A phrase absorbs its own
+  parts (`_absorb_into_phrases`), and a benefits section is skipped outright
+  rather than demoted, after a MacBook was read as a required skill.
+- **The fabrication guard cannot rely on capitalisation alone.** Acronyms and
+  internal capitals catch `PyTorch` and `ETL`, but `Kubernetes`, `Docker` and
+  `React` are ordinary capitalised words — exactly the fabrications a posting
+  invites. They are caught by name against the technology lexicon instead.
+  Going the other way and flagging every capitalised word makes "Built" an
+  invented entity and the warning worthless.
 - **FastAPI derives a response model from the return annotation.** A route
   returning `FileResponse | JSONResponse` fails at import until it is given
   `response_model=None`.
