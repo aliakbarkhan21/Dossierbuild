@@ -322,9 +322,13 @@ ul.bul li::before {
 .lines li:first-child { margin-top: 0; }
 
 {% block extra_css %}{% endblock %}
+
+{# After the template's own block, so an equal-scoring rule falls this way.
+   See the header of _layouts for why that matters. #}
+{% include "_layouts.html.j2" %}
 </style>
 </head>
-<body class="{{ 'preview' if preview else 'print' }} tpl-{{ template_key }}">
+<body class="{{ 'preview' if preview else 'print' }} tpl-{{ template_key }} lay-{{ layout_key }}">
 {% if preview and fitbar %}
 <div class="fitbar"><div id="fit-left"></div><div id="fit-right"></div></div>
 {% endif %}

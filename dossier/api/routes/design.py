@@ -37,8 +37,16 @@ class AccentOut(Option):
     hex: str
 
 
-class LookOut(Option):
+class VariantOut(Option):
     values: dict[str, object]
+
+
+class LookOut(Option):
+    """``values`` is the first variant, so a caller that only wants "apply
+    this look" needs to know nothing about variants at all."""
+
+    values: dict[str, object]
+    variants: list[VariantOut]
 
 
 class ScaleOut(BaseModel):
@@ -48,6 +56,7 @@ class ScaleOut(BaseModel):
 
 class Options(BaseModel):
     templates: list[TemplateOut]
+    layouts: list[Option]
     accents: list[AccentOut]
     fonts: list[Option]
     pages: list[PageOut]
@@ -83,6 +92,10 @@ def options() -> Options:
             )
             for t in dz.TEMPLATES.values()
         ],
+        layouts=[
+            Option(key=key, name=name, blurb=blurb)
+            for key, (name, blurb) in dz.LAYOUTS.items()
+        ],
         accents=[
             AccentOut(key=key, name=name, hex=value)
             for key, (name, value) in dz.ACCENTS.items()
@@ -107,7 +120,13 @@ def options() -> Options:
             for key, (name, blurb) in dz.DATE_FORMATS.items()
         ],
         looks=[
-            LookOut(key=l.key, name=l.name, blurb=l.blurb, values=dict(l.values))
+            LookOut(
+                key=l.key, name=l.name, blurb=l.blurb, values=l.values,
+                variants=[
+                    VariantOut(key=v.key, name=v.name, values=l.design_values(v.key))
+                    for v in l.variants
+                ],
+            )
             for l in dz.LOOKS
         ],
         sections=[Option(key=key, name=label) for key, label in dz.RESUME_SECTIONS],

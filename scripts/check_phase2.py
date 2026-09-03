@@ -18,7 +18,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from dossier.render.context import build_context, display_url, normalise_url, suggested_filename
-from dossier.render.design import ACCENTS, PAIRINGS, TEMPLATES, Design, load_design, save_design
+from dossier.render.design import (
+    ACCENTS,
+    LAYOUTS,
+    LOOKS,
+    PAIRINGS,
+    TEMPLATES,
+    Design,
+    load_design,
+    save_design,
+)
 from dossier.render.html import render_html, render_thumbnail
 from dossier.render.pdf import chromium_ready, pdf_report, render_pdf
 from dossier.core.schema import Basics, Education, Experience, Link, Profile, Project, SkillGroup, TextBlock
@@ -209,6 +218,59 @@ def _() -> None:
         assert pairing.body in html, f"{key}: font stack was escaped"
         # The stylesheet link is an HTML attribute, where & is correctly &amp;.
         assert pairing.google.replace("&", "&amp;") in html, key
+
+
+@check("every layout restyles the body, and only the body")
+def _() -> None:
+    profile = sample()
+    for key in LAYOUTS:
+        html = render_html(profile, Design(layout=key))
+        assert f"lay-{key}" in html, key
+        # A layout may only reach the main flow. A 54mm side column has no
+        # room for a gutter or a spine, and the templates that have one style
+        # it themselves -- so an unscoped rule here would quietly wreck three
+        # of the eight templates.
+        for rule in html.split("}"):
+            if "> .sec" not in rule:
+                continue
+            for selector in rule.split("{")[0].split(","):
+                selector = selector.strip()
+                if not selector.startswith("body "):
+                    continue
+                assert ".sheet > .sec" in selector or ".main > .sec" in selector, selector
+
+    # Stacked is the one that adds nothing: it means "leave the template's own
+    # arrangement alone", so it must not emit a single rule of its own.
+    plain = render_html(profile, Design(layout="stacked"))
+    assert "body .sheet > .sec" not in plain
+    assert "body .sheet > .sec" in render_html(profile, Design(layout="panel"))
+
+
+@check("every look offers four designs, and no two of them are alike")
+def _() -> None:
+    profile = sample()
+    seen: set[tuple[str, str]] = set()
+    for look in LOOKS:
+        assert len(look.variants) == 4, look.key
+        shapes = {
+            (v.values["template"], v.values["layout"]) for v in look.variants
+        }
+        # Four different templates would still be four of the same document if
+        # they all set the body the same way, and vice versa. Both have to
+        # differ, and that is what makes these designs rather than palettes.
+        assert len(shapes) == 4, look.key
+        assert len({v.values["layout"] for v in look.variants}) == 4, look.key
+        for variant in look.variants:
+            values = look.design_values(variant.key)
+            design = Design(**values)
+            # Every field the look names has to survive validation -- a typo in
+            # a key would be dropped in silence and the look would quietly do
+            # less than it says.
+            for field, value in values.items():
+                assert getattr(design, field) == value, (look.key, field)
+            assert render_html(profile, design).count("<body") == 1
+            seen.add((look.key, variant.key))
+    assert len(seen) == 24
 
 
 @check("a thumbnail is a real render, without the page furniture")

@@ -129,6 +129,9 @@ export type ListSection = (typeof LIST_SECTIONS)[number];
 
 export interface Design {
   template: string;
+  /** How the body of the page is set, independent of which template drew the
+   *  header. See dossier/render/templates/_layouts.html.j2. */
+  layout: string;
   page: string;
   margin: string;
   leading: string;
@@ -167,12 +170,19 @@ export interface PageOption extends Option {
   height_mm: number;
 }
 
-export interface LookOption extends Option {
+export interface VariantOption extends Option {
   values: Partial<Design>;
+}
+
+export interface LookOption extends Option {
+  /** The first variant, for a caller that only wants "apply this look". */
+  values: Partial<Design>;
+  variants: VariantOption[];
 }
 
 export interface DesignOptions {
   templates: TemplateOption[];
+  layouts: Option[];
   accents: AccentOption[];
   fonts: Option[];
   pages: PageOption[];

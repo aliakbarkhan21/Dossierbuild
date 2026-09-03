@@ -19,9 +19,19 @@ interface Props {
   className?: string;
   /** Shown until the first document arrives, so the pane never flashes empty. */
   placeholder?: React.ReactNode;
+  /**
+   * A picture inside a button, rather than a document to be read.
+   *
+   * An iframe eats the click that lands on it, so a card built around one is
+   * only clickable on the strip of caption underneath -- which is exactly how
+   * the template gallery behaved: pressing the picture of the template you
+   * wanted did nothing at all. A decorative frame passes the click through to
+   * whatever wraps it, and stays out of the tab order.
+   */
+  decorative?: boolean;
 }
 
-export function Frame({ html, title, className = "", placeholder }: Props) {
+export function Frame({ html, title, className = "", placeholder, decorative = false }: Props) {
   const ref = useRef<HTMLIFrameElement>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -41,7 +51,9 @@ export function Frame({ html, title, className = "", placeholder }: Props) {
           // and it runs a measuring script -- so scripts are allowed, but it
           // stays in its own opaque origin with no access to this page.
           sandbox="allow-scripts"
-          className="h-full w-full border-0 bg-white"
+          tabIndex={decorative ? -1 : undefined}
+          aria-hidden={decorative || undefined}
+          className={`h-full w-full border-0 bg-white ${decorative ? "pointer-events-none" : ""}`}
         />
       )}
     </div>

@@ -78,6 +78,7 @@ def _variables(
         "skill_label_col": "24mm",
         "preview": preview,
         "template_key": design.template,
+        "layout_key": design.layout,
         "page_height_px": round(mm_to_px(page.height_mm), 2),
         "page_width_px": round(mm_to_px(page.width_mm), 2),
         "margin_px": round(mm_to_px(design.margin_mm), 2),

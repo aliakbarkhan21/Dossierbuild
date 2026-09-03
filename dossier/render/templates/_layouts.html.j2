@@ -1,0 +1,155 @@
+{#
+  How the page is put together, independent of which template drew the header.
+
+  A template owns the top of the page -- the masthead, the band, the side
+  column -- and that is where the eight of them differ from each other. Below
+  the header they were all the same document: a heading, then its entries,
+  then the next heading. Six named looks over eight templates therefore came
+  out as one design in six colours, which is exactly what it looked like.
+
+  This file is the other axis. It restyles the body of the page -- where the
+  section name sits, how an entry is separated from the one above it, what
+  carries the eye down the column -- and it composes with every template, so
+  the two together make thirty-two page designs rather than eight.
+
+  **Scope.** Only the sections in the main flow: direct children of the sheet
+  in a single-column template, direct children of ``.main`` in a two-column
+  one. A 54mm side column has no room for a gutter or a date rail, and the
+  templates that have one already style it themselves.
+
+  **Specificity, not ``!important``.** Every rule here is prefixed with
+  ``body`` so it scores above the ``.sec > h2`` in a template's own block, and
+  this file is included after that block so equal scores still fall this way.
+  An ``!important`` would win too, and would also make the next override
+  impossible.
+#}
+
+{% if design.layout == 'gutter' %}
+/* Gutter: the section name moves into a column of its own down the left, and
+   the reading matter gets one straight edge to run down. The grid is what
+   does it -- not a float and not a table -- so the markup order is still
+   heading, then content, and a parser reads one sensible column. */
+body .sheet > .sec,
+body .main > .sec {
+  display: grid;
+  grid-template-columns: 26mm 1fr;
+  gap: 0 6mm;
+}
+body .sheet > .sec > h2,
+body .main > .sec > h2 {
+  grid-column: 1;
+  margin: 1pt 0 0;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  text-indent: 0;
+  font-family: var(--f-body);
+  font-size: calc(var(--fs) * .78);
+  font-weight: 700;
+  letter-spacing: .09em;
+  /* The column is sized for the longest label there is. Breaking a word
+     inside it would read as a typo, so this opts out of the document-wide
+     break-anywhere rule and lets a long one wrap instead. */
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+body .sheet > .sec > :not(h2),
+body .main > .sec > :not(h2) { grid-column: 2; }
+/* A skills section set in columns fights a grid: the column rule spans the
+   whole section, gutter included. */
+body .sheet > .sec-skills,
+body .main > .sec-skills { column-count: 1; }
+{% endif %}
+
+{% if design.layout == 'rail' %}
+/* A template that sets its own body -- Minimalist's gutter grid -- has to be
+   put back to a plain column first, or the heading is styled inside a 30mm
+   cell and the band ends up the width of the word in it. `stacked` is the
+   layout that leaves a template's own arrangement alone; this is not it. */
+body .sheet > .sec,
+body .main > .sec { display: block; }
+
+/* Rail: a hairline runs down the left of each section with a node at every
+   entry, so the eye is given a spine to follow instead of counting bold
+   lines. The nodes are drawn, not typed -- nothing here reaches the text
+   layer a parser reads. */
+body .sheet > .sec > h2,
+body .main > .sec > h2 {
+  border: none;
+  background: none;
+  padding: 0 0 0 7pt;
+  text-align: left;
+  text-indent: 0;
+  border-left: 2.5pt solid var(--accent);
+  margin-bottom: 6pt;
+}
+body .sheet > .sec .entry,
+body .main > .sec .entry {
+  position: relative;
+  padding-left: 13pt;
+  margin-top: 9pt;
+}
+body .sheet > .sec .entry::before,
+body .main > .sec .entry::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  /* Half a line down, so the node sits on the title rather than above it. */
+  top: calc(var(--fs) * var(--lh) / 2 - 2.4pt);
+  width: 4.8pt;
+  height: 4.8pt;
+  border-radius: 50%;
+  background: var(--accent);
+}
+body .sheet > .sec .entry::after,
+body .main > .sec .entry::after {
+  content: "";
+  position: absolute;
+  left: 2.1pt;
+  top: calc(var(--fs) * var(--lh) / 2 + 4pt);
+  /* Down to the next node rather than to the end of this entry: the gap
+     between two entries is the part of the spine that has to be continuous. */
+  bottom: -9pt;
+  width: .7pt;
+  /* The accent at a quarter, not the rule grey: --rule is #D7D7DE, and less
+     than a point of it on white is a line you have to be told is there. */
+  background: var(--accent);
+  opacity: .26;
+}
+/* The last entry's line would run past the section into the next heading. */
+body .sheet > .sec .entry:last-of-type::after,
+body .main > .sec .entry:last-of-type::after { display: none; }
+{% endif %}
+
+{% if design.layout == 'panel' %}
+body .sheet > .sec,
+body .main > .sec { display: block; }
+
+/* Panel: each heading sits in a tinted band the width of the column, with the
+   accent standing at its left edge. The tint is mixed against white rather
+   than being a second colour to choose, so it is the accent at ten percent
+   whatever the accent is -- and it prints as a pale grey in the greyscale a
+   recruiter's office printer produces. */
+body .sheet > .sec > h2,
+body .main > .sec > h2 {
+  background: color-mix(in srgb, var(--accent) 11%, #fff);
+  border: none;
+  border-left: 2.5pt solid var(--accent);
+  padding: 3.2pt 7pt;
+  margin-bottom: 6.5pt;
+  text-align: left;
+  text-indent: 0;
+}
+body .sheet > .sec > h2::after,
+body .main > .sec > h2::after { display: none; }
+/* A hairline between entries rather than only space: the band above has
+   already made the section boundaries loud, and without it the entries inside
+   one run together. */
+body .sheet > .sec .entry + .entry,
+body .main > .sec .entry + .entry {
+  border-top: .5pt solid var(--rule-soft);
+  padding-top: 6pt;
+  margin-top: 6pt;
+}
+{% endif %}

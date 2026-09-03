@@ -29,11 +29,13 @@ dossier/
     suggest.py     one drafted bullet or summary, from facts the user supplies.
   render/    profile + design -> HTML -> PDF.
     design.py      every presentation choice, validated. Curated, not open-ended.
+                   Two axes: a template draws the header, a layout sets the body.
     context.py     the profile flattened into exactly what a template needs.
     html.py        Jinja2. One self-contained document, preview or print.
     pdf.py         Chromium in a subprocess; pypdf reads the result back.
     photo.py       the portrait: normalised on upload, embedded as a data URI.
-    templates/     _base + _macros + eight layouts.
+    templates/     _base + _macros + eight templates + _layouts (four body
+                   treatments, composed over any of them).
     text.py        the profile as plain text, for forms that take no file.
   api/       FastAPI over core, and the server that hosts the frontend.
     static.py      serves web/dist, so shipping is one process on one port.
@@ -172,7 +174,7 @@ cd web && npm install && npm run build     # the interface, built to web/dist
 python -m uvicorn dossier.api:app --port 8000        # then localhost:8000
 
 pip install -r requirements-dev.txt
-pytest                                     # 140 checks, ~26s (real PDF renders)
+pytest                                     # 142 checks, ~24s (real PDF renders)
 python scripts/check_phase2.py             # the render checks, no pytest needed
 python scripts/check_tailor.py             # the posting reader and the audit
 python scripts/check_db.py                 # the schema, its constraints, its queries

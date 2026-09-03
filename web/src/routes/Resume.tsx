@@ -17,7 +17,7 @@ import { useShallow } from "zustand/react/shallow";
 
 import { useStore } from "../lib/store";
 import { toast } from "../lib/toast";
-import type { Design, FitReport, Profile, TemplateOption } from "../lib/types";
+import type { Design, FitReport, LookOption, Option, Profile, TemplateOption } from "../lib/types";
 
 /** Zoom, as a percentage. 0 is the sentinel for "fit to the pane". */
 const ZOOM_MIN = 60;
@@ -32,6 +32,7 @@ const ZOOM_MAX = 150;
  */
 const DEFAULT_DESIGN: Partial<Design> = {
   template: "classic",
+  layout: "stacked",
   accent: "ink",
   fonts: "serif_sans",
   page: "a4",
@@ -232,7 +233,13 @@ export function ResumeScreen() {
 
       <div className="grid flex-1 gap-6 p-6 xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-5">
-          <Looks design={design} options={options} onPick={setDesign} />
+          <Looks
+            design={design}
+            profile={profile}
+            options={options}
+            refreshKey={galleryKey}
+            onPick={setDesign}
+          />
 
           <section>
             <div className="mb-2 flex items-center justify-between gap-3">
@@ -444,11 +451,16 @@ function FullPage({
 
 function Looks({
   design,
+  profile,
   options,
+  refreshKey,
   onPick,
 }: {
   design: Design;
-  options: { looks: { key: string; name: string; blurb: string; values: Partial<Design> }[] };
+  profile: Profile;
+  options: { looks: LookOption[] };
+  /** Changes when the thumbnails would come back different. */
+  refreshKey: string;
   onPick: (patch: Partial<Design>) => void;
 }) {
   const matches = (values: Partial<Design>) =>
@@ -456,32 +468,110 @@ function Looks({
       ([key, value]) => JSON.stringify(design[key as keyof Design]) === JSON.stringify(value),
     );
 
+  const look = options.looks.find((l) => l.variants.some((v) => matches(v.values)));
+  const variant = look?.variants.find((v) => matches(v.values));
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
+
+  // Rendered on demand rather than up front. Twenty-four thumbnails is
+  // twenty-four documents; the four belonging to the look in hand are the
+  // only ones anybody is choosing between.
+  useEffect(() => {
+    if (!look) {
+      setThumbs({});
+      return;
+    }
+    let cancelled = false;
+    Promise.all(
+      look.variants.map(async (v) => {
+        const html = await api.thumbnail({
+          profile,
+          design: { ...design, ...v.values },
+          template: String(v.values.template ?? design.template),
+          zoom: 0,
+        });
+        return [v.key, html] as const;
+      }),
+    )
+      .then((pairs) => {
+        if (!cancelled) setThumbs(Object.fromEntries(pairs));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [look?.key, refreshKey]);
+
   return (
     <section>
       <h2 className="mb-2 text-sm font-semibold">Start from a look</h2>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {options.looks.map((look) => {
-          const active = matches(look.values);
+        {options.looks.map((option) => {
+          const active = option.key === look?.key;
           return (
             <button
-              key={look.key}
+              key={option.key}
               type="button"
-              title={active ? `${look.blurb} — click again to clear it` : look.blurb}
+              title={active ? `${option.blurb} — click again to clear it` : option.blurb}
               aria-pressed={active}
               // A look was a one-way door: once applied there was no way back
               // to an unstyled starting point except by hunting through the
               // controls it had changed. Clicking the active one clears it.
-              onClick={() => onPick(active ? DEFAULT_DESIGN : look.values)}
-              className={[
-                "btn justify-center",
-                active ? "border-accent text-accent" : "",
-              ].join(" ")}
+              onClick={() => onPick(active ? DEFAULT_DESIGN : option.values)}
+              className={["btn justify-center", active ? "border-accent text-accent" : ""].join(" ")}
             >
-              {look.name}
+              {option.name}
             </button>
           );
         })}
       </div>
+
+      {/* The four are the point. A look is a colour, a typeface and a set of
+          spacings; on their own those change how a page is dressed and not
+          how it is built, which is why six buttons could feel like one
+          design. Each of these takes a different template *and* a different
+          way of setting the body underneath it. */}
+      {look && (
+        <div className="mt-3">
+          <p className="label">Four ways to set {look.name.toLowerCase()}</p>
+          <div className="grid grid-cols-4 gap-1.5">
+            {look.variants.map((v) => {
+              const chosen = v.key === variant?.key;
+              return (
+                <button
+                  key={v.key}
+                  type="button"
+                  onClick={() => onPick(v.values)}
+                  aria-pressed={chosen}
+                  title={v.name}
+                  className={[
+                    "card overflow-hidden p-0 text-left transition-all duration-200 ease-out",
+                    chosen
+                      ? "border-accent ring-2 ring-accent/25"
+                      : "hover:-translate-y-0.5 hover:border-line-strong hover:shadow-raised",
+                  ].join(" ")}
+                >
+                  <Frame
+                    html={thumbs[v.key] ?? ""}
+                    title={`${look.name}, ${v.name}`}
+                    decorative
+                    className="h-[92px] overflow-hidden border-b border-line bg-white"
+                    placeholder={<div className="h-full w-full animate-pulse bg-sunken" aria-hidden />}
+                  />
+                  <span
+                    className={[
+                      "block truncate px-1.5 py-1 text-2xs font-medium",
+                      chosen ? "text-accent" : "text-muted",
+                    ].join(" ")}
+                  >
+                    {v.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -513,6 +603,7 @@ function TemplateCard({
       <Frame
         html={html}
         title={`${template.name} preview`}
+        decorative
         className="h-[168px] overflow-hidden border-b border-line bg-white"
         placeholder={<div className="h-full w-full animate-pulse bg-sunken" aria-hidden />}
       />
@@ -566,6 +657,7 @@ function DesignPanel({
     sections: { key: string; name: string }[];
     scale: { steps: number[] };
     templates: TemplateOption[];
+    layouts: Option[];
   };
   profile: Profile;
   onChange: (patch: Partial<Design>) => void;
@@ -603,6 +695,17 @@ function DesignPanel({
         options={options.fonts}
         onChange={(fonts) => onChange({ fonts })}
         note={options.fonts.find((f) => f.key === design.fonts)?.blurb}
+      />
+
+      {/* The template draws the top of the page; this sets everything under
+          it. They are separate controls because they are separate decisions:
+          the same header over a gutter and over a panel are two designs. */}
+      <Choice
+        label="Body layout"
+        value={design.layout}
+        options={options.layouts}
+        onChange={(layout) => onChange({ layout })}
+        note={options.layouts.find((l) => l.key === design.layout)?.blurb}
       />
 
       <div className="grid grid-cols-2 gap-3">

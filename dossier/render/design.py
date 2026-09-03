@@ -162,6 +162,34 @@ DEFAULT_TEMPLATE = "classic"
 
 
 # --------------------------------------------------------------------------
+# Layouts
+# --------------------------------------------------------------------------
+#
+# A template owns the top of the page. A layout owns everything below it: what
+# a section heading looks like, where the section's name sits, and what
+# carries the eye from one entry to the next.
+#
+# They are separate because they were not, and it showed. Eight templates all
+# shared one body -- heading, entries, next heading -- so six named looks over
+# those eight came out as one design in six colours, which is what a person
+# clicking through them saw. Two axes make thirty-two page designs out of the
+# same eight headers, and the difference between any two of them is
+# structural rather than a matter of palette.
+#
+# The CSS is in templates/_layouts.html.j2, included after each template's own
+# block so that the two compose in a defined order.
+
+LAYOUTS: dict[str, tuple[str, str]] = {
+    "stacked": ("Stacked", "Heading above its section, full width. The plain arrangement."),
+    "gutter": ("Gutter", "Section names in a column down the left, content beside them."),
+    "rail": ("Rail", "A hairline spine with a node at every entry."),
+    "panel": ("Panel", "Headings in a tinted band, entries divided by a hairline."),
+}
+
+DEFAULT_LAYOUT = "stacked"
+
+
+# --------------------------------------------------------------------------
 # Page, margins, type
 # --------------------------------------------------------------------------
 
@@ -340,15 +368,27 @@ SECTION_LABELS: dict[str, str] = dict(RESUME_SECTIONS)
 # Looks
 # --------------------------------------------------------------------------
 #
-# A look is a whole set of decisions, named -- not a colour scheme. No two of
-# these share a template, an accent, a type pairing or a date format, and they
-# differ again in leading, margin, type size and whether a portrait shows.
-# That is deliberate: six buttons that changed only the accent would be six
-# buttons pretending to be a choice, and a person clicking through them would
-# reasonably conclude the app had one design in it.
+# A look is a family of four page designs, not a colour scheme and not one
+# design. The four share the accent, the type pairing and the spacing -- that
+# is what makes them a family -- and each one takes a different template *and*
+# a different layout, so no two are the same document in another colour.
+# Across the six, no two share an accent or a type pairing either.
+#
+# Twenty-four designs, from eight headers and four ways of setting the body.
+# The alternative was twenty-four hand-written templates that would drift
+# apart the first time a field was added to the schema.
 #
 # Every control stays available afterwards; a look is a starting point, not a
 # mode.
+
+
+@dataclass(frozen=True)
+class Variant:
+    """One of a look's four designs: which header, and how the body is set."""
+
+    key: str
+    name: str
+    values: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -356,34 +396,98 @@ class Look:
     key: str
     name: str
     blurb: str
-    values: dict[str, Any]
+    shared: dict[str, Any]
+    """Colour, type and spacing. This is what makes the four one family."""
+
+    variants: tuple[Variant, ...]
+    """Four page designs. Each takes a different template *and* a different
+    layout, so no two of them are the same document in another colour."""
+
+    def design_values(self, variant_key: str = "") -> dict[str, Any]:
+        """Everything a design needs for one variant, the first by default."""
+        chosen = next(
+            (v for v in self.variants if v.key == variant_key), self.variants[0]
+        )
+        return {**self.shared, **chosen.values}
+
+    @property
+    def values(self) -> dict[str, Any]:
+        return self.design_values()
 
 
 LOOKS: tuple[Look, ...] = (
-    Look("formal", "Formal", "Classic, ink, serif headings. The safe default.",
-         {"template": "classic", "accent": "ink", "fonts": "serif_sans",
-          "leading": "normal", "margin": "normal", "scale": 100,
-          "show_photo": False, "date_format": "month"}),
-    Look("press", "Press", "A Playfair masthead, banded headings, wide margins.",
-         {"template": "gazette", "accent": "burgundy", "fonts": "display",
-          "leading": "airy", "margin": "wide", "scale": 100,
-          "show_photo": False, "date_format": "month"}),
-    Look("corporate", "Corporate", "Executive in navy, Space Grotesk, with a portrait.",
-         {"template": "executive", "accent": "navy", "fonts": "grotesque",
-          "leading": "normal", "margin": "normal", "scale": 100,
-          "show_photo": True, "date_format": "numeric"}),
-    Look("studio", "Studio", "Editorial in bronze, Lora, set large and airy.",
-         {"template": "editorial", "accent": "bronze", "fonts": "humanist",
-          "leading": "airy", "margin": "normal", "scale": 104,
-          "show_photo": True, "date_format": "month"}),
-    Look("continental", "Continental", "The European CV: side column, photo, teal, Inter.",
-         {"template": "sidebar", "accent": "teal", "fonts": "sans",
-          "leading": "normal", "margin": "tight", "scale": 96,
-          "show_photo": True, "date_format": "numeric"}),
-    Look("dense", "Dense", "Compact in forest, condensed type, tight everything.",
-         {"template": "compact", "accent": "forest", "fonts": "condensed",
-          "leading": "tight", "margin": "tight", "scale": 92,
-          "show_photo": False, "date_format": "numeric"}),
+    Look(
+        "formal", "Formal", "Ink and a serif. What a portal expects to receive.",
+        {"accent": "ink", "fonts": "serif_sans", "leading": "normal",
+         "margin": "normal", "scale": 100, "show_photo": False,
+         "date_format": "month"},
+        (
+            Variant("ruled", "Ruled", {"template": "classic", "layout": "stacked"}),
+            Variant("gutter", "Gutter", {"template": "minimal", "layout": "gutter"}),
+            Variant("banded", "Banded", {"template": "executive", "layout": "panel"}),
+            Variant("spine", "Spine", {"template": "gazette", "layout": "rail"}),
+        ),
+    ),
+    Look(
+        "press", "Press", "A Playfair masthead, wide margins, room to breathe.",
+        {"accent": "burgundy", "fonts": "display", "leading": "airy",
+         "margin": "wide", "scale": 100, "show_photo": False,
+         "date_format": "month"},
+        (
+            Variant("masthead", "Masthead", {"template": "gazette", "layout": "stacked"}),
+            Variant("column", "Column", {"template": "minimal", "layout": "gutter"}),
+            Variant("banded", "Banded", {"template": "classic", "layout": "panel"}),
+            Variant("spine", "Spine", {"template": "executive", "layout": "rail"}),
+        ),
+    ),
+    Look(
+        "corporate", "Corporate", "Navy and Space Grotesk, with a portrait.",
+        {"accent": "navy", "fonts": "grotesque", "leading": "normal",
+         "margin": "normal", "scale": 100, "show_photo": True,
+         "date_format": "numeric"},
+        (
+            Variant("ruled", "Ruled", {"template": "executive", "layout": "stacked"}),
+            Variant("gutter", "Gutter", {"template": "classic", "layout": "gutter"}),
+            Variant("panel", "Panel", {"template": "modern", "layout": "panel"}),
+            Variant("spine", "Spine", {"template": "compact", "layout": "rail"}),
+        ),
+    ),
+    Look(
+        "studio", "Studio", "Bronze and Lora, set large. The layout is part of it.",
+        {"accent": "bronze", "fonts": "humanist", "leading": "airy",
+         "margin": "normal", "scale": 104, "show_photo": True,
+         "date_format": "month"},
+        (
+            Variant("editorial", "Editorial", {"template": "editorial", "layout": "stacked"}),
+            Variant("column", "Column", {"template": "minimal", "layout": "gutter"}),
+            Variant("banded", "Banded", {"template": "gazette", "layout": "panel"}),
+            Variant("spine", "Spine", {"template": "modern", "layout": "rail"}),
+        ),
+    ),
+    Look(
+        "continental", "Continental", "The European CV: teal, a portrait, tight margins.",
+        {"accent": "teal", "fonts": "sans", "leading": "normal",
+         "margin": "tight", "scale": 96, "show_photo": True,
+         "date_format": "numeric"},
+        (
+            Variant("side", "Side column", {"template": "sidebar", "layout": "stacked"}),
+            Variant("gutter", "Gutter", {"template": "modern", "layout": "gutter"}),
+            Variant("panel", "Panel", {"template": "editorial", "layout": "panel"}),
+            Variant("spine", "Spine", {"template": "classic", "layout": "rail"}),
+        ),
+    ),
+    Look(
+        "dense", "Dense", "Forest and condensed type, for more history than page.",
+        {"accent": "forest", "fonts": "condensed", "leading": "tight",
+         "margin": "tight", "scale": 92, "show_photo": False,
+         "date_format": "numeric"},
+        (
+            Variant("compact", "Compact", {"template": "compact", "layout": "stacked"}),
+            Variant("gutter", "Gutter", {"template": "compact", "layout": "gutter"}),
+            Variant("banded", "Banded", {"template": "minimal", "layout": "panel"}),
+            Variant("spine", "Spine", {"template": "executive", "layout": "rail"}),
+        ),
+    ),
 )
 
 
@@ -398,6 +502,7 @@ class Design(BaseModel):
     model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
 
     template: str = DEFAULT_TEMPLATE
+    layout: str = DEFAULT_LAYOUT
     page: str = "a4"
     margin: str = "normal"
     leading: str = "normal"
@@ -420,6 +525,11 @@ class Design(BaseModel):
     @classmethod
     def _template(cls, v: str) -> str:
         return v if v in TEMPLATES else DEFAULT_TEMPLATE
+
+    @field_validator("layout")
+    @classmethod
+    def _layout(cls, v: str) -> str:
+        return v if v in LAYOUTS else DEFAULT_LAYOUT
 
     @field_validator("page")
     @classmethod
