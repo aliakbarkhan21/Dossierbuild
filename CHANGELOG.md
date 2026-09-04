@@ -59,6 +59,11 @@ builder, and fixes an accessibility failure that had been there all along.
   look's own choice shows. The sheet reflows under the finger — the margin is
   pushed into the frame and re-paginated there, the way zoom already was —
   rather than waiting on a round trip per step of the handle.
+- **The sidebar highlight travels.** One highlight for seven links instead
+  of one each, so the green pill and its accent bar slide between rows rather
+  than switching off here and on there. The label's colour takes the same
+  260ms on the same curve — at 150ms it went green while the highlight was
+  still two rows away, which reads as two things happening rather than one.
 - **Structured wireframe skeletons.** Each template card draws its own
   silhouette while Chromium renders the real thing, so the grid stops being
   eight identical grey boxes and answers the question the reader actually has.
