@@ -131,6 +131,10 @@ export const api = {
   saveProfile: (profile: Profile) =>
     request<{ saved: boolean; path: string }>("/api/profile", "PUT", profile),
   quality: () => request<QualityReport>("/api/profile/quality"),
+  /** A worked example. Returned, not saved -- loading it is an ordinary edit. */
+  sampleProfile: () => request<Profile>("/api/profile/sample"),
+  /** An empty profile of the current shape, from the schema that defines it. */
+  blankProfile: () => request<Profile>("/api/profile/blank"),
 
   getDesign: () => request<Design>("/api/design"),
   saveDesign: (design: Design) => request<Design>("/api/design", "PUT", design),

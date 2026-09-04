@@ -10,9 +10,9 @@
  * the command palette all land where you were.
  */
 
-import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { Download, GripVertical, PenLine, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { AiSuggest } from "../components/AiSuggest";
 import { useShell } from "../App";
@@ -304,6 +304,7 @@ export function ProfileScreen() {
       />
 
       <div className="mx-auto w-full max-w-4xl flex-1 p-6">
+        <SampleChip />
         {isBlank(profile) && tab === "basics" && <FirstRun />}
         {tab === "basics" && <ContactForm profile={profile} edit={edit} />}
         {tab === "summary" && <SummaryForm profile={profile} edit={edit} />}
@@ -315,7 +316,19 @@ export function ProfileScreen() {
   );
 }
 
+/**
+ * The first thing a stranger sees, and the three things they can do about it.
+ *
+ * The middle one matters most. Every screen in this app is only legible with
+ * real material in it -- the templates need a long job title to show how they
+ * wrap, the writing standard needs bullets that pass and fail it, the posting
+ * reader needs skills to match against. Asking someone to type their whole
+ * career before any of that is visible is asking them to take the app on
+ * trust, so there is a worked example one press away.
+ */
 function FirstRun() {
+  const loadSample = useStore((s) => s.loadSample);
+
   return (
     <div className="card mb-5 border-l-2 border-l-accent p-5">
       <h2 className="font-display text-lg">Start here</h2>
@@ -323,15 +336,112 @@ function FirstRun() {
         This profile is the one place everything lives in full. Tailoring later cuts and re-angles
         this material — it never invents any, so whatever is missing here cannot reach a resume.
       </p>
-      <ol className="mt-3 flex flex-col gap-1 text-sm text-muted">
-        <li>
-          1. <b className="text-ink">Import</b> an existing resume and correct it — usually faster
-          than typing.
-        </li>
-        <li>
-          2. Or fill in <b className="text-ink">Contact</b>, then add one role under Experience.
-        </li>
-      </ol>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <Start
+          icon={<Download size={16} />}
+          title="Import a resume"
+          body="A LinkedIn export, a PDF, a DOCX, or pasted text. Usually faster than typing, and you correct it afterwards."
+          action={
+            <Link to="/import" className="btn btn-primary w-full justify-center">
+              Import
+            </Link>
+          }
+        />
+        <Start
+          icon={<Sparkles size={16} />}
+          title="Try the sample"
+          body="A worked profile to explore the templates, the tailoring and a real PDF with. Clear it whenever you like."
+          action={
+            <button
+              type="button"
+              className="btn w-full justify-center"
+              onClick={() => void loadSample()}
+            >
+              Load the sample
+            </button>
+          }
+        />
+        <Start
+          icon={<PenLine size={16} />}
+          title="Start clean"
+          body="Fill in your contact details, then add one role under Experience. The rest follows from there."
+          action={
+            <button
+              type="button"
+              className="btn w-full justify-center"
+              onClick={() => {
+                const name = document.getElementById("field-name");
+                name?.scrollIntoView({ block: "center", behavior: "smooth" });
+                (name as HTMLInputElement | null)?.focus();
+              }}
+            >
+              Type it in
+            </button>
+          }
+        />
+      </div>
+    </div>
+  );
+}
+
+function Start({
+  icon,
+  title,
+  body,
+  action,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  action: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 rounded-md border border-line p-3">
+      <span className="text-accent">{icon}</span>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <p className="min-h-0 flex-1 text-xs text-muted">{body}</p>
+      <div className="mt-1">{action}</div>
+    </div>
+  );
+}
+
+/**
+ * A quiet reminder that what is on screen is not yours.
+ *
+ * It survives a reload, because someone who loads the sample, closes the tab
+ * and comes back would otherwise find a stranger's CV and no obvious way to
+ * get rid of it. Two ways out on purpose: clear it, or dismiss the chip and
+ * keep editing -- building on the sample is a reasonable thing to do, and a
+ * chip that only offers deletion punishes it.
+ */
+function SampleChip() {
+  const { sampleLoaded, clearProfile, dismissSample } = useStore(
+    useShallow((s) => ({
+      sampleLoaded: s.sampleLoaded,
+      clearProfile: s.clearProfile,
+      dismissSample: s.dismissSample,
+    })),
+  );
+  if (!sampleLoaded) return null;
+
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-line bg-sunken px-3 py-2 text-xs">
+      <Sparkles size={13} className="shrink-0 text-accent" />
+      <span className="min-w-0 flex-1 text-muted">
+        You are looking at the sample profile, not your own.
+      </span>
+      <button type="button" className="btn py-1 text-xs" onClick={() => void clearProfile()}>
+        Clear it
+      </button>
+      <button
+        type="button"
+        className="btn btn-quiet py-1 text-xs"
+        onClick={dismissSample}
+        title="Keep this material and stop showing the reminder"
+      >
+        I am building on it
+      </button>
     </div>
   );
 }
@@ -575,7 +685,10 @@ function ContactForm({ profile, edit }: { profile: Profile; edit: Edit }) {
       <h2 className="mb-4 font-display text-lg">Contact details</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Full name" half>
+          {/* Named so "Start clean" can put the cursor here: a button that
+              says it will start you typing has to actually do that. */}
           <TextInput
+            id="field-name"
             value={basics.name}
             onChange={(e) => edit((d) => void (d.basics.name = e.target.value))}
           />

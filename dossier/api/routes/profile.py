@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from ...core.quality import Finding, build_vocabulary, check_text, summarise
 from ...core.schema import LIST_SECTIONS, Profile, iter_bullets
 from ...core.storage import PROFILE_PATH, load_profile, save_profile
+from ...core.sample import sample_profile
 from ...render import photo
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
@@ -120,6 +121,29 @@ def quality(profile: Profile | None = None) -> QualityReport:
 
 class PhotoResult(BaseModel):
     photo: str
+
+
+@router.get("/sample", response_model=Profile)
+def sample() -> Profile:
+    """A worked example, for trying the app before typing anything.
+
+    Returned rather than saved: loading it goes through the client's normal
+    edit path, so it lands in the undo stack and one Ctrl+Z puts back whatever
+    was there. A route that wrote straight to disk would be the one action in
+    the app you could not take back.
+    """
+    return sample_profile()
+
+
+@router.get("/blank", response_model=Profile)
+def blank() -> Profile:
+    """An empty profile of the current shape.
+
+    A route rather than a shape the client builds, for the same reason
+    `sample` is: the blank has to agree with `schema.py` exactly, and the only
+    thing that can guarantee that is `schema.py`.
+    """
+    return Profile.empty()
 
 
 @router.post("/photo", response_model=PhotoResult)

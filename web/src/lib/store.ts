@@ -63,6 +63,17 @@ interface State {
    */
   photoVersion: number;
 
+  /**
+   * Whether the profile on screen is the worked example.
+   *
+   * A hint about what the person did, not a fact about the profile, so it
+   * stays out of `schema.py` and lives in localStorage instead -- which also
+   * means it survives a reload. Without that, someone who loads the sample,
+   * closes the tab and comes back finds a stranger's CV and no obvious way
+   * to clear it.
+   */
+  sampleLoaded: boolean;
+
   boot: () => Promise<void>;
   edit: (mutate: (profile: Profile) => void, label?: string) => void;
   save: (options?: { silent?: boolean }) => Promise<void>;
@@ -75,6 +86,10 @@ interface State {
   setDesign: (patch: Partial<Design>, label?: string) => void;
   reloadProfile: (profile: Profile, label?: string) => void;
   bumpPhoto: () => void;
+  loadSample: () => Promise<void>;
+  clearProfile: () => Promise<void>;
+  /** Hide the chip without touching the data, for "I am building on this". */
+  dismissSample: () => void;
 }
 
 /** Design writes are chatty -- a slider is a dozen changes a second. */
@@ -83,6 +98,25 @@ let designTimer: ReturnType<typeof setTimeout> | undefined;
 /** Autosave waits for a pause in typing, not for a keystroke. */
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 const AUTOSAVE_IDLE_MS = 1500;
+
+const SAMPLE_KEY = "dossier:sample";
+
+function samplePreference(): boolean {
+  try {
+    return localStorage.getItem(SAMPLE_KEY) === "on";
+  } catch {
+    return false;
+  }
+}
+
+function rememberSample(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(SAMPLE_KEY, "on");
+    else localStorage.removeItem(SAMPLE_KEY);
+  } catch {
+    /* a private window may refuse storage; the chip is a nicety */
+  }
+}
 
 /** Remembered across sessions: an autosave preference is a preference. */
 const AUTOSAVE_KEY = "dossier:autosave";
@@ -157,6 +191,7 @@ export const useStore = create<State>()(
     past: [],
     future: [],
     photoVersion: 0,
+    sampleLoaded: samplePreference(),
 
     async boot() {
       try {
@@ -341,6 +376,45 @@ export const useStore = create<State>()(
         s.dirty = true;
       });
       scheduleAutosave(get);
+    },
+
+    async loadSample() {
+      try {
+        const profile = await api.sampleProfile();
+        // Through the normal edit path, so it lands in the undo stack: one
+        // Ctrl+Z puts back whatever was there before.
+        get().reloadProfile(profile, "Loaded the sample profile");
+        rememberSample(true);
+        set((s) => {
+          s.sampleLoaded = true;
+        });
+        toast.success(
+          "Sample profile loaded",
+          "Try the templates, the tailoring and a PDF. Clear it whenever you like.",
+        );
+      } catch (error) {
+        if (error instanceof ApiError) toast.error(error.message, error.fix);
+      }
+    },
+
+    async clearProfile() {
+      try {
+        get().reloadProfile(await api.blankProfile(), "Cleared the profile");
+        rememberSample(false);
+        set((s) => {
+          s.sampleLoaded = false;
+        });
+        toast.info("Back to a blank profile", "Ctrl+Z brings it back.");
+      } catch (error) {
+        if (error instanceof ApiError) toast.error(error.message, error.fix);
+      }
+    },
+
+    dismissSample() {
+      rememberSample(false);
+      set((s) => {
+        s.sampleLoaded = false;
+      });
     },
 
     bumpPhoto() {

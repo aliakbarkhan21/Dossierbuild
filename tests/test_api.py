@@ -109,6 +109,62 @@ def test_quality_report_agrees_with_itself() -> None:
     assert body["sections_filled"]["projects"] is False
 
 
+def test_the_sample_profile_is_written_to_the_standard_it_teaches() -> None:
+    """The worked example is a worked example, or it teaches the wrong thing.
+
+    Two bullets are deliberately weak so the Health screen has something real
+    to catch on a first visit. Everything else has to pass, or a new person's
+    first impression of the writing standard is a wall of red.
+    """
+    from dossier.core.quality import check_profile
+    from dossier.core.schema import Profile
+
+    body = client.get("/api/profile/sample").json()
+    profile = Profile.model_validate(body)
+    assert profile.basics.name and profile.experience and profile.projects
+    assert profile.skills and profile.education
+
+    blocks = [b for e in profile.experience for b in e.bullets]
+    blocks += [b for pr in profile.projects for b in pr.bullets]
+    flagged = {
+        f.block_id
+        for findings in check_profile(profile).values()
+        for f in findings
+        if f.severity in ("error", "warning")
+    }
+    assert len(flagged) == 2, "exactly the two deliberately weak lines"
+    weak = {b.text for b in blocks if b.id in flagged}
+    assert any("various tasks" in t for t in weak), weak
+    assert any("Assisted with" in t for t in weak), weak
+
+    # Tagged, so the Focus picker has something to offer on a first visit.
+    tags = {t for b in blocks for t in b.tags}
+    assert {"backend", "frontend"} <= tags, tags
+
+
+def test_asking_for_the_sample_does_not_write_it_to_disk() -> None:
+    """Loading it is an ordinary edit on the client, so one Ctrl+Z undoes it.
+
+    A route that saved straight to disk would be the single action in the app
+    you could not take back.
+    """
+    client.put("/api/profile", json=sample())
+    client.get("/api/profile/sample")
+    assert client.get("/api/profile").json()["basics"]["name"] == "A. Student"
+
+
+def test_the_blank_profile_comes_from_the_schema_that_defines_it() -> None:
+    from dossier.core.schema import SCHEMA_VERSION
+
+    body = client.get("/api/profile/blank").json()
+    assert body["schema_version"] == SCHEMA_VERSION
+    assert body["basics"]["name"] == ""
+    # The lists are present and empty rather than missing: the client renders
+    # straight from this, and an absent array is a crash.
+    for key in ("experience", "projects", "education", "skills", "certifications"):
+        assert body[key] == [], key
+
+
 # --------------------------------------------------------------------------
 # Design
 # --------------------------------------------------------------------------
