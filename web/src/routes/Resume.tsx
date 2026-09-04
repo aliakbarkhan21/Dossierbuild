@@ -378,7 +378,7 @@ export function ResumeScreen() {
             }}
           >
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold">Design</h2>
+              <h2 className="text-xl font-semibold">Design</h2>
               <button
                 type="button"
                 className="btn btn-quiet px-1.5 py-1"
@@ -400,7 +400,7 @@ export function ResumeScreen() {
 
             <section>
               <div className="mb-2 flex items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold">Template</h2>
+                <h2 className="text-xl font-semibold">Template</h2>
                 <Segmented
                   ariaLabel="Which templates to show"
                   choices={FILTERS.map((f) => ({ key: f.label, label: f.label }))}
@@ -462,7 +462,7 @@ export function ResumeScreen() {
                 <PanelLeftOpen size={15} />
               </button>
             )}
-            <h2 className="text-sm font-semibold">Preview</h2>
+            <h2 className="text-xl font-semibold">Preview</h2>
 
             {collapsed && (
               <select
@@ -880,7 +880,7 @@ function Looks({
 
   return (
     <section>
-      <h2 className="mb-2 text-sm font-semibold">Start from a look</h2>
+      <h2 className="mb-2 text-xl font-semibold">Start from a look</h2>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {options.looks.map((option) => {
           const active = option.key === look?.key;
