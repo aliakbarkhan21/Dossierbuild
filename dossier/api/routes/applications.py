@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 
 from ...core import applications as store
 from ...core import jobspec
+from ...core import letters as correspondence
 from ...core import versions as archive
 from ...core.db import connect
 from ...core.schema import Profile
@@ -82,6 +83,7 @@ class ApplicationOut(BaseModel):
     runs: int
     accepted: int
     versions: int
+    letters: int
 
 
 class GapOut(BaseModel):
@@ -114,6 +116,7 @@ def overview(connection: sqlite3.Connection = Depends(db)) -> OverviewOut:
     """
     listed = store.list_applications(connection=connection)
     kept = archive.counts(connection=connection)
+    written = correspondence.counts(connection=connection)
     return OverviewOut(
         applications=[
             ApplicationOut(
@@ -131,6 +134,7 @@ def overview(connection: sqlite3.Connection = Depends(db)) -> OverviewOut:
                 runs=a.runs,
                 accepted=a.accepted,
                 versions=kept.get(a.id, 0),
+                letters=written.get(a.id, 0),
             )
             for a in listed
         ],

@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from dossier.core import applications as apps
 from dossier.core import db, jobspec
+from dossier.core import letters as correspondence
 from dossier.core import versions as archive
 from dossier.core.schema import Experience, Profile, SkillGroup, TextBlock
 
@@ -113,6 +114,7 @@ def test_indexes() -> None:
     assert "idx_terms_term" in names, names
     assert "idx_apps_status" in names, names
     assert "idx_versions_app" in names, names
+    assert "idx_letters_app" in names, names
 
 
 # --------------------------------------------------------------------------
@@ -202,6 +204,51 @@ def test_cascade() -> None:
     assert counts() == (0, 0, 0), f"orphans left behind: {counts()}"
     # The siblings are untouched.
     assert connection.execute("SELECT COUNT(*) FROM applications").fetchone()[0] == 2
+
+
+@check("a filed letter is editable, and goes with its application")
+def test_letters() -> None:
+    connection = fresh()
+    app_id, other_id = seed(connection)[:2]
+
+    first = correspondence.save_letter(
+        app_id,
+        {"paragraphs": ["I am applying for the backend role.", "And here is why."],
+         "recipient": "Ms Okafor"},
+        {"template": "classic", "fonts": "slab"},
+        model="gemini-test",
+        connection=connection,
+    )
+    elsewhere = correspondence.save_letter(other_id, {"paragraphs": ["Other."]}, {},
+                                           connection=connection)
+
+    listed = correspondence.list_letters(app_id, connection=connection)
+    assert len(listed) == 1, listed
+    # A listing carries the opening line, not four paragraphs each.
+    assert listed[0].preview.startswith("I am applying")
+    assert listed[0].document is None
+
+    loaded = correspondence.load(first, connection=connection)
+    assert loaded is not None
+    assert loaded.document["recipient"] == "Ms Okafor"
+    # The design travels with it: the letter is set in the resume's typeface
+    # on purpose, so reprinting after a design change must not restyle it.
+    assert loaded.design == {"template": "classic", "fonts": "slab"}
+
+    # A draft is meant to be rewritten.
+    assert correspondence.update_letter(first, {"paragraphs": ["Rewritten."]},
+                                        connection=connection)
+    assert not correspondence.update_letter("let_nope", {}, connection=connection)
+    after = correspondence.load(first, connection=connection)
+    assert after is not None and after.document["paragraphs"] == ["Rewritten."]
+    # Editing the words is not a reason to restyle the page.
+    assert after.design == {"template": "classic", "fonts": "slab"}
+
+    assert correspondence.counts(connection=connection) == {app_id: 1, other_id: 1}
+
+    apps.delete_application(app_id, connection=connection)
+    assert correspondence.load(first, connection=connection) is None
+    assert correspondence.load(elsewhere, connection=connection) is not None
 
 
 @check("a kept version is readable exactly as stored, and goes with its application")

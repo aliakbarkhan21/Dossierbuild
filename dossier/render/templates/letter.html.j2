@@ -1,0 +1,104 @@
+{% extends "_base.html.j2" %}
+{% import "_macros.html.j2" as m %}
+
+{#
+  A cover letter, on the same paper as the resume.
+
+  It extends ``_base`` rather than standing alone, and that is the whole
+  argument for the file being this short: the sheet at exact paper size, the
+  page-break markers, the fit script, the print/preview equality and the
+  ``@page`` rule are all the resume's and all correct. A letter is a different
+  arrangement of type on the same page, not a different pipeline.
+
+  It takes its fonts, accent, margins, paper and type size from the same
+  ``Design``, so the two documents an employer opens on the same afternoon
+  read as one set. That is the point of not giving the letter a design of its
+  own: a letter in a different typeface from the CV attached to it looks like
+  two people applied.
+#}
+
+{% block extra_css %}
+.let-head {
+  padding-bottom: 9pt;
+  border-bottom: 1.4pt solid var(--accent);
+  margin-bottom: 16pt;
+}
+.let-name {
+  font-family: var(--f-head);
+  font-size: calc(var(--fs) * 1.9);
+  font-weight: 600;
+  letter-spacing: .01em;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.let-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12pt;
+  margin-bottom: 14pt;
+}
+/* The addressee and the date sit on one line at opposite ends. Stacking the
+   date above a two-line address is the convention for a posted letter; this
+   one is attached to an email, and the top of the page is worth more than
+   the convention. */
+.let-to {
+  font-size: calc(var(--fs) * .96);
+  line-height: 1.35;
+}
+.let-to b { font-weight: 600; }
+.let-date {
+  font-size: calc(var(--fs) * .92);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.let-greeting { margin-bottom: 9pt; }
+.let-body p {
+  margin: 0 0 9pt;
+  /* Justified text needs hyphenation to avoid rivers, and Chromium's
+     hyphenation needs a language. Ragged right is the safer default on a
+     document this short. */
+  text-align: left;
+}
+.let-body p:last-child { margin-bottom: 0; }
+.let-sign { margin-top: 14pt; }
+.let-sign-off { margin-bottom: 20pt; }
+.let-sign-name {
+  font-family: var(--f-head);
+  font-weight: 600;
+}
+{% endblock %}
+
+{% block content %}
+<header class="let-head">
+  <div class="let-name">{{ r.name }}</div>
+  {{ m.contact(r.contact) }}
+</header>
+
+<div class="let-meta">
+  <div class="let-to">
+    {% if letter.recipient %}<b>{{ letter.recipient }}</b><br>{% endif %}
+    {% if letter.company %}{{ letter.company }}{% endif %}
+    {# A role typed as "Backend Engineer, Northgate Labs" already names the
+       employer that is on the line above. Printing both reads as a mistake,
+       so the role line is dropped when it contains the company. #}
+    {% if letter.role and not (letter.company and letter.company|lower in letter.role|lower) %}
+    {% if letter.company %}<br>{% endif %}{{ letter.role }}
+    {% endif %}
+  </div>
+  <div class="let-date">{{ letter.date }}</div>
+</div>
+
+<p class="let-greeting">{{ letter.greeting }}</p>
+
+<div class="let-body">
+  {% for paragraph in letter.paragraphs %}
+  <p>{{ paragraph }}</p>
+  {% endfor %}
+</div>
+
+<div class="let-sign">
+  <p class="let-sign-off">{{ letter.closing }}</p>
+  <p class="let-sign-name">{{ letter.signature }}</p>
+</div>
+{% endblock %}

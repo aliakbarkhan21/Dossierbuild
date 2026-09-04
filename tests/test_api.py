@@ -556,6 +556,140 @@ def _one(app_id: str) -> dict:
 
 
 # --------------------------------------------------------------------------
+# Cover letters
+# --------------------------------------------------------------------------
+
+
+HAND_WRITTEN = {
+    "paragraphs": [
+        "I am applying for the backend engineer role at Northgate Labs.",
+        "At Northgate Labs I cut a nightly ETL run from 42 minutes to 9.",
+        "I would bring the same to your data platform.",
+    ],
+    "recipient": "Ms Okafor",
+    "company": "Northgate Labs",
+    "role": "Backend Engineer",
+}
+
+
+def test_a_letter_prints_without_a_model_anywhere_near_it() -> None:
+    """The whole letter pipeline works with no API key.
+
+    Drafting needs a model; writing one by hand and printing it does not, and
+    a person who does not want a model writing their letter should still get
+    the paper, the typeface and the PDF.
+    """
+    printed = client.post(
+        "/api/letter/pdf", json={"letter": HAND_WRITTEN, "profile": sample()}
+    )
+    assert printed.status_code == 200, printed.text
+    assert printed.content[:5] == b"%PDF-"
+    # Named for the reader, like the resume is.
+    assert "Northgate-Labs" in printed.headers["content-disposition"]
+
+    html = client.post(
+        "/api/letter/preview", json={"letter": HAND_WRITTEN, "profile": sample()}
+    )
+    assert html.status_code == 200
+    body = html.text
+    # The parts a model is never asked for, because there is no judgement in
+    # them: a named recipient takes "Yours sincerely".
+    assert "Dear Ms Okafor," in body
+    assert "Yours sincerely," in body
+    assert "A. Student" in body
+    assert "cut a nightly ETL run from 42 minutes to 9" in body
+
+
+def test_an_unnamed_reader_gets_yours_faithfully() -> None:
+    """British convention, and the sort of thing a letter-reader notices."""
+    anonymous = {**HAND_WRITTEN, "recipient": ""}
+    body = client.post(
+        "/api/letter/preview", json={"letter": anonymous, "profile": sample()}
+    ).text
+    assert "Dear Hiring Manager," in body
+    assert "Yours faithfully," in body
+    assert "Yours sincerely," not in body
+
+
+def test_an_empty_letter_is_refused_rather_than_printed_blank() -> None:
+    empty = {**HAND_WRITTEN, "paragraphs": ["", "   "]}
+    response = client.post("/api/letter/pdf", json={"letter": empty, "profile": sample()})
+    assert response.status_code == 422
+    assert "no words" in response.json()["detail"]
+
+
+def test_a_letter_is_set_in_the_resumes_typeface() -> None:
+    """Not a cosmetic choice: two documents an employer opens on the same
+    afternoon should look like one person sent them."""
+    body = client.post(
+        "/api/letter/preview",
+        json={
+            "letter": HAND_WRITTEN,
+            "profile": sample(),
+            "design": {"fonts": "slab", "accent": "burgundy"},
+        },
+    ).text
+    assert "Roboto Slab" in body
+    assert "#6E2436" in body
+
+
+def test_a_letter_is_filed_edited_reprinted_and_forgotten() -> None:
+    _clear()
+    app_id = _save(POSTING, "Northgate Labs")
+
+    kept = client.post(
+        f"/api/applications/{app_id}/letters",
+        json={"letter": HAND_WRITTEN, "profile": sample(), "model": "gemini-test"},
+    )
+    assert kept.status_code == 200, kept.text
+    letter_id = kept.json()["id"]
+    # The listing says which letter this is without carrying four paragraphs.
+    assert kept.json()["preview"].startswith("I am applying")
+    assert _one(app_id)["letters"] == 1
+
+    read = client.get(f"/api/letter/{letter_id}").json()
+    assert read["letter"]["recipient"] == "Ms Okafor"
+    assert read["design"]["template"]
+
+    # A draft is meant to be rewritten; the archive keeps the edit, not the
+    # model's first attempt.
+    edited = {**HAND_WRITTEN, "paragraphs": ["Rewritten by hand, entirely."]}
+    assert client.put(
+        f"/api/letter/{letter_id}", json={"letter": edited, "profile": sample()}
+    ).status_code == 200
+    again = client.get(f"/api/letter/{letter_id}").json()
+    assert again["letter"]["paragraphs"] == ["Rewritten by hand, entirely."]
+
+    reprinted = client.post(f"/api/letter/{letter_id}/pdf")
+    assert reprinted.status_code == 200
+    assert reprinted.content[:5] == b"%PDF-"
+
+    assert client.delete(f"/api/letter/{letter_id}").status_code == 200
+    assert client.get(f"/api/letter/{letter_id}").status_code == 404
+    assert _one(app_id)["letters"] == 0
+    _clear()
+
+
+def test_a_letter_goes_when_its_application_does() -> None:
+    _clear()
+    app_id = _save(POSTING, "Northgate Labs")
+    letter_id = client.post(
+        f"/api/applications/{app_id}/letters",
+        json={"letter": HAND_WRITTEN, "profile": sample()},
+    ).json()["id"]
+
+    client.delete(f"/api/applications/{app_id}")
+    # Without PRAGMA foreign_keys the row would outlive its application.
+    assert client.get(f"/api/letter/{letter_id}").status_code == 404
+
+
+def test_drafting_without_a_posting_says_so() -> None:
+    response = client.post("/api/letter/draft", json={"text": "   "})
+    assert response.status_code == 422
+    assert "posting" in response.json()["detail"].lower()
+
+
+# --------------------------------------------------------------------------
 # Serving the built frontend
 # --------------------------------------------------------------------------
 

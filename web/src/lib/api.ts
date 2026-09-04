@@ -22,6 +22,9 @@ import type {
   PdfResult,
   Profile,
   QualityReport,
+  LetterBody,
+  LetterDetail,
+  LetterSummary,
   RewriteResult,
   Suggestion,
   Version,
@@ -219,6 +222,56 @@ export const api = {
       words: Number(response.headers.get("X-Words") ?? 0),
       machineReadable: response.headers.get("X-Machine-Readable") === "1",
     };
+  },
+
+  /** Draft a cover letter. The one call here that needs a key.
+   *
+   *  Named by application rather than carrying the posting: the advert is
+   *  already in the database, and sending it back up the wire would be
+   *  shipping the same text twice. */
+  draftLetter: (body: {
+    application_id?: string;
+    text?: string;
+    company?: string;
+    role?: string;
+    recipient?: string;
+    note?: string;
+    profile?: Profile;
+  }) => request<LetterBody>("/api/letter/draft", "POST", body),
+  letterPreview: (body: { letter: LetterBody; profile?: Profile; design?: Design; zoom?: number }) =>
+    requestText("/api/letter/preview", body),
+  letters: (applicationId: string) =>
+    request<LetterSummary[]>(`/api/applications/${applicationId}/letters`),
+  keepLetter: (
+    applicationId: string,
+    body: { letter: LetterBody; profile?: Profile; design?: Design; model?: string },
+  ) => request<LetterSummary>(`/api/applications/${applicationId}/letters`, "POST", body),
+  readLetter: (id: string) => request<LetterDetail>(`/api/letter/${id}`),
+  updateLetter: (id: string, body: { letter: LetterBody; profile?: Profile }) =>
+    request<LetterSummary>(`/api/letter/${id}`, "PUT", body),
+  deleteLetter: (id: string) => request<{ deleted: boolean }>(`/api/letter/${id}`, "DELETE"),
+
+  async letterPdf(body: {
+    letter: LetterBody;
+    profile?: Profile;
+    design?: Design;
+  }): Promise<{ blob: Blob; filename: string }> {
+    const response = await fetch("/api/letter/pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) throw await failure(response);
+    const match = /filename="([^"]+)"/.exec(response.headers.get("content-disposition") ?? "");
+    return { blob: await response.blob(), filename: match?.[1] ?? "Cover-Letter.pdf" };
+  },
+
+  /** The same letter again, in the design it was written in. */
+  async filedLetterPdf(id: string): Promise<{ blob: Blob; filename: string }> {
+    const response = await fetch(`/api/letter/${id}/pdf`, { method: "POST" });
+    if (!response.ok) throw await failure(response);
+    const match = /filename="([^"]+)"/.exec(response.headers.get("content-disposition") ?? "");
+    return { blob: await response.blob(), filename: match?.[1] ?? "Cover-Letter.pdf" };
   },
 
   analysePosting: (body: { text: string; title?: string; company?: string; profile?: Profile }) =>

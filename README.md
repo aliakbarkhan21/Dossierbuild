@@ -14,7 +14,7 @@ with no API key at all.
 
 ## What it does
 
-**Six screens, and each does one thing.**
+**Seven screens, and each does one thing.**
 
 | | |
 | --- | --- |
@@ -23,6 +23,7 @@ with no API key at all.
 | **Tailor** | Paste a posting. It is read by rules — no model — into weighted requirements, then scored against your profile. Only the rewrite step uses a model, and every rewrite is diffed against its source. |
 | **Applications** | Every posting you saved, what stage it is at, and — across all of them — which requirements you keep failing to evidence. |
 | **Import** | LinkedIn's data export, a PDF, a DOCX, or pasted text, all landing on the same review screen. |
+| **Cover letter** | One letter per application, drafted from the requirements your profile can evidence and set in the resume's own typeface. |
 | **Health check** | Every bullet measured against the writing standard, with the specific line to fix. |
 
 **Design, curated rather than open-ended.** Eight templates × four body
@@ -90,7 +91,7 @@ docker run -p 8000:8000 -v "$PWD/data:/data" -e GEMINI_API_KEY=... dossierbuild
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                            # 153 checks, about 60 seconds (real PDFs)
+pytest                            # 161 checks, about 55 seconds (real PDFs)
 cd web && npm test                # 18 checks on the undo stack's arithmetic
 ```
 
@@ -100,7 +101,7 @@ Or without pytest — each script runs on the app's own dependencies:
 python scripts/check_phase1.py    # schema, storage, id stability, migration   (20)
 python scripts/check_import.py    # LinkedIn export, extraction, merge         (21)
 python scripts/check_phase2.py    # design, templates, PDF and its text layer  (19)
-python scripts/check_db.py        # the schema, its constraints, its queries   (18)
+python scripts/check_db.py        # the schema, its constraints, its queries   (19)
 python scripts/check_tailor.py    # the posting reader and the audit           (29)
 ```
 
@@ -120,6 +121,7 @@ dossier/
     db.py            SQLite: connection, pragmas, its own migration chain
     applications.py  saved applications, and the queries across all of them
     versions.py      what was actually sent: profile + design, kept whole
+    letters.py       cover letters, filed against the application they answer
     ids.py           stable short ids
   ingest/    PDF · DOCX · LinkedIn -> profile, plus the merge review. No AI.
   ai/        every call that leaves this machine for a model
@@ -127,6 +129,7 @@ dossier/
     parse.py         resume text -> profile. Transcribes, never composes.
     tailor.py        profile + posting -> rewrites keyed by block id, each audited
     suggest.py       one drafted bullet or summary, from facts you supply
+    letter.py        a cover letter, briefed by the rules-based posting read
   render/    profile + design -> HTML -> PDF
     design.py        every presentation choice, validated
     context.py       the profile flattened into what a template needs
@@ -134,6 +137,7 @@ dossier/
     pdf.py           Chromium in a subprocess; pypdf reads the result back
     photo.py         the portrait, squared and embedded as a data URI
     templates/       _base + _macros + eight templates + four body layouts
+    letter.py        the same paper and typeface, arranged as a letter
     text.py          the profile as plain text, for forms that take no file
   api/       FastAPI over core, and the server that hosts the frontend
 web/         React + Vite + TypeScript + Tailwind
@@ -219,8 +223,6 @@ a claim that it does everything.
 - **One profile, not many.** There is no "switch between resumes": there is
   one master profile, and saved versions are frozen archives of what was sent
   rather than documents you can go on editing.
-- **No cover letters yet.** The posting analysis that would drive one already
-  exists; the letter does not.
 - **No hosted sharing.** The HTML export is a self-contained file you can send
   or host yourself. There are no public links, accounts or expiry.
 - **No DOCX export.** PDF, self-contained HTML, and plain text.
@@ -235,7 +237,7 @@ a claim that it does everything.
 
 ## Roadmap
 
-In progress towards v1.0: cover letters, editing directly in the preview, a
+In progress towards v1.0: editing directly in the preview, a
 snippet library, bulk actions on bullets, a command palette covering every
 action, guided review and skill normalisation. This section becomes an honest
 "what I would build next" when the version is frozen.

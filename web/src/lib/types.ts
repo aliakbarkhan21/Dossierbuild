@@ -380,6 +380,44 @@ export interface Application {
   accepted: number;
   /** How many documents have been kept against it. */
   versions: number;
+  /** How many cover letters have been filed against it. */
+  letters: number;
+}
+
+/**
+ * A cover letter as the screen holds it: editable text, not a model's output.
+ *
+ * `invented` is what the fabrication audit found when it was drafted -- the
+ * numbers and named things the letter asserts that the profile does not. It
+ * survives editing so the warning does not vanish the moment a word is
+ * changed somewhere else.
+ */
+export interface LetterBody {
+  paragraphs: string[];
+  greeting: string;
+  closing: string;
+  signature: string;
+  recipient: string;
+  company: string;
+  role: string;
+  date: string;
+  invented: string[];
+  /** Which model wrote it, or "" for a letter written by hand. */
+  model: string;
+}
+
+export interface LetterSummary {
+  id: string;
+  application_id: string;
+  model: string;
+  created_at: string;
+  /** The opening words, so a list can say which letter this is. */
+  preview: string;
+}
+
+export interface LetterDetail extends LetterSummary {
+  letter: LetterBody;
+  design: Design;
 }
 
 /**

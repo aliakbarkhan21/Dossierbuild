@@ -27,6 +27,7 @@ from .routes import (  # noqa: E402
     applications,
     design,
     ingest,
+    letter,
     profile,
     render,
     suggest,
@@ -70,6 +71,8 @@ app.include_router(ingest.router)
 app.include_router(tailor.router)
 app.include_router(applications.router)
 app.include_router(applications.versions)
+app.include_router(letter.router)
+app.include_router(letter.filed)
 app.include_router(suggest.router)
 
 lifetime.install(app)

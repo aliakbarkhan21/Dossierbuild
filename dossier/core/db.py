@@ -40,7 +40,7 @@ DB_PATH = DATA_DIR / "dossier.db"
 
 # Mirrors ``storage.SCHEMA_VERSION`` in spirit: the database has its own
 # version and its own chain, because the two evolve for different reasons.
-DB_VERSION = 2
+DB_VERSION = 3
 
 
 def connect(path: Path | None = None) -> sqlite3.Connection:
@@ -182,13 +182,47 @@ def _v0_to_v1(connection: sqlite3.Connection) -> None:
         connection.execute(statement)
 
 
+# A cover letter, kept the same way a version is: the letter itself as a JSON
+# document, the design beside it so it reprints exactly, and the row relational
+# because there are many per application and they must go when it does.
+#
+# The design is stored for the same reason it is stored with a version, and it
+# matters more here: the letter is *set* in the resume's typeface on purpose,
+# so a letter reprinted after the resume's design changed would come back in a
+# face the employer never saw.
+_V3_SCHEMA: tuple[str, ...] = (
+    """
+    CREATE TABLE letters (
+        id             TEXT PRIMARY KEY,
+        application_id TEXT NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+        document       TEXT NOT NULL,
+        design         TEXT NOT NULL,
+        -- "" when the letter was written by hand rather than drafted.
+        model          TEXT NOT NULL DEFAULT '',
+        created_at     TEXT NOT NULL
+    )
+    """,
+    "CREATE INDEX idx_letters_app ON letters(application_id, created_at)",
+)
+
+
 def _v1_to_v2(connection: sqlite3.Connection) -> None:
     """Versions: the exact document that went to one employer, on one date."""
     for statement in _V2_SCHEMA:
         connection.execute(statement)
 
 
-MIGRATIONS: tuple[Callable[[sqlite3.Connection], None], ...] = (_v0_to_v1, _v1_to_v2)
+def _v2_to_v3(connection: sqlite3.Connection) -> None:
+    """Cover letters, filed against the application they were written for."""
+    for statement in _V3_SCHEMA:
+        connection.execute(statement)
+
+
+MIGRATIONS: tuple[Callable[[sqlite3.Connection], None], ...] = (
+    _v0_to_v1,
+    _v1_to_v2,
+    _v2_to_v3,
+)
 
 
 def migrate(connection: sqlite3.Connection) -> int:
