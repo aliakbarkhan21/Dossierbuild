@@ -88,6 +88,24 @@ builder, and fixes an accessibility failure that had been there all along.
 
 ### Fixed
 
+- **A link in the preview blanked the preview.** The frame is sandboxed into
+  an opaque origin, so clicking the GitHub link in a header took the frame
+  itself to github.com — a navigation the sandbox then refused, leaving an
+  empty pane with the document gone. Links open in a tab now. The printed
+  document is untouched: it carries no script at all.
+- **`normalise_url` passed any scheme through to an `href`**, `javascript:`
+  included. Only http, https, mailto and tel reach the page; a label with an
+  address nobody can follow still prints, it simply is not a link.
+- **AI suggestions were slower than they had to be.** The Gemini client was
+  rebuilt per request, so every suggestion paid a fresh TLS handshake; it is
+  kept now, and two consecutive drafts measured 4.2s then 1.35s. The fallback
+  ladder was walked from scratch every time, which measured at 61 seconds
+  against 14 for the same work — the model that last answered is tried first.
+  A single attempt could hold the whole request for 45 seconds before the
+  ladder moved on; capped at 25, which clears every healthy call measured. The
+  import is warmed at startup rather than paid by the first person to ask. And
+  the panel counts the seconds, because the spread is 3s to 25s and a bare
+  spinner over that range is indistinguishable from a hang.
 - A portrait deleted from the profile came back on reload: the save was
   guarded on the old single-profile path, which is not where a profile lives
   any more.

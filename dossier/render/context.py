@@ -127,19 +127,41 @@ class ResumeContext:
 _SCHEME = re.compile(r"^[a-z][a-z0-9+.-]*://", re.I)
 
 
+#: What may appear in an ``href``. Everything else is dropped.
+SAFE_SCHEMES = frozenset({"http", "https", "mailto", "tel"})
+
+#: A scheme as the URL grammar defines one, so that "example.com:8080/x" --
+#: which also has a colon in it -- is not mistaken for one.
+_ANY_SCHEME = re.compile(r"^([A-Za-z][A-Za-z0-9+.\-]*):")
+
+
 def normalise_url(url: str) -> str:
-    """A URL a browser will actually follow.
+    """A URL a browser will actually follow, or nothing.
 
     People type "linkedin.com/in/x" and "www.github.com/x". Without a scheme
-    those become relative links in the PDF and lead nowhere.
+    those become relative links in the PDF and lead nowhere, so one is added.
+
+    A scheme that is already there has to be one a CV can legitimately carry.
+    ``javascript:`` is the one that matters: it used to reach an ``href``
+    verbatim, and the preview now opens links in a real tab, so an address
+    nobody can follow should not look like one. The label still prints -- it
+    simply is not a link.
     """
     url = (url or "").strip()
     if not url:
         return ""
-    if url.startswith("mailto:") or url.startswith("tel:"):
-        return url
-    if _SCHEME.match(url):
-        return url
+
+    match = _ANY_SCHEME.match(url)
+    if match:
+        scheme = match.group(1).lower()
+        if scheme in SAFE_SCHEMES:
+            return url
+        # "example.com:8080/path" matches the scheme grammar and is not one.
+        rest = url[match.end() :]
+        if rest[:1].isdigit():
+            return "https://" + url.lstrip("/")
+        return ""
+
     return "https://" + url.lstrip("/")
 
 

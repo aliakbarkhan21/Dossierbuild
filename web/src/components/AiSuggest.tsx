@@ -85,7 +85,26 @@ function Panel({
   const [note, setNote] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
+  const [waited, setWaited] = useState(0);
   const noteRef = useRef<HTMLTextAreaElement>(null);
+
+  /**
+   * How long this has been going, in seconds.
+   *
+   * A drafted line comes back in anything from three seconds to twenty-five,
+   * and the spread is congestion at Google rather than anything this app is
+   * doing -- the same model answered in 3.4s and then in 75.9s on consecutive
+   * requests while this was being measured. A bare spinner over that range is
+   * indistinguishable from a hang, and the difference between "slow" and
+   * "broken" is the one thing the person waiting needs to know.
+   */
+  useEffect(() => {
+    if (!busy) return;
+    const started = Date.now();
+    setWaited(0);
+    const id = setInterval(() => setWaited(Math.round((Date.now() - started) / 1000)), 500);
+    return () => clearInterval(id);
+  }, [busy]);
 
   async function run() {
     setBusy(true);
@@ -223,8 +242,14 @@ function Panel({
             disabled={busy || (kind === "bullet" && note.trim().length < 12)}
           >
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            Write it
+            {busy ? `Writing… ${waited}s` : "Write it"}
           </button>
+        )}
+        {busy && waited >= 10 && (
+          <span className="text-2xs text-faint">
+            Still waiting on Google. Busy tiers are the usual reason; it will fall
+            back to another model rather than give up.
+          </span>
         )}
         <button type="button" className="btn ml-auto" onClick={onClose}>
           Cancel

@@ -59,9 +59,15 @@ RETRYABLE = (
 
 RETRY_BUDGET_SECONDS = 75
 
-# A stalled request should fail visibly rather than spin. Measured: a healthy
-# call is under 10 seconds with thinking held down.
-REQUEST_TIMEOUT_MS = 45_000
+# How long one attempt may take before the next model is tried.
+#
+# Measured over a dozen calls on one key: a healthy bullet comes back in 3 to
+# 15 seconds, and the spread is congestion on Google's side rather than the
+# model -- the same model answered in 3.4s and then in 75.9s on consecutive
+# requests. 45 seconds meant one unlucky attempt held the whole request for
+# most of a minute before the ladder moved on. 25 clears every healthy call
+# measured with room over, and turns the bad case into "try the next one".
+REQUEST_TIMEOUT_MS = 25_000
 
 API_KEY_VARS = ("GEMINI_API_KEY", "GOOGLE_API_KEY")
 
@@ -80,7 +86,25 @@ def api_key_present() -> bool:
     return any(os.environ.get(v) for v in API_KEY_VARS)
 
 
+#: The client, and the key it was built for. Kept so that the connection pool
+#: behind it is reused: a fresh client per request meant a fresh TLS handshake
+#: to Google on every suggestion. Keyed on the key itself because one can be
+#: pasted in through the Import page while the server is running, and a cached
+#: client holding the old one would keep using it.
+_client: tuple[str, Any] | None = None
+
+#: The model that last answered, tried first next time.
+#:
+#: The ladder exists because models are retired and tiers get saturated, but
+#: it was walked from scratch on every request -- so a key whose default model
+#: is busy paid the whole walk every time, which measured at 61 seconds
+#: against 14 for the same work once a working model was found. One
+#: successful answer is enough to know where to start.
+_last_good: str | None = None
+
+
 def client():
+    global _client
     try:
         from google import genai
     except ImportError as exc:  # pragma: no cover
@@ -93,9 +117,28 @@ def client():
             "(get one free at aistudio.google.com/apikey), or set "
             "GEMINI_API_KEY in .env."
         )
+    if _client is not None and _client[0] == key:
+        return _client[1]
+
     from google.genai import types
 
-    return genai.Client(api_key=key, http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS))
+    built = genai.Client(api_key=key, http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS))
+    _client = (key, built)
+    return built
+
+
+def warm() -> None:
+    """Pay the import cost before anyone is waiting on it.
+
+    ``import google.genai`` is 0.7 seconds, and without this the first person
+    to ask for a suggestion pays it on top of a request that is already slow.
+    Called off the startup path in a thread, and deliberately silent: a
+    machine with no key or no network should start exactly as it does now.
+    """
+    try:
+        client()
+    except Exception:  # noqa: BLE001 -- warming is best-effort by definition
+        pass
 
 
 def candidates(model: str | None) -> list[str]:
@@ -105,10 +148,16 @@ def candidates(model: str | None) -> list[str]:
     caller is expressing a preference, not a requirement that the request fail
     because that one model happens to be down.
     """
-    ordered = [model or DEFAULT_MODEL, *FALLBACK_MODELS]
+    # The last model that actually answered goes first when nobody has asked
+    # for a particular one. The configured default stays in the list behind
+    # it, so a tier that was busy an hour ago is still tried again later.
+    head = [model] if model else [_last_good, DEFAULT_MODEL]
+    ordered = [*head, *FALLBACK_MODELS]
     unique: list[str] = []
     for name in ordered:
-        if name not in unique:
+        # `_last_good` is None until something has answered, and a None in the
+        # ladder would be handed to the API as a model name.
+        if name and name not in unique:
             unique.append(name)
     return unique
 
@@ -183,6 +232,8 @@ def generate(
                     "The model returned nothing usable. This usually means the input was "
                     "too short or was blocked."
                 )
+            global _last_good
+            _last_good = name
             return parsed, name
 
         # A model that is gone for this key will not come back this minute.

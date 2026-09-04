@@ -13,6 +13,10 @@ from __future__ import annotations
 
 import os
 
+import threading
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,10 +50,30 @@ ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Pay `import google.genai` before anyone is waiting on a suggestion.
+
+    Seven tenths of a second of import that nothing on the startup path needs,
+    and which the first person to ask for a drafted line would otherwise pay
+    on top of a request that is already slow. In a thread so startup does not
+    wait for it, and best-effort: no key, no network or no package, and the
+    server starts exactly as it did.
+
+    A lifespan rather than `@app.on_event("startup")`, which FastAPI has
+    deprecated.
+    """
+    from ..ai.client import warm
+
+    threading.Thread(target=warm, name="warm-genai", daemon=True).start()
+    yield
+
+
 app = FastAPI(
     title="Dossierbuild",
-    version="0.3.0",
+    version="1.1.0",
     summary="A master profile in, a print-ready resume out.",
+    lifespan=lifespan,
 )
 
 app.add_middleware(

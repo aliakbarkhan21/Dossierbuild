@@ -574,6 +574,39 @@ ul.bul li::before {
     }
   });
 
+  // A link in the preview must not navigate the preview.
+  //
+  // The frame is sandboxed into an opaque origin, so a plain click on the
+  // GitHub link in someone's header took the frame itself to github.com -- a
+  // navigation the sandbox then refused, leaving the pane blank with the
+  // document gone. The link is real and worth following, so every one of them
+  // is retargeted at a new tab.
+  //
+  // Retargeted here rather than posted up to the host and opened with
+  // `window.open`: that was the first attempt and the popup blocker ate it,
+  // because a message handler has no user activation behind it. A `_blank`
+  // link clicked by a person does. The host's iframe carries `allow-popups
+  // allow-popups-to-escape-sandbox` for the same reason -- without the second
+  // the destination opens inside this sandbox and renders broken.
+  //
+  // Only in the preview: the printed document has no script in it at all, so
+  // what Chromium prints is untouched. `href` is already limited to http,
+  // https, mailto and tel by `normalise_url`.
+  function retarget() {
+    var links = document.querySelectorAll('a[href]');
+    for (var i = 0; i < links.length; i++) {
+      links[i].target = '_blank';
+      links[i].rel = 'noopener noreferrer';
+    }
+  }
+  retarget();
+  document.addEventListener('click', function (event) {
+    // A link added after load -- nothing does that today, but a click that
+    // navigated the frame is the failure this is here to prevent.
+    var link = event.target && event.target.closest && event.target.closest('a[href]');
+    if (link && link.target !== '_blank') { link.target = '_blank'; }
+  }, true);
+
   if (document.fonts && document.fonts.ready) { document.fonts.ready.then(measure); }
   window.addEventListener('load', measure);
   window.addEventListener('resize', onResize);

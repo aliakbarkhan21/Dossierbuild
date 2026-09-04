@@ -70,7 +70,12 @@ export function Frame({
           // The document is ours, generated server-side from validated data,
           // and it runs a measuring script -- so scripts are allowed, but it
           // stays in its own opaque origin with no access to this page.
-          sandbox="allow-scripts"
+          // `allow-popups` so a link in the CV can open in a tab, and
+          // `-to-escape-sandbox` so the site it opens is a normal page rather
+          // than one inheriting this opaque origin and rendering broken. The
+          // document is ours, generated from validated data, and its hrefs are
+          // limited to http, https, mailto and tel before they are written.
+          sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
           onLoad={onLoad}
           tabIndex={decorative ? -1 : undefined}
           aria-hidden={decorative || undefined}
