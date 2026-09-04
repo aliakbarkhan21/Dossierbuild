@@ -8,6 +8,7 @@
  */
 
 import { AlertTriangle, ArrowRight, CircleAlert, Info } from "lucide-react";
+import { Segmented } from "../components/Segmented";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -191,21 +192,16 @@ export function HealthScreen() {
             <h2 className="text-sm font-semibold">
               {blocks.length} line{blocks.length === 1 ? "" : "s"} to look at
             </h2>
-            <div className="ml-auto flex gap-0.5 rounded-md bg-sunken p-0.5">
-              {(["all", "error", "warning", "note"] as const).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setFilter(key)}
-                  className={[
-                    "rounded px-2 py-1 text-2xs font-medium capitalize transition-colors duration-150",
-                    filter === key ? "bg-surface text-ink shadow-subtle" : "text-muted hover:text-ink",
-                  ].join(" ")}
-                >
-                  {key === "all" ? "All" : SEVERITY[key].label}
-                </button>
-              ))}
-            </div>
+            <Segmented
+              className="ml-auto"
+              ariaLabel="Which findings to show"
+              choices={(["all", "error", "warning", "note"] as const).map((key) => ({
+                key,
+                label: key === "all" ? "All" : SEVERITY[key].label,
+              }))}
+              value={filter}
+              onChange={(key) => setFilter(key as typeof filter)}
+            />
           </div>
 
           {findings.length === 0 ? (

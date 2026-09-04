@@ -47,6 +47,19 @@ export const useShell = () => useContext(ShellContext);
  */
 const DRAWER_BELOW = 1024;
 
+/**
+ * How long a side panel takes to leave, and on what curve.
+ *
+ * 200ms was too quick to read: a panel that is simply gone reads as a state
+ * change, not a movement, and the eye has nothing to follow back to where it
+ * went. The curve is decelerating -- quick to leave, slow to arrive -- which
+ * is what gives a movement weight. The design panel on the Resume screen uses
+ * the same pair, because they are the same gesture in the same corner of the
+ * screen and two speeds would look like two mechanisms.
+ */
+export const SLIDE_MS = 340;
+export const SLIDE_EASE = "cubic-bezier(.22,.61,.36,1)";
+
 /** The sidebar's width, in one place: the spacer and the slide must agree. */
 const SIDEBAR_W = 232;
 
@@ -198,18 +211,20 @@ export default function App() {
           <>
             <div
               className={[
-                "fixed inset-0 z-30 bg-black/40 backdrop-blur-[1px] transition-opacity duration-200 ease-out",
+                "fixed inset-0 z-30 bg-black/40 backdrop-blur-[1px]",
                 drawerOpen ? "opacity-100" : "pointer-events-none opacity-0",
               ].join(" ")}
+              style={{ transition: `opacity ${SLIDE_MS}ms ease-out` }}
               onClick={() => setDrawerOpen(false)}
               aria-hidden
             />
             <div
               inert={!drawerOpen}
               className={[
-                "fixed inset-y-0 left-0 z-40 shadow-raised transition-transform duration-200 ease-out",
+                "fixed inset-y-0 left-0 z-40 shadow-raised",
                 drawerOpen ? "translate-x-0" : "-translate-x-full",
               ].join(" ")}
+              style={{ transition: `transform ${SLIDE_MS}ms ${SLIDE_EASE}` }}
             >
               <Sidebar onCollapse={() => setDrawerOpen(false)} />
             </div>
@@ -221,7 +236,7 @@ export default function App() {
           // in a single step -- no transition. Transitioning it instead cost a
           // layout of every document on the page on every frame, and the
           // Resume screen holds ten of them: the app, the preview, and eight
-          // template thumbnails. That is what made a 200ms slide stutter.
+          // template thumbnails. That is what made the slide stutter.
           //
           // The panel is taken out of the flow and moved with a transform,
           // which the compositor does without laying anything out at all. The
@@ -232,8 +247,11 @@ export default function App() {
             <div className="shrink-0" style={{ width: collapsed ? 0 : SIDEBAR_W }} aria-hidden />
             <div
               inert={collapsed}
-              className="absolute inset-y-0 left-0 z-30 transition-transform duration-200 ease-out"
-              style={{ transform: collapsed ? `translateX(-${SIDEBAR_W}px)` : "none" }}
+              className="absolute inset-y-0 left-0 z-30"
+              style={{
+                transform: collapsed ? `translateX(-${SIDEBAR_W}px)` : "none",
+                transition: `transform ${SLIDE_MS}ms ${SLIDE_EASE}`,
+              }}
             >
               <Sidebar onCollapse={() => setCollapsed(true)} />
             </div>

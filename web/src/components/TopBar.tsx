@@ -8,6 +8,7 @@
  */
 
 import { Command, History, PanelLeftOpen, Redo2, Undo2, X } from "lucide-react";
+import { Switch } from "./Switch";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { useShallow } from "zustand/react/shallow";
@@ -219,22 +220,7 @@ function SaveState() {
             : "Autosave is off: use Ctrl+S or the Save button."
         }
       >
-        {/* Full track height, flush at the end, and the track kept short --
-            the same proportion as the switches in the design panel, which is
-            the point: two switches in one app that are shaped differently
-            read as two different controls. */}
-        <span
-          aria-hidden
-          className={[
-            "relative h-3.5 w-5 rounded-full transition-colors duration-150 ease-out",
-            autosave ? "bg-accent" : "bg-line-strong",
-          ].join(" ")}
-        >
-          <span
-            className="absolute top-0 h-3.5 w-3.5 rounded-full bg-paper shadow-subtle ring-1 ring-black/10 transition-[left] duration-150 ease-out"
-            style={{ left: autosave ? 20 - 14 : 0 }}
-          />
-        </span>
+        <Switch checked={autosave} size="sm" />
         <span className="hidden md:inline">Autosave</span>
       </button>
     </div>

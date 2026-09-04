@@ -45,6 +45,13 @@ body .main > .sec > h2 {
   text-align: left;
   text-indent: 0;
   font-family: var(--f-body);
+  /* The one place the two-point heading bump is not applied.
+     .78 was not chosen for looks: it is the largest size at which the longest
+     heading the app can produce, CERTIFICATIONS, fits a 26mm gutter. It fits
+     with about two pixels to spare, so two extra points puts it into the
+     reading column -- and there is nowhere for it to go, because a heading
+     alone in a narrow column has no second line to wrap onto that would not
+     read as a mistake. Every other layout takes the bump. */
   font-size: calc(var(--fs) * .78);
   font-weight: 700;
   letter-spacing: .09em;

@@ -14,6 +14,7 @@ import {
   PanelLeftOpen,
   FileCode2,
   FileType2,
+  GripVertical,
   Loader2,
   Maximize2,
   RotateCcw,
@@ -26,7 +27,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { useShell } from "../App";
+import { SLIDE_EASE, SLIDE_MS, useShell } from "../App";
 import { Frame } from "../components/Frame";
 import { PhotoCropper } from "../components/PhotoCropper";
 import { TopBar } from "../components/TopBar";
@@ -34,6 +35,9 @@ import { ApiError, api, download } from "../lib/api";
 import { useShallow } from "zustand/react/shallow";
 import { tagsInUse } from "../components/Tags";
 import { Wireframe } from "../components/Wireframe";
+import { Segmented } from "../components/Segmented";
+import { Switch } from "../components/Switch";
+import { moveWithin, useReorder } from "../lib/reorder";
 
 import { useStore } from "../lib/store";
 import { toast } from "../lib/toast";
@@ -106,7 +110,13 @@ const FILTERS = [
  * width should not have to ask for it every time they open the app.
  */
 const PANEL_KEY = "dossier:design-panel";
-const SLIDE_MS = 200;
+// The same pair the app sidebar uses -- see `SLIDE_MS` in App.tsx. Two
+// panels sliding out of the same corner of the screen at two different
+// speeds read as two different mechanisms.
+//
+// The old figure was 200ms over 24px of travel, which is over almost before
+// it has registered: the panel appeared to blink out rather than leave. The
+// travel is now its own full width, so there is a distance to follow.
 
 function useDesignPanel() {
   const [collapsed, setShown] = useState(() => {
@@ -342,76 +352,84 @@ export function ResumeScreen() {
             : "minmax(0,340px) minmax(0,1fr)",
         }}
       >
-        <div
-          inert={collapsed}
-          hidden={folded}
-          className="flex min-w-0 flex-col gap-5 transition-[transform,opacity] duration-200 ease-out"
-          style={{
-            transform: collapsed ? "translateX(-24px)" : "none",
-            opacity: collapsed ? 0 : 1,
-          }}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold">Design</h2>
-            <button
-              type="button"
-              className="btn btn-quiet px-1.5 py-1"
-              onClick={() => setCollapsed(true)}
-              title="Hide the design panel and give the page the width"
-              aria-label="Hide the design panel"
-            >
-              <PanelLeftClose size={15} />
-            </button>
-          </div>
+        {/* The clip is what lets the panel leave sideways. `overflow-x: clip`
+            rather than `hidden` deliberately: `clip` is the one value that
+            does not make a scroll container, so the vertical overflow stays
+            `visible` and a panel taller than the window still scrolls with
+            the page instead of being cut off at the fold. */}
+        <div hidden={folded} className="min-w-0 overflow-x-clip">
+          <div
+            inert={collapsed}
+            className="flex min-w-0 flex-col gap-5"
+            style={{
+              // The whole width, so the panel leaves the way it arrived --
+              // sideways, past the edge of the screen -- rather than fading on
+              // the spot.
+              //
+              // No `will-change` here, tempting as it is: it would make this
+              // element a containing block for `position: fixed` descendants,
+              // and the photo cropper is one of them -- the modal would be
+              // positioned against the panel and then clipped away by the
+              // wrapper. `transform: none` when open keeps the panel out of
+              // the way of anything it contains.
+              transform: collapsed ? "translateX(-102%)" : "none",
+              opacity: collapsed ? 0 : 1,
+              transition: `transform ${SLIDE_MS}ms ${SLIDE_EASE}, opacity ${Math.round(SLIDE_MS * 0.7)}ms ease-out`,
+            }}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold">Design</h2>
+              <button
+                type="button"
+                className="btn btn-quiet px-1.5 py-1"
+                onClick={() => setCollapsed(true)}
+                title="Hide the design panel and give the page the width"
+                aria-label="Hide the design panel"
+              >
+                <PanelLeftClose size={15} />
+              </button>
+            </div>
 
-          <Looks
-            design={design}
-            profile={profile}
-            options={options}
-            refreshKey={galleryKey}
-            onPick={setDesign}
-          />
+            <Looks
+              design={design}
+              profile={profile}
+              options={options}
+              refreshKey={galleryKey}
+              onPick={setDesign}
+            />
 
-          <section>
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold">Template</h2>
-              <div className="flex gap-0.5 rounded-md bg-sunken p-0.5">
-                {FILTERS.map((f) => (
-                  <button
-                    key={f.label}
-                    type="button"
-                    onClick={() => setFilter(f.label)}
-                    className={[
-                      "rounded px-2 py-1 text-2xs font-medium transition-colors duration-150",
-                      filter === f.label ? "bg-surface text-ink shadow-subtle" : "text-muted hover:text-ink",
-                    ].join(" ")}
-                  >
-                    {f.label}
-                  </button>
+            <section>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold">Template</h2>
+                <Segmented
+                  ariaLabel="Which templates to show"
+                  choices={FILTERS.map((f) => ({ key: f.label, label: f.label }))}
+                  value={filter}
+                  onChange={setFilter}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {shown.map((t) => (
+                  <TemplateCard
+                    key={t.key}
+                    template={t}
+                    html={thumbs[t.key] ?? ""}
+                    selected={t.key === design.template}
+                    onPick={() => setDesign({ template: t.key })}
+                  />
                 ))}
               </div>
-            </div>
+            </section>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {shown.map((t) => (
-                <TemplateCard
-                  key={t.key}
-                  template={t}
-                  html={thumbs[t.key] ?? ""}
-                  selected={t.key === design.template}
-                  onPick={() => setDesign({ template: t.key })}
-                />
-              ))}
-            </div>
-          </section>
-
-          <DesignPanel
-            design={design}
-            options={options}
-            profile={profile}
-            onChange={setDesign}
-            onProfile={edit}
-          />
+            <DesignPanel
+              design={design}
+              options={options}
+              profile={profile}
+              onChange={setDesign}
+              onProfile={edit}
+            />
+          </div>
         </div>
 
         <div className="flex min-w-0 flex-col gap-3">
@@ -1104,19 +1122,18 @@ function DesignPanel({
         note={options.date_formats.find((d) => d.key === design.date_format)?.blurb}
       />
 
-      <div className="grid grid-cols-2 gap-3">
-        <Choice
-          label="Line spacing"
-          value={design.leading}
-          options={options.leading}
-          onChange={(leading) => onChange({ leading })}
-        />
-        <ScaleSlider
-          steps={options.scale.steps}
-          value={design.scale}
-          onChange={(scale) => onChange({ scale })}
-        />
-      </div>
+      <Choice
+        label="Line spacing"
+        value={design.leading}
+        options={options.leading}
+        onChange={(leading) => onChange({ leading })}
+      />
+
+      <ScaleSlider
+        steps={options.scale.steps}
+        value={design.scale}
+        onChange={(scale) => onChange({ scale })}
+      />
 
       <div className="flex flex-col gap-1.5">
         <Toggle
@@ -1211,13 +1228,12 @@ function FocusPicker({
 }
 
 /**
- * The five type sizes, with the highlight sliding between them.
+ * The five type sizes.
  *
- * It used to appear under whichever number you pressed. On a row of five
- * numbers that differ by four percent each, an instant jump gives no reading
- * of which way you moved -- and moving is the whole point of the control.
- * The highlight is one element that translates, so the browser animates it on
- * the compositor rather than restyling five buttons.
+ * On its own row rather than sharing one with line spacing. Five slots in
+ * half a 340px panel came to 28.6px each, against labels that need 29, so
+ * "92" and "108" printed a hair outside the bar they belong to. Given the
+ * whole width each slot is over 60px and the numbers sit where they should.
  */
 function ScaleSlider({
   steps,
@@ -1230,38 +1246,18 @@ function ScaleSlider({
 }) {
   // A saved design could name a size this build no longer offers; the
   // highlight parks on the first step rather than sliding off the end.
-  const index = Math.max(0, steps.indexOf(value));
+  const known = steps.includes(value) ? value : steps[0]!;
 
   return (
     <div>
       <span className="label">Type size</span>
-      <div className="relative flex rounded-md bg-sunken p-0.5">
-        <span
-          aria-hidden
-          className="absolute inset-y-0.5 left-0.5 rounded bg-surface shadow-subtle transition-transform duration-200 ease-out"
-          // The slots are contiguous and equal, so one slot width is the
-          // whole of the travel per step -- which is what a 100% translate of
-          // this element means.
-          style={{
-            width: `calc((100% - 4px) / ${steps.length})`,
-            transform: `translateX(${index * 100}%)`,
-          }}
-        />
-        {steps.map((step) => (
-          <button
-            key={step}
-            type="button"
-            onClick={() => onChange(step)}
-            aria-pressed={step === value}
-            className={[
-              "relative flex-1 rounded px-1 py-1 text-2xs font-medium transition-colors duration-150",
-              step === value ? "text-ink" : "text-muted hover:text-ink",
-            ].join(" ")}
-          >
-            {step}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        fill
+        ariaLabel="Type size"
+        choices={steps.map((step) => ({ key: String(step), label: step }))}
+        value={String(known)}
+        onChange={(key) => onChange(Number(key))}
+      />
     </div>
   );
 }
@@ -1309,10 +1305,6 @@ function Choice({
  * targets. Full width means the whole row is clickable and the switches line
  * up in a column the eye can run down.
  */
-/** The track and the knob, in one place: `left` has to agree with `w-8`. */
-const TRACK_W = 32;
-const KNOB = 22;
-
 function Toggle({
   checked,
   onChange,
@@ -1331,23 +1323,9 @@ function Toggle({
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={[
-          "relative h-[22px] w-8 shrink-0 rounded-full transition-colors duration-200 ease-out",
-          checked ? "bg-accent" : "bg-line-strong",
-        ].join(" ")}
+        className="shrink-0 rounded-full"
       >
-        {/* The knob is the full height of the track and flush against
-            whichever end it is at. Two things were wrong before, in order: a
-            14px knob inset 2px in a 32px track was geometrically at the end
-            and did not look it, because two pixels of colour past the knob
-            read as a gap. Fixing that left a 40px track carrying a 22px knob,
-            and the 18px of accent behind it read as slack -- a switch looks
-            thrown when the knob dominates the track, not when it has crossed
-            a field. 32 is the shortest track that still shows the travel. */}
-        <span
-          className="absolute top-0 h-[22px] w-[22px] rounded-full bg-white shadow-subtle ring-1 ring-black/10 transition-[left] duration-200 ease-out"
-          style={{ left: checked ? TRACK_W - KNOB : 0 }}
-        />
+        <Switch checked={checked} />
       </button>
     </label>
   );
@@ -1476,14 +1454,20 @@ function SectionOrder({
     return Array.isArray(value) && value.length > 0;
   };
 
-  const move = (key: string, delta: number) => {
+  // Both paths end here, so a drag and a press on the arrow are the same
+  // edit as far as the design, the preview and the undo stack are concerned.
+  const moveTo = (from: number, to: number) => {
     const order = [...design.order];
-    const index = order.indexOf(key);
-    const target = Math.max(0, Math.min(order.length - 1, index + delta));
-    if (index < 0 || index === target) return;
-    order.splice(target, 0, order.splice(index, 1)[0]!);
+    const target = Math.max(0, Math.min(order.length - 1, to));
+    if (from < 0 || from === target) return;
+    moveWithin(order, from, target);
     onChange({ order });
   };
+
+  const move = (key: string, delta: number) =>
+    moveTo(design.order.indexOf(key), design.order.indexOf(key) + delta);
+
+  const { dragging, over, listRef, startDrag } = useReorder(moveTo);
 
   const toggle = (key: string) => {
     const hidden = design.hidden.includes(key)
@@ -1495,12 +1479,45 @@ function SectionOrder({
   return (
     <div>
       <span className="label">Sections</span>
-      <ul className="flex flex-col divide-y divide-line overflow-hidden rounded-md border border-line">
+      {/* `listRef` goes on the element that holds the rows: the drag reads
+          each row's box out of it to work out what it is over. */}
+      <div
+        ref={listRef}
+        className="flex flex-col divide-y divide-line overflow-hidden rounded-md border border-line"
+      >
         {design.order.map((key, index) => {
           const label = options.sections.find((s) => s.key === key)?.name ?? key;
           const shown = !design.hidden.includes(key);
+          const lifted = dragging === index;
+          const landing = over === index && dragging !== null && dragging !== index;
           return (
-            <li key={key} className="flex items-center gap-1 px-2 py-1.5 text-sm">
+            <div
+              key={key}
+              data-reorder-index={index}
+              className={[
+                "flex items-center gap-1 px-1 py-1.5 text-sm transition-colors duration-150",
+                lifted ? "bg-sunken opacity-60" : "",
+                // Which side the line is drawn on says whether the row will
+                // land above or below the one it is hovering, which is the
+                // one thing a drop indicator has to answer.
+                landing
+                  ? dragging > index
+                    ? "shadow-[inset_0_2px_0_0_var(--c-accent)]"
+                    : "shadow-[inset_0_-2px_0_0_var(--c-accent)]"
+                  : "",
+              ].join(" ")}
+            >
+              {/* Pointer events, not HTML5 drag-and-drop -- see `useReorder`.
+                  `touch-none` stops the browser claiming the gesture as a
+                  scroll before the handler ever sees it. */}
+              <span
+                onPointerDown={(event) => startDrag(index, event)}
+                className="cursor-grab touch-none px-1 text-faint hover:text-ink active:cursor-grabbing"
+                title={`Drag to move ${label}`}
+                aria-hidden
+              >
+                <GripVertical size={13} />
+              </span>
               <span className={shown ? "" : "text-faint line-through"}>{label}</span>
               {!has(key) && <span className="text-2xs text-faint">empty</span>}
               <span className="ml-auto flex items-center gap-0.5">
@@ -1530,10 +1547,10 @@ function SectionOrder({
                   {shown ? "Hide" : "Show"}
                 </button>
               </span>
-            </li>
+            </div>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 }

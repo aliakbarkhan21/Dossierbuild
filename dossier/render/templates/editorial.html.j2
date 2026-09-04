@@ -48,7 +48,7 @@
    keeps a narrow column from reading as an afterthought. */
 .side .sec > h2 {
   text-align: center;
-  font-size: calc(var(--fs) * .8);
+  font-size: calc(var(--fs) * .8 + var(--sec-bump));
   letter-spacing: .22em;
   text-indent: .22em;
   border-top: .6pt solid var(--rule);
@@ -82,7 +82,7 @@
   align-items: center;
   gap: 5pt;
   letter-spacing: .16em;
-  font-size: calc(var(--fs) * .95);
+  font-size: calc(var(--fs) * .95 + var(--sec-bump));
   margin-bottom: 6pt;
 }
 .sec-icon {

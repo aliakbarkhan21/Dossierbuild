@@ -38,11 +38,41 @@ builder, and fixes an accessibility failure that had been there all along.
   720px to 1084px. The column width is stepped and never transitioned; the
   visible motion is a compositor transform. The hidden panel is `inert`, and
   the choice is remembered.
+- **Section headings are two points larger**, on every template. Each
+  template sizes its headings as a multiple of the body size — .76 in
+  minimal's gutter, 1.05 in executive — and those proportions are the
+  template's character, so the two points are added rather than substituted:
+  every heading keeps its own weight in the page and every one gains the same
+  amount. The one exception is the gutter body layout, where .78 was not a
+  taste but a measurement — the largest size at which CERTIFICATIONS fits a
+  26mm column, with two pixels to spare. All 32 template-and-layout pairings
+  were rendered and measured for collisions before and after.
+- **Sections can be dragged into order**, not only nudged with the arrows.
+  Same pointer-event handling as entries and bullets, so it works on a
+  touchscreen, and both paths make the same edit — one entry in the undo
+  stack either way.
 - **Structured wireframe skeletons.** Each template card draws its own
   silhouette while Chromium renders the real thing, so the grid stops being
   eight identical grey boxes and answers the question the reader actually has.
 
 ### Fixed
+
+- **The switches did not look like switches.** The knob was the full height
+  of a 32px track, so it travelled 10px and covered two-thirds of the ground:
+  what the eye saw was a circle with a coloured crescent behind it, and
+  because the crescent is only conspicuous in the "on" state, the two ends did
+  not even look symmetrical. It read as stuck halfway when on and properly
+  parked when off. The knob is now a little under half the track and travels
+  most of its length — 18px rather than 10 in the design panel. One component
+  in two sizes now, rather than two implementations with different geometry.
+- **The type sizes printed outside their own bar.** Five slots sharing half a
+  340px panel came to 28.6px each against labels needing 29, so "92" and "108"
+  sat a hair over the ends. The stepper has the full width of the panel now,
+  and the segmented control measures its slots rather than assuming they are
+  equal.
+- Side panels slid too fast to follow: 200ms, and in the design panel's case
+  over 24px, which is a blink rather than a movement. Both now take 340ms on a
+  decelerating curve, and the design panel travels its own full width.
 
 - **`--c-faint` failed WCAG AA, and always had.** Measured 3.54:1 on the
   surface and 3.13:1 on the sunken against a 4.5 requirement — on the token
@@ -57,6 +87,11 @@ builder, and fixes an accessibility failure that had been there all along.
   so a letter's addressee block named the employer twice.
 
 ### Changed
+
+- The sliding highlight built for the type-size stepper is now a component,
+  and the template filter and the health-check severity filter use it. The
+  highlight is measured from the active button rather than computed from its
+  index, which is what lets it work on choices of unequal width.
 
 - Drafting a letter names the application rather than sending the posting up
   the wire; the advert is already in the database.

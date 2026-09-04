@@ -37,6 +37,14 @@
   --f-body: {{ fonts.body | safe }};
   --f-mono: {{ mono | safe }};
   --fs: {{ base_pt }}pt;
+  /* Section headings run two points above whatever the body is set to.
+     Every template sizes its own headings as a multiple of --fs -- .76 in
+     minimal's gutter, 1.05 in executive -- and those multiples are the
+     template's character, worth keeping. So the bump is added, not
+     substituted: each heading stays in its own proportion and every one of
+     them gains the same two points. One place to change it, and nothing to
+     keep in step across nine files. */
+  --sec-bump: 2pt;
   --lh: {{ leading }};
   --gap: {{ section_gap }}pt;
 }
@@ -188,7 +196,7 @@ body { padding-top: 0; }
 .sec:first-of-type { margin-top: 0; }
 .sec > h2 {
   font-family: var(--f-head);
-  font-size: calc(var(--fs) * 1.02);
+  font-size: calc(var(--fs) * 1.02 + var(--sec-bump));
   font-weight: 700;
   letter-spacing: .1em;
   text-transform: uppercase;
