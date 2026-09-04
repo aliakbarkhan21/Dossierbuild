@@ -12,6 +12,15 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import { ApiError, api } from "./api";
+import {
+  describeDesign,
+  redoStep,
+  remember,
+  revertStep,
+  undoStep,
+  type History,
+  type Snapshot,
+} from "./history";
 import type { Design, DesignOptions, Health, Profile, QualityReport } from "./types";
 import { toast } from "./toast";
 
@@ -21,6 +30,15 @@ interface State {
   options: DesignOptions | null;
   health: Health | null;
   quality: QualityReport | null;
+  /**
+   * Why the score is missing, when it is.
+   *
+   * It used to be swallowed on the grounds that "the score is a nicety". That
+   * is true of the number and false of the silence: a Health screen showing
+   * nothing, with no explanation, reads as a profile with no findings rather
+   * than as a request that did not come back.
+   */
+  qualityError: string | null;
 
   ready: boolean;
   bootError: string | null;
@@ -29,7 +47,10 @@ interface State {
   savedAt: Date | null;
 
   autosave: boolean;
-  past: Profile[];
+  /** Oldest first. The state to go back to, and what changed to get here. */
+  past: Snapshot[];
+  /** What `undo` took away, newest first, so `redo` can put it back. */
+  future: Snapshot[];
 
   /**
    * Bumped whenever the stored portrait changes.
@@ -43,13 +64,16 @@ interface State {
   photoVersion: number;
 
   boot: () => Promise<void>;
-  edit: (mutate: (profile: Profile) => void) => void;
+  edit: (mutate: (profile: Profile) => void, label?: string) => void;
   save: (options?: { silent?: boolean }) => Promise<void>;
   undo: () => void;
+  redo: () => void;
+  /** Jump to a point in the history panel. Index into `past`. */
+  revertTo: (index: number) => void;
   setAutosave: (on: boolean) => void;
   refreshQuality: () => Promise<void>;
-  setDesign: (patch: Partial<Design>) => void;
-  reloadProfile: (profile: Profile) => void;
+  setDesign: (patch: Partial<Design>, label?: string) => void;
+  reloadProfile: (profile: Profile, label?: string) => void;
   bumpPhoto: () => void;
 }
 
@@ -60,23 +84,41 @@ let designTimer: ReturnType<typeof setTimeout> | undefined;
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 const AUTOSAVE_IDLE_MS = 1500;
 
-/**
- * How far back undo reaches.
- *
- * Every edit pushes the whole previous profile, which is cheap -- a large
- * profile is a few tens of kilobytes of plain objects -- and total: there is
- * no per-field undo logic to get wrong when the schema grows a field.
- */
-const HISTORY_LIMIT = 50;
-
+/** Remembered across sessions: an autosave preference is a preference. */
 const AUTOSAVE_KEY = "dossier:autosave";
 
 function autosavePreference(): boolean {
   try {
     return localStorage.getItem(AUTOSAVE_KEY) !== "off";
   } catch {
+    // A private window can refuse storage outright, and defaulting to "on" is
+    // the safe side of that: the cost is a save nobody asked for.
     return true;
   }
+}
+
+/**
+ * The state as a snapshot -- read from `get()`, **never** from an immer draft.
+ *
+ * This is the whole trick and it is easy to get wrong. Inside `set((s) => …)`
+ * the `s.profile` you can see is a *draft*: immer finalises it at the end of
+ * the producer, so a snapshot taken from it ends up holding the state after
+ * the edit, not before it. Undo then restored what was already on screen and
+ * looked, precisely, like nothing happening.
+ *
+ * Taken from `get()` before the producer runs, the reference is to the
+ * previous, frozen state -- a complete snapshot at no copying cost.
+ */
+function snapshotOf(s: State): Snapshot {
+  return { profile: s.profile!, design: s.design, label: "", at: 0 };
+}
+
+/** Put a snapshot back over both documents, if there was one. */
+function apply(s: State, step: Snapshot | null): void {
+  if (!step) return;
+  s.profile = step.profile;
+  if (step.design) s.design = step.design;
+  s.dirty = true;
 }
 
 /**
@@ -103,6 +145,7 @@ export const useStore = create<State>()(
     options: null,
     health: null,
     quality: null,
+    qualityError: null,
 
     ready: false,
     bootError: null,
@@ -112,6 +155,7 @@ export const useStore = create<State>()(
 
     autosave: autosavePreference(),
     past: [],
+    future: [],
     photoVersion: 0,
 
     async boot() {
@@ -143,34 +187,54 @@ export const useStore = create<State>()(
       }
     },
 
-    edit(mutate) {
-      // Captured before the draft is applied: immer leaves the previous state
-      // untouched and frozen, so keeping the reference is a complete snapshot
-      // at no copying cost.
-      const previous = get().profile;
+    edit(mutate, label = "Edited the profile") {
+      if (!get().profile) return;
+      const before = snapshotOf(get());
       set((s) => {
         if (!s.profile) return;
+        remember(s as History, before, label);
         mutate(s.profile);
         s.dirty = true;
-        if (previous) {
-          s.past.push(previous);
-          if (s.past.length > HISTORY_LIMIT) s.past.shift();
-        }
       });
       scheduleAutosave(get);
     },
 
     undo() {
-      const previous = get().past.at(-1);
-      if (!previous) {
+      const step = get().past.at(-1);
+      if (!step) {
         toast.info("Nothing to undo.");
         return;
       }
+      const before = snapshotOf(get());
       set((s) => {
-        s.past.pop();
-        s.profile = previous;
-        s.dirty = true;
+        apply(s, undoStep(s as History, before));
       });
+      toast.info(`Undid: ${step.label.toLowerCase()}`, "Ctrl+Shift+Z puts it back.");
+      scheduleAutosave(get);
+      void get().refreshQuality();
+    },
+
+    redo() {
+      if (get().future.length === 0) {
+        toast.info("Nothing to redo.");
+        return;
+      }
+      const before = snapshotOf(get());
+      set((s) => {
+        apply(s, redoStep(s as History, before));
+      });
+      scheduleAutosave(get);
+      void get().refreshQuality();
+    },
+
+    revertTo(index) {
+      const step = get().past[index];
+      if (!step) return;
+      const before = snapshotOf(get());
+      set((s) => {
+        apply(s, revertStep(s as History, before, index));
+      });
+      toast.info(`Went back to before: ${step.label.toLowerCase()}`);
       scheduleAutosave(get);
       void get().refreshQuality();
     },
@@ -224,22 +288,37 @@ export const useStore = create<State>()(
     },
 
     async refreshQuality() {
+      set((s) => {
+        s.quality = null;
+        s.qualityError = null;
+      });
       try {
-        set((s) => {
-          s.quality = null;
-        });
         const report = await api.quality();
         set((s) => {
           s.quality = report;
         });
-      } catch {
-        /* the score is a nicety; its absence is not worth interrupting anyone */
+      } catch (error) {
+        // Recorded, not raised: the Health screen says so in place, and no
+        // other screen is interrupted by a score that did not arrive.
+        set((s) => {
+          s.qualityError =
+            error instanceof ApiError
+              ? `${error.message}${error.fix ? ` ${error.fix}` : ""}`
+              : "The writing score could not be fetched.";
+        });
       }
     },
 
-    setDesign(patch) {
+    setDesign(patch, label) {
+      const named = label ?? describeDesign(patch);
+      if (!get().design || !get().profile) return;
+      const before = snapshotOf(get());
       set((s) => {
         if (!s.design) return;
+        // The design is in the same history as the profile, so Ctrl+Z after
+        // picking a template undoes the template rather than the last word
+        // you typed.
+        remember(s as History, before, named);
         Object.assign(s.design, patch);
       });
       clearTimeout(designTimer);
@@ -249,15 +328,15 @@ export const useStore = create<State>()(
       }, 400);
     },
 
-    reloadProfile(profile) {
+    reloadProfile(profile, label = "Replaced the profile") {
       // An import is the single largest change anyone makes here, so it is
-      // the one that most needs to be reversible.
-      const previous = get().profile;
+      // the one that most needs to be reversible -- and it never coalesces
+      // with whatever was typed a moment before.
+      if (!get().profile) return;
+      const before = snapshotOf(get());
       set((s) => {
-        if (previous) {
-          s.past.push(previous);
-          if (s.past.length > HISTORY_LIMIT) s.past.shift();
-        }
+        remember(s as History, before, label);
+        s.past.at(-1)!.at = 0;
         s.profile = profile;
         s.dirty = true;
       });

@@ -36,8 +36,9 @@ const SEVERITY: Record<Severity, { label: string; Icon: typeof Info; tone: strin
 
 export function HealthScreen() {
   const shell = useShell();
-  const { quality, refresh, profile } = useStore(useShallow((s) => ({
+  const { quality, qualityError, refresh, profile } = useStore(useShallow((s) => ({
     quality: s.quality,
+    qualityError: s.qualityError,
     refresh: s.refreshQuality,
     profile: s.profile,
   })));
@@ -128,6 +129,22 @@ export function HealthScreen() {
       />
 
       <div className="flex flex-col gap-5 p-6">
+        {qualityError && (
+          <section className="card flex flex-wrap items-center gap-3 border-l-2 border-l-poor p-4">
+            <AlertTriangle size={16} className="shrink-0 text-poor" />
+            <p className="min-w-0 flex-1 text-sm">{qualityError}</p>
+            <button type="button" className="btn" onClick={() => void refresh()}>
+              Try again
+            </button>
+          </section>
+        )}
+
+        {!quality && !qualityError ? (
+          // The score is one request against a local file, but it is a
+          // request: showing zeroes while it is in flight would read as a
+          // profile with nothing wrong in it.
+          <div className="card h-28 animate-pulse bg-sunken" aria-hidden />
+        ) : (
         <section className="card flex flex-wrap items-center gap-6 p-5">
           <div>
             {/* An em-dash where the number goes left "— of bullets clean" on
@@ -158,6 +175,7 @@ export function HealthScreen() {
             <Count value={quality?.notes ?? 0} label="Notes" tone="text-muted" />
           </div>
         </section>
+        )}
 
         {enough && (
           <div className="h-1.5 overflow-hidden rounded-full bg-sunken" aria-hidden>

@@ -1101,6 +1101,10 @@ function Choice({
  * targets. Full width means the whole row is clickable and the switches line
  * up in a column the eye can run down.
  */
+/** The track and the knob, in one place: `left` has to agree with `w-8`. */
+const TRACK_W = 32;
+const KNOB = 22;
+
 function Toggle({
   checked,
   onChange,
@@ -1120,19 +1124,21 @@ function Toggle({
         aria-label={label}
         onClick={() => onChange(!checked)}
         className={[
-          "relative h-[22px] w-10 shrink-0 rounded-full transition-colors duration-200 ease-out",
+          "relative h-[22px] w-8 shrink-0 rounded-full transition-colors duration-200 ease-out",
           checked ? "bg-accent" : "bg-line-strong",
         ].join(" ")}
       >
-        {/* The knob sits flush against whichever end it is at, and it is the
-            full height of the track. A 14px knob inset 2px in a 32px track was
-            geometrically at the end and did not look it: two pixels of colour
-            beyond the knob read as a gap, so the switch looked half-thrown in
-            both positions. Flush and full-height leaves nothing to misread --
-            the ring is what keeps it a knob rather than a rounded end. */}
+        {/* The knob is the full height of the track and flush against
+            whichever end it is at. Two things were wrong before, in order: a
+            14px knob inset 2px in a 32px track was geometrically at the end
+            and did not look it, because two pixels of colour past the knob
+            read as a gap. Fixing that left a 40px track carrying a 22px knob,
+            and the 18px of accent behind it read as slack -- a switch looks
+            thrown when the knob dominates the track, not when it has crossed
+            a field. 32 is the shortest track that still shows the travel. */}
         <span
           className="absolute top-0 h-[22px] w-[22px] rounded-full bg-white shadow-subtle ring-1 ring-black/10 transition-[left] duration-200 ease-out"
-          style={{ left: checked ? 40 - 22 : 0 }}
+          style={{ left: checked ? TRACK_W - KNOB : 0 }}
         />
       </button>
     </label>

@@ -71,7 +71,7 @@ export function ImportScreen() {
       api.applyPlan(candidate, source, [...acceptedFields], [...accepted]),
     );
     if (!result) return;
-    reloadProfile(result.profile);
+    reloadProfile(result.profile, "Imported into the profile");
     toast.success(
       result.changes.length ? result.changes.join(". ") : "Nothing was selected.",
       "Not saved yet — press Save changes when it looks right.",

@@ -11,7 +11,7 @@
  */
 
 import { GripVertical, Plus, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { AiSuggest } from "../components/AiSuggest";
@@ -20,6 +20,7 @@ import { TopBar } from "../components/TopBar";
 import { useShallow } from "zustand/react/shallow";
 
 import { isBlank, useStore } from "../lib/store";
+import { moveWithin, useReorder } from "../lib/reorder";
 import type { ListSection, Profile } from "../lib/types";
 
 type Kind = "text" | "month" | "csv" | "select" | "url";
@@ -536,7 +537,7 @@ function CsvInput({
   // strings means the user's own spacing is not overwritten while they type.
   useEffect(() => {
     const shown = draft.split(",").map((p) => p.trim()).filter(Boolean);
-    if (shown.join(" ") !== value.join(" ")) setDraft(value.join(", "));
+    if (shown.join("\u0000") !== value.join("\u0000")) setDraft(value.join(", "));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
@@ -563,7 +564,8 @@ function CsvInput({
    Contact and summary
    ---------------------------------------------------------------------- */
 
-type Edit = (mutate: (profile: Profile) => void) => void;
+/** The store's `edit`. The label names the step in the history panel. */
+type Edit = (mutate: (profile: Profile) => void, label?: string) => void;
 
 function ContactForm({ profile, edit }: { profile: Profile; edit: Edit }) {
   const basics = profile.basics;
@@ -694,77 +696,25 @@ function EntryList({
   const spec = SECTIONS[section];
   const entries = (profile as unknown as Record<string, Record<string, unknown>[]>)[section] ?? [];
 
-  // Which card is in the air, and which one it would land on.
-  const [dragging, setDragging] = useState<number | null>(null);
-  const [over, setOver] = useState<number | null>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-  // The live values the pointer handlers read. State drives the rendering;
-  // these exist because the handler that commits the move runs outside React's
-  // render and would otherwise close over the indices as they were at
-  // pointerdown.
-  const from = useRef<number | null>(null);
-  const to = useRef<number | null>(null);
-
-  const mutate = (index: number, key: string, value: unknown) =>
-    edit((draft) => {
-      const list = (draft as unknown as Record<string, Record<string, unknown>[]>)[section]!;
-      list[index]![key] = value;
-    });
+  const mutate = (index: number, key: string, value: unknown, label?: string) =>
+    edit(
+      (draft) => {
+        const list = (draft as unknown as Record<string, Record<string, unknown>[]>)[section]!;
+        list[index]![key] = value;
+      },
+      // Per field by default, so typing in one box coalesces into one step and
+      // moving to the next box starts a new one. A caller with a better name
+      // for what it did says so -- a bullet reorder sharing a label with the
+      // typing that preceded it meant one Ctrl+Z undid both.
+      label ?? `Edited ${spec.singular} ${index + 1}`,
+    );
 
   const move = (start: number, end: number) =>
     edit((draft) => {
-      const list = (draft as unknown as Record<string, unknown[]>)[section]!;
-      list.splice(end, 0, list.splice(start, 1)[0]);
-    });
+      moveWithin((draft as unknown as Record<string, unknown[]>)[section]!, start, end);
+    }, `Moved a ${spec.singular}`);
 
-  /**
-   * Reordering by pointer rather than by HTML5 drag-and-drop.
-   *
-   * The native API looks like the obvious choice and is the wrong one here: it
-   * does not fire for touch at all, so the handle would still be decoration on
-   * a phone, and it cannot be driven by synthetic events, so none of this
-   * could be tested. Pointer events cover mouse, touch and pen with one path.
-   */
-  function startDrag(index: number, event: React.PointerEvent) {
-    // Left button only; a right-click on the handle should open a menu.
-    if (event.button !== 0) return;
-    event.preventDefault();
-    from.current = index;
-    to.current = index;
-    setDragging(index);
-    setOver(index);
-
-    const onMove = (moved: PointerEvent) => {
-      const cards = listRef.current?.querySelectorAll<HTMLElement>("article[data-entry-index]");
-      if (!cards) return;
-      for (const card of cards) {
-        const box = card.getBoundingClientRect();
-        if (moved.clientY >= box.top && moved.clientY <= box.bottom) {
-          const hit = Number(card.dataset.entryIndex);
-          to.current = hit;
-          setOver(hit);
-          return;
-        }
-      }
-    };
-
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-      if (from.current !== null && to.current !== null && from.current !== to.current) {
-        move(from.current, to.current);
-      }
-      from.current = null;
-      to.current = null;
-      setDragging(null);
-      setOver(null);
-    };
-
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
-  }
+  const { dragging, over, listRef, startDrag } = useReorder(move);
 
   return (
     <section ref={listRef} className="flex flex-col gap-4">
@@ -786,7 +736,7 @@ function EntryList({
               edit((draft) => {
                 const list = (draft as unknown as Record<string, unknown[]>)[section]!;
                 list.push(spec.blank());
-              })
+              }, `Added a ${spec.singular}`)
             }
           >
             <Plus size={15} />
@@ -798,7 +748,7 @@ function EntryList({
       {entries.map((entry, index) => (
         <article
           key={(entry.id as string) || index}
-          data-entry-index={index}
+          data-reorder-index={index}
           className={[
             "card p-4 transition-all duration-150",
             dragging === index ? "opacity-50" : "",
@@ -850,7 +800,7 @@ function EntryList({
                   edit((draft) => {
                     const list = (draft as unknown as Record<string, unknown[]>)[section]!;
                     list.splice(index, 1);
-                  })
+                  }, `Removed a ${spec.singular}`)
                 }
               >
                 <Trash2 size={14} />
@@ -915,7 +865,7 @@ function EntryList({
           {spec.bullets && (
             <Bullets
               bullets={(entry.bullets as { id: string; text: string }[]) ?? []}
-              onChange={(next) => mutate(index, "bullets", next)}
+              onChange={(next, why) => mutate(index, "bullets", next, why)}
               entryLabel={entryTitle(section, entry)}
               section={section}
               entryId={(entry.id as string) ?? ""}
@@ -954,6 +904,17 @@ function entryTitle(section: ListSection, entry: Record<string, unknown>): strin
   return parts.filter(Boolean).join(" — ");
 }
 
+/**
+ * The bullets of one entry, in the order they will print.
+ *
+ * Order is editorial, not incidental: the first bullet of a role is the one
+ * that gets read, and on a two-page resume the last is the one that falls off
+ * the bottom. Entries and sections have reordered since phase 2 and bullets
+ * did not, which meant the only way to promote a line was to retype two.
+ *
+ * Same pair of affordances as everywhere else -- a pointer drag and a pair of
+ * arrows -- because a drag is unreachable from a keyboard.
+ */
 function Bullets({
   bullets,
   onChange,
@@ -962,11 +923,18 @@ function Bullets({
   entryId,
 }: {
   bullets: { id: string; text: string }[];
-  onChange: (next: { id: string; text: string }[]) => void;
+  onChange: (next: { id: string; text: string }[], label?: string) => void;
   entryLabel: string;
   section: string;
   entryId: string;
 }) {
+  const move = (start: number, end: number) => {
+    const next = [...bullets];
+    moveWithin(next, start, end);
+    onChange(next, "Moved a bullet");
+  };
+  const { dragging, over, listRef, startDrag } = useReorder(move);
+
   return (
     <div className="mt-4">
       <div className="flex items-center justify-between gap-3">
@@ -978,13 +946,34 @@ function Bullets({
           entryLabel={entryLabel}
           section={section}
           entryId={entryId}
-          onInsert={(text) => onChange([...bullets, { id: "", text }])}
+          onInsert={(text) => onChange([...bullets, { id: "", text }], "Added a drafted bullet")}
         />
       </div>
-      <div className="flex flex-col gap-2">
+      <div ref={listRef} className="flex flex-col gap-2">
         {bullets.map((bullet, index) => (
-          <div key={bullet.id || index} className="flex items-start gap-2">
-            <span aria-hidden className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-accent/70" />
+          <div
+            key={bullet.id || index}
+            data-reorder-index={index}
+            className={[
+              "flex items-start gap-2 rounded-md transition-all duration-150",
+              dragging === index ? "opacity-50" : "",
+              over === index && dragging !== null && dragging !== index
+                ? "ring-2 ring-accent"
+                : "",
+            ].join(" ")}
+          >
+            {/* The dot was decoration. It is the handle now -- the row needs
+                somewhere to grab that is not the textarea, and a bullet
+                already has a mark at its head. */}
+            <span
+              onPointerDown={(event) => startDrag(index, event)}
+              title="Drag to reorder, or use the arrows"
+              // Without this a touch drag scrolls the page instead.
+              style={{ touchAction: "none" }}
+              className="mt-2.5 cursor-grab p-1 text-faint transition-colors duration-150 hover:text-muted active:cursor-grabbing"
+            >
+              <GripVertical size={13} aria-hidden />
+            </span>
             <textarea
               data-block-id={bullet.id}
               className="field min-h-16 flex-1 resize-y transition-shadow duration-300"
@@ -997,20 +986,40 @@ function Bullets({
                 onChange(next);
               }}
             />
-            <button
-              type="button"
-              className="btn btn-quiet mt-1 px-1.5 py-1"
-              aria-label="Remove bullet"
-              onClick={() => onChange(bullets.filter((_, i) => i !== index))}
-            >
-              <Trash2 size={14} />
-            </button>
+            <div className="mt-1 flex shrink-0 items-center gap-0.5">
+              <button
+                type="button"
+                className="btn btn-quiet px-1.5 py-1"
+                disabled={index === 0}
+                aria-label={`Move bullet ${index + 1} up`}
+                onClick={() => move(index, index - 1)}
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                className="btn btn-quiet px-1.5 py-1"
+                disabled={index === bullets.length - 1}
+                aria-label={`Move bullet ${index + 1} down`}
+                onClick={() => move(index, index + 1)}
+              >
+                ↓
+              </button>
+              <button
+                type="button"
+                className="btn btn-quiet px-1.5 py-1 text-poor"
+                aria-label={`Remove bullet ${index + 1}`}
+                onClick={() => onChange(bullets.filter((_, i) => i !== index), "Removed a bullet")}
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
           </div>
         ))}
         <button
           type="button"
           className="btn self-start"
-          onClick={() => onChange([...bullets, { id: "", text: "" }])}
+          onClick={() => onChange([...bullets, { id: "", text: "" }], "Added a bullet")}
         >
           <Plus size={14} />
           Add bullet

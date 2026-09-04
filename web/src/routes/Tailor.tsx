@@ -124,7 +124,7 @@ export function TailorScreen() {
     setBusy("apply");
     try {
       const { profile: updated, changed } = await api.applyRewrites(profile!, map);
-      reloadProfile(updated);
+      reloadProfile(updated, `Wrote in ${changed} rewrite${changed === 1 ? "" : "s"}`);
       // Recorded here rather than when the rewrites came back, because this
       // is the moment the verdicts are real: until Apply is pressed the ticks
       // are still being changed. A pass that is never applied is not

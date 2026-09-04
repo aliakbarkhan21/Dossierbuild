@@ -63,22 +63,27 @@ function useNarrow(): boolean {
   return narrow;
 }
 
-/** Whether a keystroke is being typed into something that owns its own undo. */
+/**
+ * Whether a keystroke is being typed into something that owns its own undo.
+ *
+ * `SELECT` used to be on this list and should never have been. The guard
+ * exists because a text field has an internal undo stack and taking Ctrl+Z
+ * from it would mean a mistyped word could only be fixed by reverting the
+ * whole edit. A dropdown has no such stack -- so all the guard did there was
+ * swallow the keystroke, and changing the paper size and pressing Ctrl+Z did
+ * nothing at all while the focus stayed on the menu.
+ */
 function isTyping(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   if (!el) return false;
-  return (
-    el.tagName === "INPUT" ||
-    el.tagName === "TEXTAREA" ||
-    el.tagName === "SELECT" ||
-    el.isContentEditable
-  );
+  return el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable;
 }
 
 export default function App() {
   const boot = useStore((s) => s.boot);
   const save = useStore((s) => s.save);
   const undo = useStore((s) => s.undo);
+  const redo = useStore((s) => s.redo);
   const ready = useStore((s) => s.ready);
   const bootError = useStore((s) => s.bootError);
   const narrow = useNarrow();
@@ -118,11 +123,20 @@ export default function App() {
       if (key === "z" && !event.shiftKey && !isTyping(event.target)) {
         event.preventDefault();
         undo();
+        return;
+      }
+
+      // Both spellings of redo. Ctrl+Shift+Z is what the rest of this app's
+      // neighbours use; Ctrl+Y is what a Windows user's hands do.
+      if ((key === "z" && event.shiftKey) || key === "y") {
+        if (isTyping(event.target)) return;
+        event.preventDefault();
+        redo();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [save, undo]);
+  }, [save, undo, redo]);
 
   // Autosave waits for a pause in typing, so closing the tab mid-sentence can
   // still outrun it.
