@@ -145,6 +145,7 @@ export interface Design {
   layout: string;
   page: string;
   margin: string;
+  margin_custom_mm: number | null;
   leading: string;
   date_format: string;
   accent: string;
@@ -199,6 +200,7 @@ export interface DesignOptions {
   fonts: Option[];
   pages: PageOption[];
   margins: Option[];
+  margin_range: { min: number; max: number; step: number };
   leading: Option[];
   date_formats: Option[];
   looks: LookOption[];

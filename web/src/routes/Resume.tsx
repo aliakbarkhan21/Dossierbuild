@@ -80,6 +80,7 @@ const DEFAULT_DESIGN: Partial<Design> = {
   fonts: "serif_sans",
   page: "a4",
   margin: "normal",
+  margin_custom_mm: null,
   leading: "normal",
   date_format: "month",
   scale: 100,
@@ -236,6 +237,20 @@ export function ResumeScreen() {
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, []);
+
+  // The margin, pushed straight into the document as the slider moves.
+  //
+  // The debounced re-render behind it is still what the print is taken from;
+  // this only gets the same answer onto the screen without a round trip per
+  // step of the handle. `design.margin_mm` is not a field -- the effective
+  // margin is a preset unless an exact one is set -- so the two are resolved
+  // here the same way the server resolves them.
+  const marginMm = design
+    ? (design.margin_custom_mm ?? PRESET_MM[design.margin] ?? 16)
+    : 16;
+  useEffect(() => {
+    previewFrame.current?.contentWindow?.postMessage({ dossierMargin: marginMm }, "*");
+  }, [marginMm]);
 
   const inFlight = useRef(0);
 
@@ -432,7 +447,10 @@ export function ResumeScreen() {
               profile={profile}
               options={options}
               refreshKey={galleryKey}
-              onPick={setDesign}
+              // A look names a margin -- "Tight" -- and an exact one set
+              // earlier would outrank it, so the look would appear to leave
+              // the margins alone. Cleared first, unless the look sets one.
+              onPick={(patch) => setDesign({ margin_custom_mm: null, ...patch })}
             />
 
             <section>
@@ -1094,6 +1112,7 @@ function DesignPanel({
     fonts: { key: string; name: string; blurb: string }[];
     pages: { key: string; name: string }[];
     margins: { key: string; name: string; blurb: string }[];
+    margin_range: { min: number; max: number; step: number };
     leading: { key: string; name: string }[];
     date_formats: { key: string; name: string; blurb: string }[];
     sections: { key: string; name: string }[];
@@ -1152,6 +1171,11 @@ function DesignPanel({
         note={options.layouts.find((l) => l.key === design.layout)?.blurb}
       />
 
+      {/* The Margins dropdown that used to sit beside Paper is gone: three
+          named widths and a slider covering every width between them are two
+          controls for one decision, and the second answers the first. The
+          named presets live on -- they are what the curated looks set -- and
+          the slider reads whichever margin is in force. */}
       <div className="grid grid-cols-2 gap-3">
         <Choice
           label="Paper"
@@ -1160,26 +1184,28 @@ function DesignPanel({
           onChange={(page) => onChange({ page })}
         />
         <Choice
-          label="Margins"
-          value={design.margin}
-          options={options.margins}
-          onChange={(margin) => onChange({ margin })}
+          label="Date format"
+          value={design.date_format}
+          options={options.date_formats}
+          onChange={(date_format) => onChange({ date_format })}
         />
       </div>
-
-      <Choice
-        label="Date format"
-        value={design.date_format}
-        options={options.date_formats}
-        onChange={(date_format) => onChange({ date_format })}
-        note={options.date_formats.find((d) => d.key === design.date_format)?.blurb}
-      />
+      <p className="-mt-3 text-xs text-muted">
+        {options.date_formats.find((d) => d.key === design.date_format)?.blurb}
+      </p>
 
       <Choice
         label="Line spacing"
         value={design.leading}
         options={options.leading}
         onChange={(leading) => onChange({ leading })}
+      />
+
+      <MarginSlider
+        design={design}
+        range={options.margin_range}
+        presets={options.margins}
+        onChange={onChange}
       />
 
       <ScaleSlider
@@ -1279,6 +1305,65 @@ function FocusPicker({
     </div>
   );
 }
+
+/**
+ * The page margin, in millimetres, anywhere between the two the printer can
+ * manage.
+ *
+ * It replaces a three-option dropdown -- Tight, Normal, Wide -- which is a
+ * fine way to say what a *look* wants and a poor way to fit a resume onto one
+ * page. The difference between spilling onto a second sheet and not is often
+ * two millimetres; the dropdown's steps were four and five.
+ *
+ * The named presets are still what the looks set, so what is shown is
+ * whichever margin is actually in force: the exact one if somebody has chosen
+ * it, the preset's otherwise, named when the two agree. Touching the slider
+ * writes an exact number; applying a look clears it again.
+ */
+function MarginSlider({
+  design,
+  range,
+  presets,
+  onChange,
+}: {
+  design: Design;
+  range: { min: number; max: number; step: number };
+  presets: { key: string; name: string }[];
+  onChange: (patch: Partial<Design>) => void;
+}) {
+  const mm = design.margin_custom_mm ?? PRESET_MM[design.margin] ?? 16;
+  const named = presets.find((option) => PRESET_MM[option.key] === mm);
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2">
+        <label className="label" htmlFor="margin-mm">
+          Margins
+        </label>
+        <span className="font-mono text-2xs tabular-nums text-muted">
+          {mm}mm{named ? ` · ${named.name}` : ""}
+        </span>
+      </div>
+      <input
+        id="margin-mm"
+        type="range"
+        className="zoom w-full"
+        min={range.min}
+        max={range.max}
+        step={range.step}
+        // A look may ask for a margin wider than the slider goes -- "Wide" is
+        // 21mm against a 20mm top. The handle parks at the end and the
+        // readout beside it tells the truth; the next touch brings it into
+        // range.
+        value={Math.min(range.max, Math.max(range.min, mm))}
+        onChange={(event) => onChange({ margin_custom_mm: Number(event.target.value) })}
+      />
+    </div>
+  );
+}
+
+/** The named widths, by key, so the slider can say when it is on one. */
+const PRESET_MM: Record<string, number> = { tight: 12, normal: 16, wide: 21 };
 
 /**
  * The five type sizes.

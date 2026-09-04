@@ -240,6 +240,14 @@ MARGINS: dict[str, tuple[str, float]] = {
     "wide": ("Wide", 21.0),
 }
 
+# What the slider can ask for. 2mm is about the narrowest a consumer printer
+# will put ink at -- below that the driver starts clipping -- and 20mm is
+# already a wide letter margin; past it a resume is mostly paper. The named
+# presets above stay: they are what the curated looks set, and "Tight" is a
+# more useful thing for a look to say than "12".
+MARGIN_MIN_MM = 2.0
+MARGIN_MAX_MM = 20.0
+
 # How a date prints. Two options rather than a format string: "Feb 2025" is
 # the resume convention almost everywhere and is unambiguous to a parser,
 # while "02/2025" is normal in Pakistan and much of Europe. A free-text format
@@ -528,6 +536,16 @@ class Design(BaseModel):
     layout: str = DEFAULT_LAYOUT
     page: str = "a4"
     margin: str = "normal"
+    margin_custom_mm: float | None = None
+    """An exact margin in millimetres, or None to use the named preset.
+
+    Two fields rather than replacing ``margin`` with a number, because the
+    two are asked for by different things. A look says "Tight" -- a judgement
+    that should keep meaning the right amount if the presets are ever
+    retuned -- while someone dragging the slider means 13mm and nothing else.
+    The number wins when it is set, and applying a look clears it, so the
+    look's own choice is what shows.
+    """
     leading: str = "normal"
     accent: str = "ink"
     fonts: str = "serif_sans"
@@ -575,6 +593,16 @@ class Design(BaseModel):
     @classmethod
     def _margin(cls, v: str) -> str:
         return v if v in MARGINS else "normal"
+
+    @field_validator("margin_custom_mm")
+    @classmethod
+    def _margin_custom_mm(cls, v: float | None) -> float | None:
+        # Clamped rather than rejected: a design saved by a build with a wider
+        # range should open with the nearest margin this one can print, not
+        # fail to load and take the whole design with it.
+        if v is None:
+            return None
+        return round(min(MARGIN_MAX_MM, max(MARGIN_MIN_MM, float(v))), 1)
 
     @field_validator("date_format")
     @classmethod
@@ -636,6 +664,8 @@ class Design(BaseModel):
 
     @property
     def margin_mm(self) -> float:
+        if self.margin_custom_mm is not None:
+            return self.margin_custom_mm
         return MARGINS[self.margin][1]
 
     @property

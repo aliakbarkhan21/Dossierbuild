@@ -54,6 +54,14 @@ class ScaleOut(BaseModel):
     base_pt: float
 
 
+class RangeOut(BaseModel):
+    """A continuous control's bounds, so the interface does not hard-code them."""
+
+    min: float
+    max: float
+    step: float
+
+
 class Options(BaseModel):
     templates: list[TemplateOut]
     layouts: list[Option]
@@ -61,6 +69,7 @@ class Options(BaseModel):
     fonts: list[Option]
     pages: list[PageOut]
     margins: list[Option]
+    margin_range: RangeOut
     leading: list[Option]
     date_formats: list[Option]
     looks: list[LookOut]
@@ -111,6 +120,7 @@ def options() -> Options:
             Option(key=key, name=name, blurb=f"{mm:.0f}mm")
             for key, (name, mm) in dz.MARGINS.items()
         ],
+        margin_range=RangeOut(min=dz.MARGIN_MIN_MM, max=dz.MARGIN_MAX_MM, step=0.5),
         leading=[
             Option(key=key, name=name, blurb=f"{value:g}")
             for key, (name, value) in dz.LEADING.items()

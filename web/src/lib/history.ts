@@ -160,6 +160,7 @@ const DESIGN_LABELS: Record<string, string> = {
   hidden: "Showed or hid a section",
   show_links: "Toggled the header links",
   show_headline: "Toggled the headline",
+  margin_custom_mm: "Changed the margins",
   show_page_numbers: "Toggled page numbers",
   show_photo: "Toggled the portrait",
 };

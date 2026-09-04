@@ -51,6 +51,14 @@ builder, and fixes an accessibility failure that had been there all along.
   Same pointer-event handling as entries and bullets, so it works on a
   touchscreen, and both paths make the same edit — one entry in the undo
   stack either way.
+- **An exact page margin.** A slider from 2mm to 20mm, between line spacing
+  and type size, replacing a three-option dropdown — the difference between
+  spilling onto a second sheet and not is often two millimetres, and the
+  dropdown's steps were four and five. The named presets stay: they are what
+  the curated looks set, and applying a look clears the exact value so the
+  look's own choice shows. The sheet reflows under the finger — the margin is
+  pushed into the frame and re-paginated there, the way zoom already was —
+  rather than waiting on a round trip per step of the handle.
 - **Structured wireframe skeletons.** Each template card draws its own
   silhouette while Chromium renders the real thing, so the grid stops being
   eight identical grey boxes and answers the question the reader actually has.
