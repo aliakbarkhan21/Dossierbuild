@@ -31,3 +31,6 @@ web/tsconfig.tsbuildinfo
 data/*.db
 data/*.db-wal
 data/*.db-shm
+
+# Windows drops these into folders it has been asked to style.
+desktop.ini
