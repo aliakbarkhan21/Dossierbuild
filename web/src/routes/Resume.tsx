@@ -410,12 +410,18 @@ export function ResumeScreen() {
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {shown.map((t) => (
+                {/* Every card stays mounted; the filter only hides them.
+                    Rendering `shown` meant going back to All rebuilt four or
+                    five iframes at once, each parsing a whole document and
+                    its fit script -- on the same frame the highlight was
+                    trying to slide. Hiding is free; mounting is not. */}
+                {options.templates.map((t) => (
                   <TemplateCard
                     key={t.key}
                     template={t}
                     html={thumbs[t.key] ?? ""}
                     selected={t.key === design.template}
+                    visible={shown.includes(t)}
                     onPick={() => setDesign({ template: t.key })}
                   />
                 ))}
@@ -956,16 +962,22 @@ function TemplateCard({
   template,
   html,
   selected,
+  visible,
   onPick,
 }: {
   template: TemplateOption;
   html: string;
   selected: boolean;
+  visible: boolean;
   onPick: () => void;
 }) {
   return (
     <button
       type="button"
+      // Inline, not a `hidden` class: that would have to out-specify `card`,
+      // and which of two equal-specificity rules wins comes down to the order
+      // Tailwind happens to emit them in.
+      style={visible ? undefined : { display: "none" }}
       onClick={onPick}
       aria-pressed={selected}
       title={template.best_for}
@@ -984,7 +996,10 @@ function TemplateCard({
         placeholder={<Wireframe template={template.key} />}
       />
       <div className="p-2.5">
-        <div className="flex items-center gap-1.5">
+        {/* `pr-1` on the row, not on the badge: the room wanted is between the
+            badge and the edge of the card, and padding inside the pill would
+            only make the pill wider. */}
+        <div className="flex items-center gap-1.5 pr-1">
           <span className="font-display text-sm font-semibold">{template.name}</span>
           {selected && (
             <span className="rounded bg-accent-soft px-1.5 py-0.5 text-2xs font-semibold text-accent">
@@ -1467,7 +1482,27 @@ function SectionOrder({
   const move = (key: string, delta: number) =>
     moveTo(design.order.indexOf(key), design.order.indexOf(key) + delta);
 
-  const { dragging, over, listRef, startDrag } = useReorder(moveTo);
+  const { dragging, over, offset, listRef, startDrag } = useReorder(moveTo);
+  // One row's height, read when the drag starts. Every row here is the same
+  // height, so one number is the whole of the shuffle: a row that has to get
+  // out of the way moves exactly one place.
+  const [rowH, setRowH] = useState(0);
+
+  /**
+   * Where a row sits while a drag is in progress.
+   *
+   * The row under the finger is carried by the pointer and nothing else. The
+   * rows between where it came from and where it is going step one place
+   * towards the hole it left, which is what makes the gap open under the
+   * finger rather than a line being drawn near it. Everything else stays put.
+   */
+  const shift = (index: number): number => {
+    if (dragging === null || over === null) return 0;
+    if (index === dragging) return offset;
+    if (dragging < index && index <= over) return -rowH;
+    if (over <= index && index < dragging) return rowH;
+    return 0;
+  };
 
   const toggle = (key: string) => {
     const hidden = design.hidden.includes(key)
@@ -1483,35 +1518,42 @@ function SectionOrder({
           each row's box out of it to work out what it is over. */}
       <div
         ref={listRef}
-        className="flex flex-col divide-y divide-line overflow-hidden rounded-md border border-line"
+        className="flex flex-col divide-y divide-line rounded-md border border-line"
       >
         {design.order.map((key, index) => {
           const label = options.sections.find((s) => s.key === key)?.name ?? key;
           const shown = !design.hidden.includes(key);
           const lifted = dragging === index;
-          const landing = over === index && dragging !== null && dragging !== index;
           return (
             <div
               key={key}
               data-reorder-index={index}
               className={[
-                "flex items-center gap-1 px-1 py-1.5 text-sm transition-colors duration-150",
-                lifted ? "bg-sunken opacity-60" : "",
-                // Which side the line is drawn on says whether the row will
-                // land above or below the one it is hovering, which is the
-                // one thing a drop indicator has to answer.
-                landing
-                  ? dragging > index
-                    ? "shadow-[inset_0_2px_0_0_var(--c-accent)]"
-                    : "shadow-[inset_0_-2px_0_0_var(--c-accent)]"
-                  : "",
+                "flex items-center gap-1 bg-surface px-1 py-1.5 text-sm",
+                // The carried row must not lag behind the finger, so it gets
+                // no transition; everything else eases into its new place.
+                lifted ? "relative z-10 rounded-md shadow-raised" : "",
               ].join(" ")}
+              style={{
+                transform: `translateY(${shift(index)}px)`,
+                transition: lifted
+                  ? "none"
+                  : "transform 220ms cubic-bezier(.2,.8,.3,1)",
+                // A hair larger and lifted off the page, so the row reads as
+                // picked up rather than merely selected.
+                scale: lifted ? "1.02" : undefined,
+                cursor: lifted ? "grabbing" : undefined,
+              }}
             >
               {/* Pointer events, not HTML5 drag-and-drop -- see `useReorder`.
                   `touch-none` stops the browser claiming the gesture as a
                   scroll before the handler ever sees it. */}
               <span
-                onPointerDown={(event) => startDrag(index, event)}
+                onPointerDown={(event) => {
+                  const row = event.currentTarget.closest<HTMLElement>("[data-reorder-index]");
+                  if (row) setRowH(row.offsetHeight);
+                  startDrag(index, event);
+                }}
                 className="cursor-grab touch-none px-1 text-faint hover:text-ink active:cursor-grabbing"
                 title={`Drag to move ${label}`}
                 aria-hidden

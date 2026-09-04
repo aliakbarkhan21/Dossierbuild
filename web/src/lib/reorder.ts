@@ -23,6 +23,15 @@ export interface Reorder {
   dragging: number | null;
   /** The index it would land on, or null. */
   over: number | null;
+  /**
+   * How far the pointer has moved down the page since the drag began, in px.
+   *
+   * A list can ignore this and draw a drop indicator, or use it to carry the
+   * row under the finger and shuffle its neighbours out of the way. The
+   * second reads as picking a thing up; the first reads as filling in a form
+   * about where you would like it to go.
+   */
+  offset: number;
   /** Put this on the scroll container holding the rows. */
   listRef: React.RefObject<HTMLDivElement | null>;
   /** Put this on the drag handle: `onPointerDown={(e) => startDrag(i, e)}`. */
@@ -40,6 +49,8 @@ export function useReorder(
 ): Reorder {
   const [dragging, setDragging] = useState<number | null>(null);
   const [over, setOver] = useState<number | null>(null);
+  const [offset, setOffset] = useState(0);
+  const startY = useRef(0);
   const listRef = useRef<HTMLDivElement>(null);
   // The live values the pointer handlers read. State drives the rendering;
   // these exist because the handler that commits the move runs outside
@@ -47,6 +58,17 @@ export function useReorder(
   // at pointerdown.
   const from = useRef<number | null>(null);
   const to = useRef<number | null>(null);
+  /**
+   * Where the rows were when the drag began.
+   *
+   * Hit-testing against where they are *now* cannot work once a list moves
+   * its rows out of the way: the carried row follows the pointer, so it is
+   * always the row under it and the target never changes; and the rows that
+   * shifted leave a hole the pointer falls through. The layout at rest is the
+   * one that answers "which place is the finger over", and it does not move,
+   * so the answer is stable and the same going up as coming down.
+   */
+  const slots = useRef<{ index: number; top: number; bottom: number }[]>([]);
 
   function startDrag(index: number, event: React.PointerEvent) {
     // Left button only; a right-click on the handle should open a menu.
@@ -54,20 +76,35 @@ export function useReorder(
     event.preventDefault();
     from.current = index;
     to.current = index;
+    startY.current = event.clientY;
+    slots.current = [...(listRef.current?.querySelectorAll<HTMLElement>(rowSelector) ?? [])].map(
+      (row) => {
+        const box = row.getBoundingClientRect();
+        return { index: Number(row.dataset.reorderIndex), top: box.top, bottom: box.bottom };
+      },
+    );
     setDragging(index);
     setOver(index);
+    setOffset(0);
 
     const onMove = (moved: PointerEvent) => {
-      const rows = listRef.current?.querySelectorAll<HTMLElement>(rowSelector);
-      if (!rows) return;
-      for (const row of rows) {
-        const box = row.getBoundingClientRect();
-        if (moved.clientY >= box.top && moved.clientY <= box.bottom) {
-          const hit = Number(row.dataset.reorderIndex);
-          to.current = hit;
-          setOver(hit);
+      setOffset(moved.clientY - startY.current);
+      for (const slot of slots.current) {
+        if (moved.clientY >= slot.top && moved.clientY <= slot.bottom) {
+          to.current = slot.index;
+          setOver(slot.index);
           return;
         }
+      }
+      // Past either end of the list, the nearest end is what was meant.
+      const first = slots.current[0];
+      const last = slots.current[slots.current.length - 1];
+      if (first && moved.clientY < first.top) {
+        to.current = first.index;
+        setOver(first.index);
+      } else if (last && moved.clientY > last.bottom) {
+        to.current = last.index;
+        setOver(last.index);
       }
     };
 
@@ -82,6 +119,7 @@ export function useReorder(
       to.current = null;
       setDragging(null);
       setOver(null);
+      setOffset(0);
     };
 
     window.addEventListener("pointermove", onMove);
@@ -89,7 +127,7 @@ export function useReorder(
     window.addEventListener("pointercancel", onUp);
   }
 
-  return { dragging, over, listRef, startDrag };
+  return { dragging, over, offset, listRef, startDrag };
 }
 
 /** Move one item within a list, in place. The one line both callers share. */
