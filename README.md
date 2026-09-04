@@ -24,6 +24,7 @@ with no API key at all.
 | **Applications** | Every posting you saved, what stage it is at, and — across all of them — which requirements you keep failing to evidence. |
 | **Import** | LinkedIn's data export, a PDF, a DOCX, or pasted text, all landing on the same review screen. |
 | **Cover letter** | One letter per application, drafted from the requirements your profile can evidence and set in the resume's own typeface. |
+| **Interview brief** | On any application at interview stage: what you can evidence, what you cannot, the questions each invites, and a scratchpad. Rules only — no model, no network. |
 | **Health check** | Every bullet measured against the writing standard, with the specific line to fix. |
 
 **Design, curated rather than open-ended.** Eight templates × four body
@@ -43,6 +44,16 @@ on.
 **Undo covers everything.** One history for the profile and the design, so
 Ctrl+Z after changing a template undoes the template. A run of typing is one
 step, not fifty. There is a history panel you can point at.
+
+**One profile, several job families.** Tag a bullet or a skill group
+`#backend` or `#frontend`, then set a focus on the resume: tagged lines print
+only under their own focus, and untagged lines print always. A targeted resume
+without a second profile to keep in step.
+
+**Nothing to type on the first run.** An empty profile offers three ways out —
+import one, load a worked sample, or start clean. The sample is written to the
+standard the app teaches and scores 85% on the Health screen, with two
+deliberately weak bullets so the check has something real to catch.
 
 ---
 
@@ -91,7 +102,7 @@ docker run -p 8000:8000 -v "$PWD/data:/data" -e GEMINI_API_KEY=... dossierbuild
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                            # 161 checks, about 55 seconds (real PDFs)
+pytest                            # 171 checks, about 55 seconds (real PDFs)
 cd web && npm test                # 18 checks on the undo stack's arithmetic
 ```
 
@@ -100,7 +111,7 @@ Or without pytest — each script runs on the app's own dependencies:
 ```bash
 python scripts/check_phase1.py    # schema, storage, id stability, migration   (20)
 python scripts/check_import.py    # LinkedIn export, extraction, merge         (21)
-python scripts/check_phase2.py    # design, templates, PDF and its text layer  (19)
+python scripts/check_phase2.py    # design, templates, PDF and its text layer  (20)
 python scripts/check_db.py        # the schema, its constraints, its queries   (19)
 python scripts/check_tailor.py    # the posting reader and the audit           (29)
 ```
@@ -122,6 +133,8 @@ dossier/
     applications.py  saved applications, and the queries across all of them
     versions.py      what was actually sent: profile + design, kept whole
     letters.py       cover letters, filed against the application they answer
+    interview.py     the pre-interview brief, by rules over the posting
+    sample.py        the worked example, written to the standard it teaches
     ids.py           stable short ids
   ingest/    PDF · DOCX · LinkedIn -> profile, plus the merge review. No AI.
   ai/        every call that leaves this machine for a model
@@ -170,10 +183,11 @@ its source, and numbers or names appearing in neither the original nor
 anywhere else in your profile are reported and start unticked. The prompt asks
 for the same thing, but the prompt is not the guarantee; the diff is.
 
-**A PDF is not done until its text layer is checked.** The generated file is
-read back with pypdf to confirm your name, email and phone are really in it. A
-resume that looks perfect and parses as an empty document is the failure
-nobody notices until the application has already been rejected.
+**A PDF is not done until its text layer is checked.** Every generated file —
+the resume and the cover letter both — is read back with pypdf to confirm your
+name, email and phone are really in it. A document that looks perfect and
+parses as empty is the failure nobody notices until the application has
+already been rejected.
 
 ---
 
@@ -222,7 +236,8 @@ a claim that it does everything.
 
 - **One profile, not many.** There is no "switch between resumes": there is
   one master profile, and saved versions are frozen archives of what was sent
-  rather than documents you can go on editing.
+  rather than documents you can go on editing. Focus tags cover the common
+  reason people want two.
 - **No hosted sharing.** The HTML export is a self-contained file you can send
   or host yourself. There are no public links, accounts or expiry.
 - **No DOCX export.** PDF, self-contained HTML, and plain text.
@@ -237,7 +252,7 @@ a claim that it does everything.
 
 ## Roadmap
 
-In progress towards v1.0: editing directly in the preview, a
-snippet library, bulk actions on bullets, a command palette covering every
-action, guided review and skill normalisation. This section becomes an honest
-"what I would build next" when the version is frozen.
+In progress towards v1.0: editing directly in the preview, a snippet library,
+bulk actions on bullets, a command palette covering every action, guided
+review and skill normalisation. This section becomes an honest "what I would
+build next" when the version is frozen.

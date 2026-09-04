@@ -18,13 +18,13 @@ Autosave writes to disk within seconds of any edit. Running this against
 ## 1. The suites
 
 ```bash
-pytest                                  # 153
+pytest                                   # 171
 cd web && npm test && npm run typecheck  # 18, then strict TypeScript
-python scripts/check_phase1.py          # 20
-python scripts/check_import.py          # 21
-python scripts/check_phase2.py          # 19
-python scripts/check_db.py              # 18
-python scripts/check_tailor.py          # 29
+python scripts/check_phase1.py           # 20
+python scripts/check_import.py           # 21
+python scripts/check_phase2.py           # 20
+python scripts/check_db.py               # 19
+python scripts/check_tailor.py           # 29
 ```
 
 All green, no skips you did not expect. `check_phase2` and `pytest` print real
@@ -53,8 +53,16 @@ Start from an empty scratch directory so the first-run state is exercised.
       the name/email/phone selectable as text.
 - [ ] **Keep the version.** File it against the application. Read it back from
       Applications and confirm it shows what was sent.
-- [ ] **Restart the server.** Profile, design, applications and versions all
-      survive.
+- [ ] **Write a letter.** Draft or type one, keep it against the application,
+      download it, and **open the PDF**: the name and the sign-off must be
+      selectable text, not a picture.
+- [ ] **Interview brief.** Move an application to `interview`, open the brief,
+      check a gap carries its bridge line, type a note, and print it — the
+      app's chrome must not be on the printed page.
+- [ ] **Focus tags.** Tag a bullet, set the focus on the Resume screen, and
+      confirm the untagged lines stay while the other family's line goes.
+- [ ] **Restart the server.** Profile, design, applications, versions and
+      letters all survive.
 
 ## 3. Undo
 

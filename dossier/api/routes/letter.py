@@ -28,7 +28,7 @@ from ...core.schema import Profile
 from ...core.storage import load_profile
 from ...render.design import Design, load_design
 from ...render.letter import LetterDocument, letter_filename, render_letter_html
-from ...render.pdf import render_pdf
+from ...render.pdf import pdf_report, render_pdf
 
 router = APIRouter(prefix="/api/letter", tags=["letter"])
 filed = APIRouter(prefix="/api/applications", tags=["letter"])
@@ -187,20 +187,7 @@ def pdf(request: RenderRequest) -> Response:
     document = request.letter.document(profile)
     if not document.paragraphs:
         raise HTTPException(status_code=422, detail="The letter has no words in it yet.")
-    data = render_pdf(
-        render_letter_html(profile, design, document),
-        margin_mm=design.margin_mm,
-        # A one-page letter numbered "1" looks like a form. Never numbered,
-        # whatever the resume is set to.
-        page_numbers=False,
-    )
-    return Response(
-        content=data,
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f'attachment; filename="{letter_filename(profile, document)}"'
-        },
-    )
+    return _printed(profile, design, document)
 
 
 # --------------------------------------------------------------------------
@@ -276,18 +263,7 @@ def reprint(letter_id: str, connection: sqlite3.Connection = Depends(db)) -> Res
     profile = load_profile()
     design = Design.model_validate(kept.design)
     document = LetterBody.model_validate(kept.document).document(profile)
-    data = render_pdf(
-        render_letter_html(profile, design, document),
-        margin_mm=design.margin_mm,
-        page_numbers=False,
-    )
-    return Response(
-        content=data,
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f'attachment; filename="{letter_filename(profile, document)}"'
-        },
-    )
+    return _printed(profile, design, document)
 
 
 @router.delete("/{letter_id}", response_model=dict)
@@ -300,6 +276,34 @@ def forget(letter_id: str, connection: sqlite3.Connection = Depends(db)) -> dict
 # --------------------------------------------------------------------------
 # Shared
 # --------------------------------------------------------------------------
+
+
+def _printed(profile: Profile, design: Design, document: LetterDocument) -> Response:
+    """The letter as a PDF, with its text layer read back before it is sent.
+
+    The same guarantee the resume has, for the same reason: a letter that
+    looks perfect and parses as an empty document fails silently, and the
+    person who sent it never finds out. Reported in headers rather than an
+    envelope so the body stays a real PDF the browser can save.
+    """
+    data = render_pdf(
+        render_letter_html(profile, design, document),
+        margin_mm=design.margin_mm,
+        # A one-page letter numbered "1" looks like a form. Never numbered,
+        # whatever the resume is set to.
+        page_numbers=False,
+    )
+    report = pdf_report(data, profile)
+    return Response(
+        content=data,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{letter_filename(profile, document)}"',
+            "X-Pages": str(report.pages),
+            "X-Words": str(report.words),
+            "X-Machine-Readable": "1" if report.machine_readable else "0",
+        },
+    )
 
 
 def _as_body(document: LetterDocument) -> LetterBody:

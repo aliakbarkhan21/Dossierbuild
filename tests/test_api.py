@@ -713,6 +713,24 @@ def test_a_letter_prints_without_a_model_anywhere_near_it() -> None:
     assert printed.content[:5] == b"%PDF-"
     # Named for the reader, like the resume is.
     assert "Northgate-Labs" in printed.headers["content-disposition"]
+    # And read back with pypdf before it is sent, like the resume is. A letter
+    # that looks perfect and parses as an empty document fails silently, and
+    # the person who sent it never finds out.
+    assert printed.headers["X-Machine-Readable"] == "1"
+    assert int(printed.headers["X-Pages"]) == 1
+    assert int(printed.headers["X-Words"]) > 20
+
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    text = " ".join(
+        (page.extract_text() or "") for page in PdfReader(BytesIO(printed.content)).pages
+    )
+    flat = " ".join(text.split())
+    assert "A. Student" in flat
+    assert "cut a nightly ETL run from 42 minutes to 9" in flat
+    assert "Yours sincerely," in flat
 
     html = client.post(
         "/api/letter/preview", json={"letter": HAND_WRITTEN, "profile": sample()}
