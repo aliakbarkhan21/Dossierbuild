@@ -25,7 +25,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstr
 
 from .ids import new_id
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 # --------------------------------------------------------------------------
 # Shared field types
@@ -107,6 +107,19 @@ class TextBlock(DBModel):
 
     id: str = Field(default_factory=lambda: new_id("blt"))
     text: str = ""
+    tags: list[str] = Field(default_factory=list)
+    """Which job families this line is for. Empty means "always".
+
+    A fact about the material, not a styling choice, which is why it belongs
+    here rather than in ``design.py``: "I did this, and it is the kind of
+    thing a backend team cares about" is a property of the work. What the
+    design layer decides is which tag to *print* for a given application --
+    that is `Design.focus`, and it holds no tags of its own.
+
+    Empty is deliberately the common case. A profile where every line has to
+    be labelled before any of it prints is a profile nobody finishes tagging,
+    so an untagged line is core material and appears whatever the focus.
+    """
 
 
 class Link(DBModel):
@@ -182,6 +195,8 @@ class SkillGroup(DBModel):
     id: str = Field(default_factory=lambda: new_id("skg"))
     label: str = ""
     items: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    """Same rule as a bullet's: empty means the group always prints."""
 
 
 class Certification(DBModel):

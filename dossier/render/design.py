@@ -194,6 +194,16 @@ DEFAULT_LAYOUT = "stacked"
 # --------------------------------------------------------------------------
 
 
+def normalise_tag(value: str) -> str:
+    """One spelling for a tag, wherever it was typed.
+
+    Lowercased and stripped of a leading hash, because people type "#backend"
+    in one box and "Backend" in another and mean the same thing. Anything that
+    normalises to nothing is no tag at all.
+    """
+    return value.strip().lstrip("#").strip().lower()
+
+
 @dataclass(frozen=True)
 class Page:
     key: str
@@ -524,6 +534,19 @@ class Design(BaseModel):
     scale: int = 100
     order: list[str] = Field(default_factory=lambda: list(SECTION_KEYS))
     hidden: list[str] = Field(default_factory=list)
+    focus: str = ""
+    """Which job family this printing is aimed at. "" prints everything.
+
+    The tags themselves live on the profile, because "this line is the kind
+    of thing a backend team cares about" is a fact about the work. Which one
+    to *print* is a presentation decision and lives here -- the same split as
+    ``hidden``, which holds section keys rather than putting a "show me" flag
+    on every section in ``schema.py``.
+
+    Free text rather than a validated enum, because the tags are the user's
+    own vocabulary. A focus nobody has tagged anything with simply prints the
+    untagged core, which is a coherent resume rather than an error.
+    """
     show_links: bool = True
     show_headline: bool = True
     show_page_numbers: bool = False
@@ -588,6 +611,13 @@ class Design(BaseModel):
         """
         deduped = list(dict.fromkeys(k for k in v if k in SECTION_KEYS))
         return deduped + [k for k in SECTION_KEYS if k not in deduped]
+
+    @field_validator("focus")
+    @classmethod
+    def _focus(cls, v: str) -> str:
+        # Normalised the way the editor writes them, so "#Backend" typed in
+        # one place matches "backend" stored in another.
+        return normalise_tag(v)
 
     @field_validator("hidden")
     @classmethod

@@ -61,6 +61,41 @@ def test_the_fields_each_version_added_are_present() -> None:
 
     assert profile.basics.photo == ""  # v2
     assert profile.achievements == []  # v3
+    assert profile.experience[0].bullets[0].tags == []  # v4
+    assert profile.summary.tags == []  # v4
+
+
+def test_v4_writes_tags_onto_every_block_rather_than_leaving_it_to_defaults() -> None:
+    """The field has a default, so validation would accept a v3 file untouched.
+
+    Written explicitly anyway, so that a file opened and saved after the
+    upgrade carries the new field on every line it applies to instead of on
+    whichever ones happened to be edited -- and so the version number keeps
+    meaning what it says.
+    """
+    raw = migrate(v1())
+
+    assert raw["summary"]["tags"] == []
+    assert raw["experience"][0]["bullets"][0]["tags"] == []
+    assert raw["schema_version"] == 4
+
+
+def test_v4_tags_the_skill_groups_too() -> None:
+    raw = v1()
+    raw["skills"] = [{"id": "skg_1", "label": "Languages", "items": ["Python"]}]
+    migrated = migrate(raw)
+    assert migrated["skills"][0]["tags"] == []
+    # And the items are untouched: a migration that reshapes data rather than
+    # adding to it is how an archive loses things.
+    assert migrated["skills"][0]["items"] == ["Python"]
+
+
+def test_tags_already_present_are_left_alone() -> None:
+    """Re-running a migration must not wipe what the previous one wrote."""
+    raw = v1()
+    raw["schema_version"] = 3
+    raw["experience"][0]["bullets"][0]["tags"] = ["backend"]
+    assert migrate(raw)["experience"][0]["bullets"][0]["tags"] == ["backend"]
 
 
 def test_honors_are_not_reclassified_as_achievements() -> None:

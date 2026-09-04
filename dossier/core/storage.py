@@ -18,7 +18,7 @@ import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 
 from pydantic import ValidationError
 
@@ -79,9 +79,46 @@ def _v2_to_v3(raw: dict[str, Any]) -> dict[str, Any]:
     return raw
 
 
+def _v3_to_v4(raw: dict[str, Any]) -> dict[str, Any]:
+    """Bullets and skill groups gained ``tags``: which job families they suit.
+
+    Both fields default to an empty list, so validation would accept a
+    version-3 file untouched. The migration exists anyway, for the reason
+    ``_v1_to_v2`` gives: the version number is what tells a future reader
+    which shape a file is in, and a silent gap in the chain is how that
+    guarantee is lost.
+
+    Written explicitly rather than left to the defaults so that a file opened,
+    saved and diffed after this upgrade shows the new field on every line it
+    applies to, instead of appearing on whichever ones happened to be edited.
+    """
+    for block in _every_text_block(raw):
+        block.setdefault("tags", [])
+    for group in raw.get("skills") or []:
+        if isinstance(group, dict):
+            group.setdefault("tags", [])
+    raw["schema_version"] = 4
+    return raw
+
+
+def _every_text_block(raw: dict[str, Any]) -> Iterator[dict[str, Any]]:
+    """Every rewritable block in a raw dict: the summary and every bullet."""
+    summary = raw.get("summary")
+    if isinstance(summary, dict):
+        yield summary
+    for section in ("experience", "projects", "education"):
+        for entry in raw.get(section) or []:
+            if not isinstance(entry, dict):
+                continue
+            for bullet in entry.get("bullets") or []:
+                if isinstance(bullet, dict):
+                    yield bullet
+
+
 MIGRATIONS: dict[int, Callable[[dict[str, Any]], dict[str, Any]]] = {
     1: _v1_to_v2,
     2: _v2_to_v3,
+    3: _v3_to_v4,
 }
 
 

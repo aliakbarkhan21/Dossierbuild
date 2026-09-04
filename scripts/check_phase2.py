@@ -332,6 +332,64 @@ if READY:
         assert any("github.com/astudent" in u for u in uris), uris
 
 
+    @check("a focus prints the tagged lines and the untagged core, and nothing else")
+    def _() -> None:
+        """One master profile, several job families, no duplication.
+
+        The rule under test is the one that makes it usable: an *untagged*
+        line always prints. A profile where every line must be labelled before
+        any of it appears is a profile nobody finishes labelling.
+        """
+        from dossier.core.schema import Experience, Profile, SkillGroup, TextBlock
+
+        person = Profile(
+            basics=sample().basics,
+            experience=[
+                Experience(
+                    role="Intern",
+                    organisation="Northgate Labs",
+                    bullets=[
+                        TextBlock(text="Cut nightly ETL runtime from 42 to 9 minutes.",
+                                  tags=["backend"]),
+                        TextBlock(text="Rebuilt the dashboard in React.", tags=["frontend"]),
+                        TextBlock(text="Mentored two interns.", tags=[]),
+                    ],
+                )
+            ],
+            skills=[
+                SkillGroup(label="Backend", items=["Python"], tags=["backend"]),
+                SkillGroup(label="Spoken", items=["English"], tags=[]),
+            ],
+        )
+
+        everything = render_html(person, Design())
+        for line in ("42 to 9 minutes", "Rebuilt the dashboard", "Mentored two interns"):
+            assert line in everything, line
+
+        backend = render_html(person, Design(focus="backend"))
+        assert "42 to 9 minutes" in backend
+        assert "Rebuilt the dashboard" not in backend
+        # The untagged line is core material and survives every focus.
+        assert "Mentored two interns" in backend
+        assert "Backend" in backend and "Spoken" in backend
+
+        frontend = render_html(person, Design(focus="frontend"))
+        assert "Rebuilt the dashboard" in frontend
+        assert "42 to 9 minutes" not in frontend
+        # A skill group tagged for another family is left out entirely.
+        assert ">Backend<" not in frontend.replace(" ", "")
+
+        # A focus nobody has used prints the core rather than an empty page.
+        unknown = render_html(person, Design(focus="quantum"))
+        assert "Mentored two interns" in unknown
+        assert "42 to 9 minutes" not in unknown
+
+        # Tags are normalised on both sides, so "#Backend" typed in the editor
+        # matches "backend" chosen in the picker.
+        person.experience[0].bullets[0].tags = ["#Backend"]
+        assert "42 to 9 minutes" in render_html(person, Design(focus="backend"))
+
+
     @check("page size follows the design")
     def _() -> None:
         from io import BytesIO

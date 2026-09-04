@@ -30,6 +30,7 @@ import { PhotoCropper } from "../components/PhotoCropper";
 import { TopBar } from "../components/TopBar";
 import { ApiError, api, download } from "../lib/api";
 import { useShallow } from "zustand/react/shallow";
+import { tagsInUse } from "../components/Tags";
 
 import { useStore } from "../lib/store";
 import { toast } from "../lib/toast";
@@ -67,6 +68,7 @@ const FULL_ZOOM_STEP = 10;
 const DEFAULT_DESIGN: Partial<Design> = {
   template: "classic",
   layout: "stacked",
+  focus: "",
   accent: "ink",
   fonts: "serif_sans",
   page: "a4",
@@ -913,6 +915,8 @@ function DesignPanel({
         note={options.fonts.find((f) => f.key === design.fonts)?.blurb}
       />
 
+      <FocusPicker design={design} profile={profile} onChange={onChange} />
+
       {/* The template draws the top of the page; this sets everything under
           it. They are separate controls because they are separate decisions:
           the same header over a gutter and over a panel are two designs. */}
@@ -999,6 +1003,57 @@ function DesignPanel({
         Reset design
       </button>
     </section>
+  );
+}
+
+/**
+ * Which job family this printing is aimed at.
+ *
+ * The tags live on the profile, because "this line is the kind of thing a
+ * backend team cares about" is a fact about the work. Which one to print is a
+ * presentation decision, so it lives in the design beside `hidden` — and it
+ * means one master profile serves several job families without being copied.
+ *
+ * The control hides itself until something is tagged. A dropdown whose only
+ * option is "everything" is a dropdown that teaches nothing, so instead the
+ * feature announces itself once, where the tags are added.
+ */
+function FocusPicker({
+  design,
+  profile,
+  onChange,
+}: {
+  design: Design;
+  profile: Profile;
+  onChange: (patch: Partial<Design>) => void;
+}) {
+  const tags = tagsInUse(profile as never);
+  if (tags.length === 0) return null;
+
+  const kept = design.focus
+    ? `Printing the lines tagged #${design.focus}, plus every untagged one.`
+    : "Printing everything. Tagged lines are only left out when a focus is set.";
+
+  return (
+    <div>
+      <label className="label" htmlFor="choice-focus">
+        Focus
+      </label>
+      <select
+        id="choice-focus"
+        className="field"
+        value={design.focus}
+        onChange={(event) => onChange({ focus: event.target.value })}
+      >
+        <option value="">Everything</option>
+        {tags.map((tag) => (
+          <option key={tag} value={tag}>
+            #{tag}
+          </option>
+        ))}
+      </select>
+      <p className="mt-1 text-xs text-muted">{kept}</p>
+    </div>
   );
 }
 

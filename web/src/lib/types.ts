@@ -10,6 +10,15 @@
 export interface TextBlock {
   id: string;
   text: string;
+  /**
+   * Which job families this line is for. Empty means "always".
+   *
+   * A fact about the material rather than a styling choice, which is why it
+   * lives on the profile: "I did this, and it is the kind of thing a backend
+   * team cares about" is a property of the work. Which tag to *print* is
+   * `Design.focus`.
+   */
+  tags: string[];
 }
 
 export interface Link {
@@ -76,6 +85,8 @@ export interface SkillGroup {
   id: string;
   label: string;
   items: string[];
+  /** Same rule as a bullet's: empty means the group always prints. */
+  tags: string[];
 }
 
 export interface Certification {
@@ -141,6 +152,8 @@ export interface Design {
   scale: number;
   order: string[];
   hidden: string[];
+  /** Which job family this printing is aimed at. "" prints everything. */
+  focus: string;
   show_links: boolean;
   show_headline: boolean;
   show_page_numbers: boolean;

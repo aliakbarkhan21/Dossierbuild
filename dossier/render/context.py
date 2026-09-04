@@ -15,7 +15,7 @@ import re
 from dataclasses import dataclass, field
 
 from ..core.schema import Profile, entry_label, format_range
-from .design import Design, SECTION_LABELS
+from .design import Design, normalise_tag, SECTION_LABELS
 from .photo import STORED_PX, photo_data_uri
 
 
@@ -186,8 +186,25 @@ def build_contact(profile: Profile, design: Design) -> list[ContactItem]:
     return items
 
 
-def _entry_bullets(entry: object) -> list[str]:
-    return [b.text.strip() for b in getattr(entry, "bullets", []) if b.text.strip()]
+def wanted(tags: list[str], focus: str) -> bool:
+    """Whether a tagged thing prints under this focus.
+
+    Untagged material always prints. That is the whole ergonomics of the
+    feature: a profile where every line must be labelled before any of it
+    appears is a profile nobody finishes labelling, so an empty tag list means
+    "core material" rather than "belongs to no job".
+    """
+    if not focus or not tags:
+        return True
+    return focus in {normalise_tag(t) for t in tags}
+
+
+def _entry_bullets(entry: object, focus: str = "") -> list[str]:
+    return [
+        b.text.strip()
+        for b in getattr(entry, "bullets", [])
+        if b.text.strip() and wanted(getattr(b, "tags", []), focus)
+    ]
 
 
 def _experience_entry(item, design: Design) -> Entry:
@@ -201,7 +218,7 @@ def _experience_entry(item, design: Design) -> Entry:
         dates=format_range(item.start, item.end, style=design.date_format),
         place=item.location.strip(),
         note=note,
-        bullets=_entry_bullets(item),
+        bullets=_entry_bullets(item, design.focus),
     )
 
 
@@ -215,7 +232,7 @@ def _project_entry(item, design: Design) -> Entry:
         url_text=display_url(url),
         tag_label="Stack",
         tags=[t.strip() for t in item.tech if t.strip()],
-        bullets=_entry_bullets(item),
+        bullets=_entry_bullets(item, design.focus),
     )
 
 
@@ -234,7 +251,7 @@ def _education_entry(item, design: Design) -> Entry:
         detail=item.grade.strip(),
         tag_label="Modules",
         tags=[c.strip() for c in item.coursework if c.strip()],
-        bullets=_entry_bullets(item),
+        bullets=_entry_bullets(item, design.focus),
     )
 
 
@@ -262,7 +279,7 @@ def _build_section(profile: Profile, design: Design, key: str) -> Section | None
         groups = [
             (g.label.strip() or "Skills", [i.strip() for i in g.items if i.strip()])
             for g in profile.skills
-            if any(i.strip() for i in g.items)
+            if any(i.strip() for i in g.items) and wanted(g.tags, design.focus)
         ]
         return Section(key, label, "groups", groups=groups) if groups else None
 

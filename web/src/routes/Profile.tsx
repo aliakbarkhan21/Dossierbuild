@@ -21,6 +21,7 @@ import { useShallow } from "zustand/react/shallow";
 
 import { isBlank, useStore } from "../lib/store";
 import { moveWithin, useReorder } from "../lib/reorder";
+import { Tags, tagsInUse } from "../components/Tags";
 import type { ListSection, Profile } from "../lib/types";
 
 type Kind = "text" | "month" | "csv" | "select" | "url";
@@ -125,7 +126,7 @@ const SECTIONS: Record<ListSection, SectionSpec> = {
   skills: {
     label: "Skills",
     singular: "group",
-    blank: () => ({ id: "", label: "", items: [] }),
+    blank: () => ({ id: "", label: "", items: [], tags: [] }),
     fields: [
       { key: "label", label: "Group", placeholder: "Languages", half: true },
       { key: "items", label: "Items", kind: "csv", placeholder: "Python, SQL, TypeScript" },
@@ -695,6 +696,10 @@ function EntryList({
 }) {
   const spec = SECTIONS[section];
   const entries = (profile as unknown as Record<string, Record<string, unknown>[]>)[section] ?? [];
+  // Every tag already in the profile, so the suggestions are the person's own
+  // vocabulary rather than a fixed list -- and so `backend`, `back-end` and
+  // `Backend` do not quietly become three job families.
+  const known = tagsInUse(profile as never);
 
   const mutate = (index: number, key: string, value: unknown, label?: string) =>
     edit(
@@ -808,6 +813,18 @@ function EntryList({
             </div>
           </div>
 
+          {section === "skills" && (
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="text-2xs uppercase tracking-wide text-faint">Print this for</span>
+              <Tags
+                tags={(entry.tags as string[]) ?? []}
+                known={known}
+                label={`skill group ${index + 1}`}
+                onChange={(next) => mutate(index, "tags", next, "Tagged a skill group")}
+              />
+            </div>
+          )}
+
           <div className="grid gap-3 sm:grid-cols-2">
             {spec.fields.map((field) => {
               const value = entry[field.key];
@@ -864,7 +881,8 @@ function EntryList({
 
           {spec.bullets && (
             <Bullets
-              bullets={(entry.bullets as { id: string; text: string }[]) ?? []}
+              bullets={(entry.bullets as { id: string; text: string; tags: string[] }[]) ?? []}
+              known={known}
               onChange={(next, why) => mutate(index, "bullets", next, why)}
               entryLabel={entryTitle(section, entry)}
               section={section}
@@ -917,13 +935,15 @@ function entryTitle(section: ListSection, entry: Record<string, unknown>): strin
  */
 function Bullets({
   bullets,
+  known,
   onChange,
   entryLabel,
   section,
   entryId,
 }: {
-  bullets: { id: string; text: string }[];
-  onChange: (next: { id: string; text: string }[], label?: string) => void;
+  bullets: { id: string; text: string; tags: string[] }[];
+  known: string[];
+  onChange: (next: { id: string; text: string; tags: string[] }[], label?: string) => void;
   entryLabel: string;
   section: string;
   entryId: string;
@@ -946,7 +966,7 @@ function Bullets({
           entryLabel={entryLabel}
           section={section}
           entryId={entryId}
-          onInsert={(text) => onChange([...bullets, { id: "", text }], "Added a drafted bullet")}
+          onInsert={(text) => onChange([...bullets, { id: "", text, tags: [] }], "Added a drafted bullet")}
         />
       </div>
       <div ref={listRef} className="flex flex-col gap-2">
@@ -974,18 +994,31 @@ function Bullets({
             >
               <GripVertical size={13} aria-hidden />
             </span>
-            <textarea
-              data-block-id={bullet.id}
-              className="field min-h-16 flex-1 resize-y transition-shadow duration-300"
-              value={bullet.text}
-              placeholder="Cut nightly ETL runtime from 42 minutes to 9 by batching Postgres writes"
-              onChange={(event) => {
-                const next = bullets.map((b, i) =>
-                  i === index ? { ...b, text: event.target.value } : b,
-                );
-                onChange(next);
-              }}
-            />
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <textarea
+                data-block-id={bullet.id}
+                className="field min-h-16 resize-y transition-shadow duration-300"
+                value={bullet.text}
+                placeholder="Cut nightly ETL runtime from 42 minutes to 9 by batching Postgres writes"
+                onChange={(event) => {
+                  const next = bullets.map((b, i) =>
+                    i === index ? { ...b, text: event.target.value } : b,
+                  );
+                  onChange(next);
+                }}
+              />
+              <Tags
+                tags={bullet.tags ?? []}
+                known={known}
+                label={`bullet ${index + 1}`}
+                onChange={(tags) =>
+                  onChange(
+                    bullets.map((b, i) => (i === index ? { ...b, tags } : b)),
+                    "Tagged a bullet",
+                  )
+                }
+              />
+            </div>
             <div className="mt-1 flex shrink-0 items-center gap-0.5">
               <button
                 type="button"
@@ -1019,7 +1052,7 @@ function Bullets({
         <button
           type="button"
           className="btn self-start"
-          onClick={() => onChange([...bullets, { id: "", text: "" }], "Added a bullet")}
+          onClick={() => onChange([...bullets, { id: "", text: "", tags: [] }], "Added a bullet")}
         >
           <Plus size={14} />
           Add bullet
