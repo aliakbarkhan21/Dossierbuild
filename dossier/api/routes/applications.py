@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from ...core import applications as store
-from ...core import jobspec
+from ...core import interview, jobspec
 from ...core import letters as correspondence
 from ...core import versions as archive
 from ...core.db import connect
@@ -208,6 +208,101 @@ def remove(
         raise HTTPException(status_code=404, detail="No application with that id.")
     store.delete_application(application_id, connection=connection)
     return {"deleted": True}
+
+
+# --------------------------------------------------------------------------
+# The interview brief
+# --------------------------------------------------------------------------
+
+
+class EvidenceOut(BaseModel):
+    entry_label: str
+    text: str
+
+
+class AnsweredOut(BaseModel):
+    term: str
+    tier: str
+    weight: float
+    evidence: list[EvidenceOut]
+    prompts: list[str]
+    bridge: str
+
+
+class BriefOut(BaseModel):
+    title: str
+    company: str
+    coverage: int
+    notes: str
+    strengths: list[AnsweredOut]
+    gaps: list[AnsweredOut]
+    declared_only: list[str]
+
+
+@router.get("/{application_id}/brief", response_model=BriefOut)
+def brief(
+    application_id: str, connection: sqlite3.Connection = Depends(db)
+) -> BriefOut:
+    """One sheet to read before an interview. No model, no network.
+
+    The posting is re-read against the profile *as it is now* rather than
+    against the coverage stored when the application was saved: the interview
+    is weeks later, the profile has moved, and what matters in the room is
+    what you can evidence today.
+    """
+    row = connection.execute(
+        "SELECT posting, title, company, notes FROM applications WHERE id = ?",
+        (application_id,),
+    ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="No application with that id.")
+
+    report = jobspec.analyse(
+        load_profile(), row["posting"], title=row["title"], company=row["company"]
+    )
+    built = interview.build_brief(report)
+    return BriefOut(
+        title=built.title,
+        company=built.company,
+        coverage=built.coverage,
+        notes=row["notes"],
+        strengths=[_answered(a) for a in built.strengths],
+        gaps=[_answered(a) for a in built.gaps],
+        declared_only=built.declared_only,
+    )
+
+
+class NotesRequest(BaseModel):
+    notes: str
+
+
+@router.put("/{application_id}/notes", response_model=dict)
+def set_notes(
+    application_id: str,
+    request: NotesRequest,
+    connection: sqlite3.Connection = Depends(db),
+) -> dict[str, str]:
+    """The scratchpad on the brief: interviewer names, questions to ask back."""
+    if not _exists(connection, application_id):
+        raise HTTPException(status_code=404, detail="No application with that id.")
+    connection.execute(
+        "UPDATE applications SET notes = ?, updated_at = ? WHERE id = ?",
+        (request.notes, store._now(), application_id),
+    )
+    return {"notes": request.notes}
+
+
+def _answered(answered: interview.Answered) -> AnsweredOut:
+    return AnsweredOut(
+        term=answered.term,
+        tier=answered.tier,
+        weight=round(answered.weight, 2),
+        evidence=[
+            EvidenceOut(entry_label=e.entry_label, text=e.text) for e in answered.evidence
+        ],
+        prompts=answered.prompts,
+        bridge=answered.bridge,
+    )
 
 
 # --------------------------------------------------------------------------

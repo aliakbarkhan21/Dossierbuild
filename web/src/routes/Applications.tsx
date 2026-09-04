@@ -15,6 +15,7 @@
 import {
   Briefcase,
   ChevronDown,
+  ClipboardList,
   Download,
   ExternalLink,
   Eye,
@@ -41,6 +42,7 @@ import type {
   VersionDetail,
 } from "../lib/types";
 import { FullPage } from "./Resume";
+import { InterviewBriefSheet } from "../components/InterviewBriefSheet";
 
 /**
  * The pipeline, in the order an application moves through it.
@@ -87,6 +89,8 @@ export function ApplicationsScreen() {
   // A saved version being read. It is the same full-page view the Resume
   // screen uses, fed the stored document instead of the current one.
   const [reading, setReading] = useState<VersionDetail | null>(null);
+  // Which application's interview brief is open, if any.
+  const [briefing, setBriefing] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -191,6 +195,7 @@ export function ApplicationsScreen() {
                     onMove={(status) => void move(application.id, status)}
                     onDelete={() => void remove(application.id)}
                     onRead={setReading}
+                    onBrief={() => setBriefing(application.id)}
                     onChanged={() => void load()}
                   />
                 ))}
@@ -216,6 +221,10 @@ export function ApplicationsScreen() {
           design={reading.design}
           onClose={() => setReading(null)}
         />
+      )}
+
+      {briefing && (
+        <InterviewBriefSheet applicationId={briefing} onClose={() => setBriefing("")} />
       )}
     </>
   );
@@ -382,6 +391,7 @@ function Card({
   onMove,
   onDelete,
   onRead,
+  onBrief,
   onChanged,
 }: {
   application: Application;
@@ -391,6 +401,7 @@ function Card({
   onMove: (status: ApplicationStatus) => void;
   onDelete: () => void;
   onRead: (version: VersionDetail) => void;
+  onBrief: () => void;
   onChanged: () => void;
 }) {
   const { title, company, coverage, required_missing, runs, accepted } = application;
@@ -416,6 +427,15 @@ function Card({
           </div>
           <div className="text-2xs uppercase tracking-wide text-faint">covered</div>
         </div>
+
+        {/* Only on a card that has actually reached an interview: it is the
+            only card the sheet means anything on. */}
+        {application.status === "interview" && (
+          <button type="button" className="btn" onClick={onBrief}>
+            <ClipboardList size={14} />
+            Interview brief
+          </button>
+        )}
 
         <select
           className="field w-auto py-1 text-xs"

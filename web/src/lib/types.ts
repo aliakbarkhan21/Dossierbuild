@@ -477,3 +477,32 @@ export interface Overview {
     accepted_flagged: number;
   };
 }
+
+
+/**
+ * One requirement on the interview brief, and what to say about it.
+ *
+ * `prompts` are questions worth having an answer ready for, assembled from
+ * templates by `core/interview.py` — prompts, not predictions. `bridge` is
+ * present only on a gap: the shape of an honest answer, because the failure
+ * in the room is going quiet.
+ */
+export interface BriefTerm {
+  term: string;
+  tier: Tier;
+  weight: number;
+  evidence: { entry_label: string; text: string }[];
+  prompts: string[];
+  bridge: string;
+}
+
+export interface InterviewBrief {
+  title: string;
+  company: string;
+  coverage: number;
+  notes: string;
+  strengths: BriefTerm[];
+  gaps: BriefTerm[];
+  /** Named in your skills and described in no bullet — the weakest claim. */
+  declared_only: string[];
+}

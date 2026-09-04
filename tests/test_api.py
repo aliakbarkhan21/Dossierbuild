@@ -555,6 +555,77 @@ def _one(app_id: str) -> dict:
     return next(a for a in body["applications"] if a["id"] == app_id)
 
 
+def test_the_interview_brief_maps_evidence_and_names_the_gaps() -> None:
+    """Built from rules over the stored posting. No model, no network."""
+    _clear()
+    app_id = _save(POSTING, "Northgate Labs")
+    # The profile on disk is what the brief reads, because the interview is
+    # weeks after the application and what matters is what you can evidence
+    # today, not what you could when you applied.
+    evidenced = sample()
+    evidenced["experience"][0]["bullets"] = [
+        {"text": "Cut nightly ETL runtime from 42 to 9 minutes by batching PostgreSQL writes."}
+    ]
+    client.put("/api/profile", json=evidenced)
+
+    brief = client.get(f"/api/applications/{app_id}/brief")
+    assert brief.status_code == 200, brief.text
+    body = brief.json()
+
+    terms = {s["term"].lower() for s in body["strengths"]}
+    gaps = {g["term"].lower() for g in body["gaps"]}
+    assert "postgresql" in terms, terms
+    assert "docker" in gaps, gaps
+    assert not (terms & gaps), "a requirement cannot be both answered and missing"
+    # Python is in the skills list and in no bullet. That is a weak claim, not
+    # a gap: telling someone who lists Python that they have not used it is
+    # false, and the sort of thing that loses an interview.
+    assert "python" not in gaps
+    assert any("python" in d.lower() for d in body["declared_only"]), body["declared_only"]
+
+    strength = next(s for s in body["strengths"] if s["term"].lower() == "postgresql")
+    assert strength["evidence"], "an answered requirement has to say where"
+    assert strength["prompts"], "and what they will ask about it"
+
+    gap = next(g for g in body["gaps"] if g["term"].lower() == "docker")
+    assert gap["evidence"] == []
+    assert len(gap["prompts"]) >= 2
+    # A gap is not a reason not to apply: the sheet says what to say.
+    assert "not" in gap["bridge"].lower()
+
+    assert client.get("/api/applications/no_such_id/brief").status_code == 404
+    _clear()
+
+
+def test_the_brief_stays_one_sheet() -> None:
+    """A brief nobody finishes reading is worse than a shorter one."""
+    from dossier.core.interview import GAPS_SHOWN, TOP_REQUIREMENTS
+
+    _clear()
+    extra = "\n".join(f"- Requirement number {n} in {n}" for n in range(60))
+    wordy = POSTING + extra
+    app_id = _save(wordy, "Northgate Labs")
+    body = client.get(f"/api/applications/{app_id}/brief").json()
+    assert len(body["strengths"]) <= TOP_REQUIREMENTS
+    assert len(body["gaps"]) <= GAPS_SHOWN
+    _clear()
+
+
+def test_notes_are_editable_and_come_back_on_the_brief() -> None:
+    _clear()
+    app_id = _save(POSTING, "Northgate Labs")
+    assert client.put(
+        f"/api/applications/{app_id}/notes", json={"notes": "Ask about on-call."}
+    ).status_code == 200
+
+    assert client.get(f"/api/applications/{app_id}/brief").json()["notes"] == "Ask about on-call."
+    assert _one(app_id)["notes"] == "Ask about on-call."
+    assert client.put(
+        "/api/applications/no_such_id/notes", json={"notes": "x"}
+    ).status_code == 404
+    _clear()
+
+
 # --------------------------------------------------------------------------
 # Cover letters
 # --------------------------------------------------------------------------

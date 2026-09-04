@@ -22,6 +22,7 @@ import type {
   PdfResult,
   Profile,
   QualityReport,
+  InterviewBrief,
   LetterBody,
   LetterDetail,
   LetterSummary,
@@ -200,6 +201,11 @@ export const api = {
     request<{ status: string }>(`/api/applications/${id}/status`, "PUT", { status }),
   deleteApplication: (id: string) =>
     request<{ deleted: boolean }>(`/api/applications/${id}`, "DELETE"),
+
+  /** One sheet to read before an interview. Rules only, no model. */
+  brief: (id: string) => request<InterviewBrief>(`/api/applications/${id}/brief`),
+  setNotes: (id: string, notes: string) =>
+    request<{ notes: string }>(`/api/applications/${id}/notes`, "PUT", { notes }),
 
   /** Keep the document as it stands against one application. */
   keepVersion: (id: string, body: { label?: string; profile?: Profile; design?: Design }) =>
