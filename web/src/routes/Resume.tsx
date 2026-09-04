@@ -10,6 +10,8 @@ import {
   Briefcase,
   Check,
   Download,
+  PanelLeftClose,
+  PanelLeftOpen,
   FileCode2,
   FileType2,
   Loader2,
@@ -31,6 +33,7 @@ import { TopBar } from "../components/TopBar";
 import { ApiError, api, download } from "../lib/api";
 import { useShallow } from "zustand/react/shallow";
 import { tagsInUse } from "../components/Tags";
+import { Wireframe } from "../components/Wireframe";
 
 import { useStore } from "../lib/store";
 import { toast } from "../lib/toast";
@@ -89,6 +92,51 @@ const FILTERS = [
   { label: "Two columns", test: (t: TemplateOption) => !t.ats },
 ];
 
+/**
+ * Whether the design panel is showing, and whether its column has closed yet.
+ *
+ * Two flags, because they must not change on the same frame. `collapsed` is
+ * what the person asked for and drives the transform; `folded` is whether the
+ * grid column has actually gone. Collapsing runs the slide first and closes
+ * the column after; expanding opens the column first and slides in after. Do
+ * both at once and the panel is clipped to nothing before it has moved, which
+ * is a jump, not an animation.
+ *
+ * Remembered across sessions: someone who works on a laptop and wants the
+ * width should not have to ask for it every time they open the app.
+ */
+const PANEL_KEY = "dossier:design-panel";
+const SLIDE_MS = 200;
+
+function useDesignPanel() {
+  const [collapsed, setShown] = useState(() => {
+    try {
+      return localStorage.getItem(PANEL_KEY) === "hidden";
+    } catch {
+      return false;
+    }
+  });
+  const [folded, setFolded] = useState(collapsed);
+
+  useEffect(() => {
+    try {
+      if (collapsed) localStorage.setItem(PANEL_KEY, "hidden");
+      else localStorage.removeItem(PANEL_KEY);
+    } catch {
+      /* a private window may refuse storage; the session still works */
+    }
+
+    if (collapsed) {
+      const timer = setTimeout(() => setFolded(true), SLIDE_MS);
+      return () => clearTimeout(timer);
+    }
+    setFolded(false);
+    return undefined;
+  }, [collapsed]);
+
+  return { collapsed, folded, setCollapsed: setShown };
+}
+
 /** Re-render the document a beat after the last change, never during it. */
 function useDebounced<T>(value: T, ms: number): T {
   const [settled, setSettled] = useState(value);
@@ -120,6 +168,7 @@ export function ResumeScreen() {
   const [preview, setPreview] = useState("");
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<"pdf" | "html" | "text" | null>(null);
+  const { collapsed, folded, setCollapsed } = useDesignPanel();
   const [report, setReport] = useState<FitReport | null>(null);
   // Set by a download, never by Check fit. Sending the file is the moment
   // worth recording, and the offer to record it should not appear before it.
@@ -280,8 +329,41 @@ export function ResumeScreen() {
         }
       />
 
-      <div className="grid flex-1 gap-6 p-6 xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-        <div className="flex min-w-0 flex-col gap-5">
+      <div
+        className="grid flex-1 gap-6 p-6"
+        style={{
+          // Stepped, never transitioned. Animating this would re-lay-out
+          // every document on the screen -- the preview and eight template
+          // thumbnails -- on every frame, which is the mistake the sidebar
+          // in App.tsx already made once. The visible motion is the panel's
+          // transform; this just gets out of its way.
+          gridTemplateColumns: folded
+            ? "minmax(0,1fr)"
+            : "minmax(0,340px) minmax(0,1fr)",
+        }}
+      >
+        <div
+          inert={collapsed}
+          hidden={folded}
+          className="flex min-w-0 flex-col gap-5 transition-[transform,opacity] duration-200 ease-out"
+          style={{
+            transform: collapsed ? "translateX(-24px)" : "none",
+            opacity: collapsed ? 0 : 1,
+          }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">Design</h2>
+            <button
+              type="button"
+              className="btn btn-quiet px-1.5 py-1"
+              onClick={() => setCollapsed(true)}
+              title="Hide the design panel and give the page the width"
+              aria-label="Hide the design panel"
+            >
+              <PanelLeftClose size={15} />
+            </button>
+          </div>
+
           <Looks
             design={design}
             profile={profile}
@@ -333,8 +415,45 @@ export function ResumeScreen() {
         </div>
 
         <div className="flex min-w-0 flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+          {/* One control row, not two. With the panel away it gains the
+              controls that lived in it -- the template and the print button --
+              and sticks to the top of the pane; a floating bar *beside* the
+              existing one would put two zoom sliders on the same screen. */}
+          <div
+            className={[
+              "flex flex-wrap items-center gap-2 transition-[background-color,box-shadow,padding] duration-200 ease-out",
+              collapsed
+                ? "card sticky top-0 z-20 px-3 py-2 shadow-raised"
+                : "",
+            ].join(" ")}
+          >
+            {collapsed && (
+              <button
+                type="button"
+                className="btn btn-quiet px-1.5 py-1"
+                onClick={() => setCollapsed(false)}
+                title="Show the design panel"
+                aria-label="Show the design panel"
+              >
+                <PanelLeftOpen size={15} />
+              </button>
+            )}
             <h2 className="text-sm font-semibold">Preview</h2>
+
+            {collapsed && (
+              <select
+                className="field h-8 w-auto min-w-0 max-w-44 py-1 text-xs"
+                aria-label="Template"
+                value={design.template}
+                onChange={(event) => setDesign({ template: event.target.value })}
+              >
+                {options.templates.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            )}
 
             <div className="ml-auto flex items-center gap-2">
               <button
@@ -379,6 +498,21 @@ export function ResumeScreen() {
             <button type="button" className="btn" onClick={checkFit}>
               Check fit
             </button>
+            {collapsed && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={buildPdf}
+                disabled={busy !== null}
+              >
+                {busy === "pdf" ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Download size={14} />
+                )}
+                PDF
+              </button>
+            )}
             <button type="button" className="btn" onClick={downloadHtml} disabled={busy !== null}>
               <FileCode2 size={14} />
               HTML
@@ -765,7 +899,7 @@ function Looks({
                   className={[
                     "card overflow-hidden p-0 text-left transition-all duration-200 ease-out",
                     chosen
-                      ? "border-accent ring-2 ring-accent/25"
+                      ? "border-accent ring-2 ring-accent/45"
                       : "hover:-translate-y-0.5 hover:border-line-strong hover:shadow-raised",
                   ].join(" ")}
                 >
@@ -774,7 +908,13 @@ function Looks({
                     title={`${look.name}, ${v.name}`}
                     decorative
                     className="h-[92px] overflow-hidden border-b border-line bg-white"
-                    placeholder={<div className="h-full w-full animate-pulse bg-sunken" aria-hidden />}
+                    // The variant knows which template it applies, so the
+                    // silhouette is the right one before the render lands --
+                    // which is the whole difference between four variants
+                    // and four grey boxes.
+                    placeholder={
+                      <Wireframe template={String(v.values.template ?? design.template)} />
+                    }
                   />
                   <span
                     className={[
@@ -814,7 +954,7 @@ function TemplateCard({
       className={[
         "card group overflow-hidden p-0 text-left transition-all duration-200 ease-out",
         selected
-          ? "border-accent ring-2 ring-accent/25"
+          ? "border-accent ring-2 ring-accent/45"
           : "hover:-translate-y-0.5 hover:border-line-strong hover:shadow-raised",
       ].join(" ")}
     >
@@ -823,12 +963,16 @@ function TemplateCard({
         title={`${template.name} preview`}
         decorative
         className="h-[168px] overflow-hidden border-b border-line bg-white"
-        placeholder={<div className="h-full w-full animate-pulse bg-sunken" aria-hidden />}
+        placeholder={<Wireframe template={template.key} />}
       />
       <div className="p-2.5">
         <div className="flex items-center gap-1.5">
           <span className="font-display text-sm font-semibold">{template.name}</span>
-          {selected && <span className="text-2xs font-semibold text-accent">Selected</span>}
+          {selected && (
+            <span className="rounded bg-accent-soft px-1.5 py-0.5 text-2xs font-semibold text-accent">
+              Selected
+            </span>
+          )}
         </div>
         <div className="mt-1 flex flex-wrap gap-1">
           <Badge tone={template.ats ? "good" : "fair"}>
@@ -841,13 +985,22 @@ function TemplateCard({
   );
 }
 
+/**
+ * A small status word with a ring around it.
+ *
+ * The borders were at 40% of their colour, which is legible on a bright
+ * screen and gone on a dim one -- and these labels are the whole reason
+ * anyone can tell an ATS-safe template from a two-column one at a glance.
+ * At 70% the ring survives a laptop at half brightness, and the tinted
+ * ground does the rest without shouting.
+ */
 function Badge({ children, tone }: { children: React.ReactNode; tone?: "good" | "fair" }) {
   const cls =
     tone === "good"
-      ? "border-good/40 text-good"
+      ? "border-good/70 bg-good-soft text-good"
       : tone === "fair"
-        ? "border-fair/40 text-fair"
-        : "border-line text-muted";
+        ? "border-fair/70 bg-fair-soft text-fair"
+        : "border-line-strong text-muted";
   return (
     <span
       className={`rounded border px-1 py-px text-2xs font-semibold uppercase tracking-wide ${cls}`}

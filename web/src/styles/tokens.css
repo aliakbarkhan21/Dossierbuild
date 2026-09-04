@@ -33,7 +33,12 @@
   /* 6.6:1 on white. The lowest level any sentence is allowed to use. */
   --c-muted: #5a5954;
   /* 3.4:1 -- metadata and decoration only, never a sentence. */
-  --c-faint: #8b8880;
+  /* 5.3:1 on the surface, 4.7:1 on the sunken -- both clear of WCAG AA.
+     It was #8b8880, which measured 3.54:1 and 3.13:1: below AA for normal
+     text, and this token is used almost entirely for small text -- the
+     uppercase .label, 2xs counts, timestamps. The one place contrast matters
+     most was the one place it was missing. */
+  --c-faint: #6f6b62;
 
   /* --- lines ---------------------------------------------------------- */
   --c-line: #e7e5e1;
@@ -70,7 +75,10 @@
   /* 7.2:1 on the surface colour. */
   --c-muted: #a2aca7;
   /* 4.5:1 -- still legible, unlike the near-invisible grey it replaces. */
-  --c-faint: #7d8884;
+  /* Dark mode already cleared AA at 4.79:1; taken to 6.0 so the two themes
+     sit at the same distance from their backgrounds rather than one being
+     merely legal and the other comfortable. */
+  --c-faint: #8e9995;
 
   --c-line: #242a28;
   --c-line-strong: #343c39;
