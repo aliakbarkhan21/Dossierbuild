@@ -162,8 +162,22 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
               height: marker.box.h,
               transform: `translateY(${marker.box.y}px)`,
               opacity: marker.box.shown ? 1 : 0,
+              // `transform` and `opacity` only. Height was in this list, and
+              // height is not a compositor property -- one entry that cannot
+              // be composited drags the whole transition onto the main
+              // thread, where it is at the mercy of whatever the page being
+              // navigated to is doing. The Resume screen parses a full A4
+              // document into an iframe on arrival, and the slide was
+              // stopping dead for 200ms in the middle of it. Every row here
+              // is the same height, so nothing is lost by setting it
+              // outright; a row long enough to wrap would resize in one step
+              // rather than easing, which is the right thing to trade.
+              //
+              // `will-change` gets the layer up before the first move rather
+              // than on it, so the first navigation is as smooth as the rest.
+              willChange: "transform",
               transition: marker.animate
-                ? "transform 260ms cubic-bezier(.22,.61,.36,1), height 260ms cubic-bezier(.22,.61,.36,1), opacity 160ms ease-out"
+                ? "transform 260ms cubic-bezier(.22,.61,.36,1), opacity 160ms ease-out"
                 : "none",
             }}
           >

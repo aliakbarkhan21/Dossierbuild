@@ -448,6 +448,19 @@ ul.bul li::before {
   }
 
   function measure() {
+    // A thumbnail wants the scale and nothing else.
+    //
+    // It is rendered with no fit bar and no break markers, into a fixed
+    // 168px window onto the top of page one -- so the page count, the
+    // stretched paper and the markers below are all invisible in it, and
+    // working them out means forcing a full layout of an A4 page to read
+    // `scrollHeight`. Eight of these mount together with the preview when the
+    // Resume screen opens, and that pagination was the bulk of the 200ms the
+    // main thread spent there, which the sidebar highlight was trying to
+    // slide through. `left` is the fit bar; `numbered` is the only other
+    // thing here that needs a page count.
+    if (!breaks && !left && !numbered) { fit(); return; }
+
     Array.prototype.forEach.call(
       document.querySelectorAll('.pagebreak, .pagenum'), function (n) { n.remove(); }
     );

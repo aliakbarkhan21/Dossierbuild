@@ -64,6 +64,13 @@ builder, and fixes an accessibility failure that had been there all along.
   than switching off here and on there. The label's colour takes the same
   260ms on the same curve — at 150ms it went green while the highlight was
   still two rows away, which reads as two things happening rather than one.
+- **Arriving at the Resume screen no longer stutters.** Nine documents mount
+  there at once, and each ran a full A4 pagination — a forced layout to read
+  `scrollHeight` — on the arrival frame. Eight of them are 168px thumbnails
+  with no fit bar, no break markers and nothing to paginate for, so they now
+  take the scale and skip the rest. The preview mounts a slide later, behind
+  the placeholder that was already there. Measured: the 260ms the sidebar
+  highlight is sliding for is now clean, against gaps of 83ms and 217ms.
 - **Structured wireframe skeletons.** Each template card draws its own
   silhouette while Chromium renders the real thing, so the grid stops being
   eight identical grey boxes and answers the question the reader actually has.
