@@ -10,6 +10,10 @@ and the two things that would be most tempting to hand a model — reading a job
 posting, and scoring your writing — are done by rules instead, so they work
 with no API key at all.
 
+**Version 1.1** — cover letters, role focus tags, a rules-based interview
+brief, and a first run with a worked example in it. See
+[CHANGELOG.md](CHANGELOG.md) for what changed and why.
+
 ---
 
 ## What it does

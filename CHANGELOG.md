@@ -1,0 +1,113 @@
+# Changelog
+
+Dates are when the work landed, not when a tag was cut. Every entry says what
+changed and why it mattered; where a release fixed something that had been
+wrong for a while, it says that too.
+
+---
+
+## 1.1.0 — 2026-09-04
+
+The improved version. 1.0.0 made everything in the app work; this one adds the
+three things that were missing from a job search rather than from a resume
+builder, and fixes an accessibility failure that had been there all along.
+
+### Added
+
+- **Cover letters.** One per application, drafted from the requirements your
+  profile can actually evidence and told not to claim the ones it cannot. Set
+  in the resume's own typeface, on the same paper — a letter in a different
+  face from the CV attached to it looks like two people applied. The greeting,
+  the sign-off and the date are computed rather than asked of a model: a named
+  reader gets "Yours sincerely", an unnamed one "Yours faithfully". Writing one
+  by hand and printing it needs no API key.
+- **Role focus tags.** Tag a bullet or a skill group `#backend`, `#frontend`,
+  then set a focus on the resume. Tagged lines print only under their own
+  focus; untagged lines always print. One master profile serving several job
+  families without a second profile to keep in step. Schema 3 → 4.
+- **Interview brief.** On any application at interview stage: what you can
+  evidence and where, what you cannot and what to say about it, the questions
+  each invites, and a scratchpad that saves itself. Rules only — no model, no
+  network — so it reads the same every time and works on a train with no
+  signal. It prints.
+- **A first run with something to look at.** An empty profile offers three
+  ways out: import one, load a worked sample, or start clean. The sample is
+  written to the standard the app teaches and scores 85% on the Health screen,
+  with two deliberately weak bullets so the check catches something real.
+- **A collapsible design panel.** On a 1366px laptop the preview goes from
+  720px to 1084px. The column width is stepped and never transitioned; the
+  visible motion is a compositor transform. The hidden panel is `inert`, and
+  the choice is remembered.
+- **Structured wireframe skeletons.** Each template card draws its own
+  silhouette while Chromium renders the real thing, so the grid stops being
+  eight identical grey boxes and answers the question the reader actually has.
+
+### Fixed
+
+- **`--c-faint` failed WCAG AA, and always had.** Measured 3.54:1 on the
+  surface and 3.13:1 on the sunken against a 4.5 requirement — on the token
+  that colours almost nothing but small text. Now 5.31 and 4.70, with dark
+  mode taken from 4.79 to 5.97 so both themes sit at the same distance.
+- **Cover letter PDFs are read back with pypdf**, the same guarantee the
+  resume has had since 2.0. A document that looks perfect and parses as empty
+  fails silently.
+- Status badge borders went from 40% of their colour to 70%; at 40% the ring
+  distinguishing ATS-safe from two-column was gone on a dim screen.
+- The role pulled from a saved application carried the company and the city,
+  so a letter's addressee block named the employer twice.
+
+### Changed
+
+- Drafting a letter names the application rather than sending the posting up
+  the wire; the advert is already in the database.
+
+---
+
+## 1.0.0 — 2026-09-04
+
+An audit of everything built, then every defect it found. The goal was not
+feature count: it was that each thing in the app is completely wired, and that
+the repository does not claim anything untrue.
+
+### Fixed
+
+- **The README described an app two phases out of date** — "AI tailoring —
+  next" for a feature that had shipped, 85 checks against 153, four templates
+  against eight. Rewritten from the code, with every count read out of
+  `design.py`, and given an honest known-limitations section.
+- **Undo did not cover the design**, pushed a snapshot per keystroke, and had
+  no redo. It now holds both documents in one history, a run of typing is one
+  step, and there is a history panel you can seek in. Two bugs found by the
+  tests written for it: the redo stack came back reversed after a seek, and
+  snapshots were taken from the immer draft, so every one equalled the state
+  it was meant to undo.
+- **A `<select>` counted as "typing"**, so the guard protecting a text field's
+  own undo swallowed Ctrl+Z. Changing the paper size and pressing Ctrl+Z did
+  nothing.
+- **Bullets could not be reordered** — entries and sections had drag and arrow
+  keys; bullets had neither.
+- **Two raw NUL bytes in `Profile.tsx`** made `grep` classify the largest file
+  in the interface as binary.
+- The Health screen swallowed every error, so a failed fetch showed a stale
+  score with no explanation.
+- Switch knobs finished flush with their track, and the tracks were shortened
+  so the colour behind the knob no longer reads as slack.
+
+### Removed
+
+- `core/settings.py`, which had zero importers since the Streamlit build went.
+
+### Added
+
+- The first frontend tests (vitest, over the undo stack's arithmetic) and
+  `REGRESSION.md`, the manual walk-through run before any phase is called done.
+
+---
+
+## Before 1.0.0
+
+Phases 0–5, in order: the profile schema and storage; the PDF pipeline
+(Jinja2 → Chromium → pypdf); the React interface; deleting Streamlit; AI
+tailoring with a fabrication audit; and the applications database with saved
+versions of what was actually sent. `CLAUDE_GUIDE.md` carries the reasoning
+behind the architecture those phases produced.
