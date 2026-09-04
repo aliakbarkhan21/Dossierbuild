@@ -61,6 +61,10 @@ Start from an empty scratch directory so the first-run state is exercised.
       app's chrome must not be on the printed page.
 - [ ] **Focus tags.** Tag a bullet, set the focus on the Resume screen, and
       confirm the untagged lines stay while the other family's line goes.
+- [ ] **A second CV.** Start one from the sidebar, confirm it is blank, put a
+      name in it, switch back and confirm the first is untouched. The design
+      should not change with the switch; the applications should still be
+      there.
 - [ ] **Restart the server.** Profile, design, applications, versions and
       letters all survive.
 

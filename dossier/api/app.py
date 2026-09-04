@@ -25,6 +25,7 @@ load_dotenv()
 from . import errors, lifetime, static  # noqa: E402
 from .routes import (  # noqa: E402
     applications,
+    cvs,
     design,
     ingest,
     letter,
@@ -64,6 +65,7 @@ app.add_middleware(
 
 errors.install(app)
 
+app.include_router(cvs.router)
 app.include_router(profile.router)
 app.include_router(design.router)
 app.include_router(render.router)
@@ -83,7 +85,7 @@ def health() -> dict[str, object]:
     """Enough to tell "up" from "up and able to do its job"."""
     from ..ai.parse import api_key_present
     from ..core.schema import SCHEMA_VERSION
-    from ..core.storage import DATA_DIR, PROFILE_PATH
+    from ..core.storage import DATA_DIR, default_profile_path
     from ..render.pdf import chromium_ready
 
     browser_ok, browser_detail = chromium_ready()
@@ -91,7 +93,9 @@ def health() -> dict[str, object]:
         "ok": True,
         "schema_version": SCHEMA_VERSION,
         "data_dir": str(DATA_DIR),
-        "profile_exists": PROFILE_PATH.exists(),
+        # The CV in front of the user, not the legacy single file: on a
+        # fresh install there never is one of those.
+        "profile_exists": default_profile_path().exists(),
         "pdf_available": browser_ok,
         "pdf_detail": "" if browser_ok else browser_detail,
         "ai_available": api_key_present(),

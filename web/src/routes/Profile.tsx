@@ -19,6 +19,7 @@ import { useShell } from "../App";
 import { TopBar } from "../components/TopBar";
 import { useShallow } from "zustand/react/shallow";
 
+import { MARKER_COLOUR_CLASS, markerStyle, useSlidingMarker } from "../lib/marker";
 import { isBlank, useStore } from "../lib/store";
 import { moveWithin, useReorder } from "../lib/reorder";
 import { Tags, tagsInUse } from "../components/Tags";
@@ -204,6 +205,7 @@ export function ProfileScreen() {
 
   const requested = params.get("section") as Tab | null;
   const tab: Tab = requested && TABS.includes(requested) ? requested : "basics";
+  const marker = useSlidingMarker<HTMLElement>(tab, '[data-tab-active="yes"]', "x");
   const focus = params.get("focus");
 
   /**
@@ -272,19 +274,34 @@ export function ProfileScreen() {
         }
         below={
           <nav
+            ref={marker.listRef}
             aria-label="Profile sections"
-            className="flex gap-1 overflow-x-auto border-t border-line px-4 py-2 sm:px-6"
+            className="relative flex gap-1 overflow-x-auto border-t border-line px-4 py-2 sm:px-6"
           >
+        {/* One highlight for nine tabs, sliding between them -- the same
+            handling as the sidebar, and the same reason: a background that
+            switches off there and on here is a cut, and the eye cannot follow
+            a cut. Absolutely positioned inside the scroller, so it scrolls
+            with the tabs rather than floating over them. */}
+        {marker.box && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute top-2 rounded-md bg-accent-soft"
+            style={{ ...markerStyle(marker.box, marker.animate, "x"), height: "calc(100% - 1rem)" }}
+          />
+        )}
         {TABS.map((key) => {
           const active = key === tab;
           return (
             <button
               key={key}
               type="button"
+              data-tab-active={active ? "yes" : undefined}
               onClick={() => setParams(key === "basics" ? {} : { section: key })}
               className={[
-                "flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors duration-150 ease-out",
-                active ? "bg-accent-soft font-semibold text-accent" : "text-muted hover:bg-sunken hover:text-ink",
+                "relative z-10 flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm",
+                MARKER_COLOUR_CLASS,
+                active ? "font-semibold text-accent" : "text-muted hover:bg-sunken hover:text-ink",
               ].join(" ")}
             >
               {TAB_LABELS[key]}

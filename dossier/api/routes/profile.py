@@ -7,7 +7,8 @@ from pydantic import BaseModel
 
 from ...core.quality import Finding, build_vocabulary, check_text, summarise
 from ...core.schema import LIST_SECTIONS, Profile, iter_bullets
-from ...core.storage import PROFILE_PATH, load_profile, save_profile
+from ...core import cvs
+from ...core.storage import default_profile_path, load_profile, save_profile
 from ...core.sample import sample_profile
 from ...render import photo
 
@@ -62,6 +63,11 @@ def write_profile(incoming: Profile) -> SaveResult:
     atomically and leaves a timestamped backup behind.
     """
     path = save_profile(incoming)
+    # A CV still carrying the name we gave it ("CV 2") takes the name of the
+    # person in it the first time there is one, so the switcher is a list of
+    # names rather than a list of numbers. A CV the user has named is left
+    # alone -- see `cvs.adopt_profile_name`.
+    cvs.adopt_profile_name(incoming.basics.name)
     return SaveResult(saved=True, path=str(path), schema_version=incoming.schema_version)
 
 
@@ -166,6 +172,11 @@ def delete_photo() -> PhotoResult:
     stored = load_profile()
     photo.remove_photo(stored.basics.photo)
     stored.basics.photo = ""
-    if PROFILE_PATH.exists():
+    # Only if this CV has been written before -- deleting a portrait should
+    # not be what creates a file for an otherwise untouched CV. The check used
+    # to be `PROFILE_PATH`, the single file every profile lived in; since
+    # profiles moved into `data/cvs`, that named a path the active CV is not
+    # at, so the save never happened and the portrait came back on reload.
+    if default_profile_path().exists():
         save_profile(stored)
     return PhotoResult(photo="")

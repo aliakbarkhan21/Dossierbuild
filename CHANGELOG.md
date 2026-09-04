@@ -71,12 +71,30 @@ builder, and fixes an accessibility failure that had been there all along.
   take the scale and skip the rest. The preview mounts a slide later, behind
   the placeholder that was already there. Measured: the 260ms the sidebar
   highlight is sliding for is now clean, against gaps of 83ms and 217ms.
+- **More than one CV.** A switcher in the sidebar and a button to start a
+  fresh one. Each CV is a profile file of exactly the format storage already
+  reads, so every migration and the atomic write apply unchanged; the only new
+  thing is which file `load_profile()` reaches for. The design, the
+  applications, the saved versions and the letters stay shared — a house style
+  and a record of a job search belong to the person, not to a document.
+  Starting a new one asks nothing, because the one being left is a file
+  autosave has already written and switching does not touch it. An existing
+  profile is adopted as CV one on first run, copied rather than moved.
+- **The profile's section tabs slide too**, sharing the sidebar's handling
+  rather than a second copy of it.
 - **Structured wireframe skeletons.** Each template card draws its own
   silhouette while Chromium renders the real thing, so the grid stops being
   eight identical grey boxes and answers the question the reader actually has.
 
 ### Fixed
 
+- A portrait deleted from the profile came back on reload: the save was
+  guarded on the old single-profile path, which is not where a profile lives
+  any more.
+- `test_lifetime` compared a fabricated timestamp against `time.monotonic()`,
+  so whether it passed depended on how long the machine had been switched on
+  — it failed on one booted twelve minutes earlier. The heartbeat now takes a
+  clock the way `should_stop` already did.
 - **"Number the pages" changed the PDF and nothing on screen.** The flag
   reached `render_pdf` and stopped there, so the switch looked dead: the
   export was numbered, the preview never was. The preview now draws the

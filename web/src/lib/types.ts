@@ -508,3 +508,17 @@ export interface InterviewBrief {
   /** Named in your skills and described in no bullet — the weakest claim. */
   declared_only: string[];
 }
+
+/** One CV in the data directory. The facts are per-CV; the design is not. */
+export interface CVSummary {
+  id: string;
+  name: string;
+  created: string;
+  updated: string;
+  blank: boolean;
+}
+
+export interface CVList {
+  cvs: CVSummary[];
+  active: string;
+}

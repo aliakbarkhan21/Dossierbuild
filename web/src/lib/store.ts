@@ -21,7 +21,10 @@ import {
   type History,
   type Snapshot,
 } from "./history";
-import type { Design, DesignOptions, Health, Profile, QualityReport } from "./types";
+import type { Design, DesignOptions, Health, Profile, QualityReport,
+  CVSummary,
+  CVList,
+} from "./types";
 import { toast } from "./toast";
 
 interface State {
@@ -86,6 +89,12 @@ interface State {
   setDesign: (patch: Partial<Design>, label?: string) => void;
   reloadProfile: (profile: Profile, label?: string) => void;
   bumpPhoto: () => void;
+  /** Every CV in the data directory, and which one is open. */
+  cvs: CVSummary[];
+  activeCv: string;
+  newCv: () => Promise<void>;
+  switchCv: (id: string) => Promise<void>;
+  adoptCv: (list: CVList) => Promise<void>;
   loadSample: () => Promise<void>;
   clearProfile: () => Promise<void>;
   /** Hide the chip without touching the data, for "I am building on this". */
@@ -188,6 +197,8 @@ export const useStore = create<State>()(
     savedAt: null,
 
     autosave: autosavePreference(),
+    cvs: [],
+    activeCv: "",
     past: [],
     future: [],
     photoVersion: 0,
@@ -195,17 +206,20 @@ export const useStore = create<State>()(
 
     async boot() {
       try {
-        const [profile, design, options, health] = await Promise.all([
+        const [profile, design, options, health, cvs] = await Promise.all([
           api.getProfile(),
           api.getDesign(),
           api.options(),
           api.health(),
+          api.cvs(),
         ]);
         set((s) => {
           s.profile = profile;
           s.design = design;
           s.options = options;
           s.health = health;
+          s.cvs = cvs.cvs;
+          s.activeCv = cvs.active;
           s.ready = true;
           s.bootError = null;
         });
@@ -376,6 +390,48 @@ export const useStore = create<State>()(
         s.dirty = true;
       });
       scheduleAutosave(get);
+    },
+
+    /**
+     * Start a fresh CV and open it. The one being left is already on disk.
+     *
+     * Not an undoable edit, and deliberately not routed through
+     * `reloadProfile`: switching document is not a change to a document, and
+     * a history that could Ctrl+Z you into a different CV's contents would be
+     * a history nobody could reason about. The past is dropped and the new
+     * document starts its own.
+     */
+    async newCv() {
+      try {
+        const list = await api.newCv();
+        await get().adoptCv(list);
+        toast.success("New CV started", "The one you were on is saved. Switch back from the sidebar.");
+      } catch (error) {
+        if (error instanceof ApiError) toast.error(error.message, error.fix);
+      }
+    },
+
+    async switchCv(id) {
+      if (id === get().activeCv) return;
+      try {
+        await get().adoptCv(await api.switchCv(id));
+      } catch (error) {
+        if (error instanceof ApiError) toast.error(error.message, error.fix);
+      }
+    },
+
+    /** The half both of the above share: take the server's word for it. */
+    async adoptCv(list: CVList) {
+      const profile = await api.getProfile();
+      set((s) => {
+        s.cvs = list.cvs;
+        s.activeCv = list.active;
+        s.profile = profile;
+        s.past = [];
+        s.future = [];
+        s.dirty = false;
+      });
+      void get().refreshQuality();
     },
 
     async loadSample() {

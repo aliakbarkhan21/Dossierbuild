@@ -30,6 +30,7 @@ import type {
   Suggestion,
   Version,
   VersionDetail,
+  CVList,
 } from "./types";
 
 export class ApiError extends Error {
@@ -133,6 +134,12 @@ export const api = {
   quality: () => request<QualityReport>("/api/profile/quality"),
   /** A worked example. Returned, not saved -- loading it is an ordinary edit. */
   sampleProfile: () => request<Profile>("/api/profile/sample"),
+
+  cvs: () => request<CVList>("/api/cvs"),
+  newCv: () => request<CVList>("/api/cvs", "POST", {}),
+  switchCv: (id: string) => request<CVList>(`/api/cvs/${id}/active`, "PUT"),
+  renameCv: (id: string, name: string) => request<CVList>(`/api/cvs/${id}`, "PUT", { name }),
+  deleteCv: (id: string) => request<CVList>(`/api/cvs/${id}`, "DELETE"),
   /** An empty profile of the current shape, from the schema that defines it. */
   blankProfile: () => request<Profile>("/api/profile/blank"),
 

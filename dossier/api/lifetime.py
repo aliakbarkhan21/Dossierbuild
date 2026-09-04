@@ -57,14 +57,20 @@ class Lifetime:
         self.last_seen: float | None = None
         self.leaving_since: float | None = None
 
-    def beat(self) -> None:
-        self.last_seen = time.monotonic()
+    def beat(self, now: float | None = None) -> None:
+        # `now` is here for the same reason `should_stop` has it: these three
+        # are one clock, and a test that fabricates a time for one of them and
+        # lets the others read `time.monotonic()` is comparing a made-up
+        # instant against however long this machine has been switched on. That
+        # is exactly what the refresh test was doing -- it passed on a machine
+        # up for a quarter of an hour and failed on one just booted.
+        self.last_seen = time.monotonic() if now is None else now
         # A heartbeat is proof the page is still there, so it withdraws a
         # pagehide that turned out to be a refresh.
         self.leaving_since = None
 
-    def leaving(self) -> None:
-        self.leaving_since = time.monotonic()
+    def leaving(self, now: float | None = None) -> None:
+        self.leaving_since = time.monotonic() if now is None else now
 
     def seconds_since_beat(self) -> float | None:
         """For /api/health, so "why has it not exited" is answerable."""

@@ -82,10 +82,10 @@ def test_a_refresh_does_not_stop_it() -> None:
     and the server it was talking to is gone.
     """
     state = live()
-    state.beat()
+    state.beat(now=999.0)
     state.leaving_since = 1000.0
 
-    state.beat()  # the reloaded page, about a second later
+    state.beat(now=1001.0)  # the reloaded page, about a second later
 
     assert state.leaving_since is None
     assert not state.should_stop(now=1000.0 + LEAVING_GRACE + 1)

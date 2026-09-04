@@ -205,9 +205,26 @@ def format_validation_error(exc: ValidationError) -> str:
     return "\n".join([header, *lines])
 
 
+def default_profile_path() -> Path:
+    """Where the profile lives when the caller does not say.
+
+    The CV in front of the user, which is a file in ``data/cvs``. Resolved
+    through one function rather than a constant because there is now more than
+    one profile in a data directory, and every existing caller of
+    ``load_profile()`` should follow the switch without knowing about it.
+
+    Imported inside the function on purpose: ``cvs`` needs ``DATA_DIR`` and
+    ``PROFILE_PATH`` from this module, so a top-level import either way is a
+    cycle.
+    """
+    from .cvs import active_path
+
+    return active_path()
+
+
 def load_profile(path: Path | None = None) -> Profile:
     """Load and validate the profile, returning a blank one if none exists."""
-    path = path or PROFILE_PATH
+    path = path or default_profile_path()
     if not path.exists():
         return Profile.empty()
 
@@ -240,7 +257,7 @@ def save_profile(profile: Profile, path: Path | None = None, *, backup: bool = T
     Without this, a crash or a full disk part-way through writing would leave a
     truncated profile.json -- and the truncated file would be the only copy.
     """
-    path = path or PROFILE_PATH
+    path = path or default_profile_path()
     path.parent.mkdir(parents=True, exist_ok=True)
 
     if backup and path.exists():
