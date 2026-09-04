@@ -57,6 +57,21 @@ builder, and fixes an accessibility failure that had been there all along.
 
 ### Fixed
 
+- **"Number the pages" changed the PDF and nothing on screen.** The flag
+  reached `render_pdf` and stopped there, so the switch looked dead: the
+  export was numbered, the preview never was. The preview now draws the
+  number Chromium will print, in the same corner, size and grey.
+- **The zoom slider ignored Fit.** Only the document knows what the
+  automatic fit came out as — it computes the scale inside the frame from the
+  pane's width against the sheet's — so the handle sat wherever it was last
+  dragged, reporting a number that was not the scale on screen. The frame
+  posts its scale out and the handle follows it.
+
+- **"Page 2 holds about 1 line" is gone.** It was a real measurement rather
+  than debug output, fired when a document ran just past a page boundary, but
+  it read as an error on a document that was not wrong. The page count beside
+  it already says the document is two pages.
+
 - **The switches did not look like switches.** The knob was the full height
   of a 32px track, so it travelled 10px and covered two-thirds of the ground:
   what the eye saw was a circle with a coloured crescent behind it, and

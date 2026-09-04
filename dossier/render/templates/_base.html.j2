@@ -328,6 +328,14 @@ ul.bul li::before {
 .cred { text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 2px; }
 .cred, .cred-name { font-weight: 600; color: var(--ink); }
 
+.pagenum {
+  position: absolute;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 8px;
+  color: #767680;
+  pointer-events: none;
+}
+
 .lines { margin: 0; padding: 0; list-style: none; }
 .lines li { margin-top: 3pt; break-inside: avoid; }
 .lines li:first-child { margin-top: 0; }
@@ -378,6 +386,7 @@ ul.bul li::before {
   var zoom = {{ zoom }};
   var breaks = {{ 'true' if breaks else 'false' }};
   var fit_mode = '{{ fit }}';
+  var numbered = {{ 'true' if design.show_page_numbers else 'false' }};
 
   var pages = 1;          // what `measure` found, what `fit` scales
   var sheetW = 0;         // fixed in mm, so it is read once
@@ -413,6 +422,19 @@ ul.bul li::before {
     }
 
     sheet.style.transform = 'scale(' + scale + ')';
+    // Tell whoever embedded us what the scale came out as.
+    //
+    // Only this document knows it: the automatic fit is computed here, from
+    // the pane's width and the sheet's, and the host has neither. Without
+    // this the zoom slider outside had nothing to show for "Fit" and sat
+    // wherever it was last dragged, reporting a number that was not the
+    // scale on screen. `event.source` identifies us at the other end -- there
+    // are nine of these documents alive on the Resume screen.
+    if (window.parent && window.parent !== window) {
+      try {
+        window.parent.postMessage({ dossierFit: scale, dossierPages: pages }, '*');
+      } catch (e) { /* a host that will not be spoken to is not our problem */ }
+    }
     desk.style.height = (PAGE_H * pages * scale) + 'px';
     desk.style.overflow = 'hidden';
     // A scaled sheet is wider than the pane at anything over fit, and a
@@ -426,11 +448,14 @@ ul.bul li::before {
 
   function measure() {
     Array.prototype.forEach.call(
-      document.querySelectorAll('.pagebreak'), function (n) { n.remove(); }
+      document.querySelectorAll('.pagebreak, .pagenum'), function (n) { n.remove(); }
     );
-    // Both of these have to go before measuring: the markers and the stretched
-    // paper are outputs of the last pass, and measuring them would make every
-    // pass believe the document had grown.
+    // All of these have to go before measuring: the markers, the page
+    // numbers and the stretched paper are outputs of the last pass, and
+    // measuring them would make every pass believe the document had grown.
+    // The page numbers are the sharpest version of it -- one is positioned
+    // near the foot of the last page, so leaving it in place adds a page
+    // every pass, and a two-page document reads as four in a blink.
     sheet.style.minHeight = '';
 
     var content = sheet.scrollHeight - PAD * 2;
@@ -440,6 +465,24 @@ ul.bul li::before {
     // still shows two full sheets, because that is what comes out of the
     // printer.
     sheet.style.minHeight = (PAGE_H * pages) + 'px';
+
+    // The page number the print will carry, drawn where the print puts it.
+    //
+    // `show_page_numbers` reached `render_pdf` and stopped there, so the
+    // switch changed the exported file and nothing on screen: pressing it
+    // looked like pressing a dead button. Same corner, same size, same grey
+    // as pdf_worker's footer template, so what you see is what comes out.
+    if (numbered) {
+      for (var n = 0; n < pages; n++) {
+        var tag = document.createElement('div');
+        tag.className = 'pagenum';
+        tag.textContent = (n + 1) + ' / ' + pages;
+        // Inside the bottom margin band, as Chromium's footer is.
+        tag.style.top = (PAGE_H * (n + 1) - PAD * 0.5 - 5) + 'px';
+        tag.style.right = PAD + 'px';
+        sheet.appendChild(tag);
+      }
+    }
 
     if (breaks) {
       for (var i = 1; i < pages; i++) {
@@ -453,16 +496,15 @@ ul.bul li::before {
     }
 
     if (left && right) {
-      var spill = content - usable * (pages - 1);
-      var lines = Math.max(1, Math.round(spill / LINE));
       left.innerHTML =
         '<b>' + pages + (pages === 1 ? ' page' : ' pages') + '</b> · {{ page.name }}'
         + ' · {{ margin_mm | round | int }}mm margins';
-      if (pages > 1 && lines <= 8) {
-        // The case worth calling out: a page that exists to hold four lines.
-        right.innerHTML = '<span class="over">Page ' + pages + ' holds about '
-          + lines + (lines === 1 ? ' line' : ' lines') + '</span>';
-      } else if (pages === 1) {
+      // No spill warning. "Page 2 holds about 1 line" was a real
+      // measurement, not debug output -- it fired when the document ran just
+      // past a page boundary -- but it read as an error on a document that
+      // was not wrong, and it is the one line on this bar nobody asked for.
+      // The page count beside it already says the document is two pages.
+      if (pages === 1) {
         var room = Math.max(0, Math.round((usable - content) / LINE));
         right.innerHTML = room > 1 ? ('Room for about ' + room + ' more lines') : 'Full page';
       } else {

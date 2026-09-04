@@ -169,10 +169,21 @@ export function ResumeScreen() {
   })));
 
   // 0 means fit-to-pane; anything else is a literal scale. `percent` is what
-  // the slider shows, and it survives a trip through Fit so going back to a
-  // manual zoom returns you to the one you had.
+  // the slider shows.
+  //
+  // It used to be left alone by Fit, on the reasoning that returning to a
+  // manual zoom should return you to the one you had. What that produced was
+  // a slider reporting a number that was not the scale on screen, and a Fit
+  // button that visibly did nothing to the control right beside it. The
+  // handle follows the document now, including when the document works its
+  // own scale out -- see `dossierFit` below.
   const [zoom, setZoom] = useState(0);
   const [percent, setPercent] = useState(100);
+  const previewFrame = useRef<HTMLIFrameElement>(null);
+  // Read by the message listener, which is registered once and would
+  // otherwise close over the zoom as it was on mount.
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
   const [fullscreen, setFullscreen] = useState(false);
   const [filter, setFilter] = useState("All");
   const [preview, setPreview] = useState("");
@@ -199,6 +210,32 @@ export function ResumeScreen() {
     JSON.stringify({ design, name: profile?.basics.name, photoVersion }),
     400,
   );
+
+  // What the automatic fit actually came out as.
+  //
+  // Only the document can know: the scale is computed inside the frame from
+  // the pane's width against the sheet's, and nothing out here has those
+  // numbers. The frame is sandboxed into an opaque origin, so `event.origin`
+  // is the string "null" and useless as a check -- `event.source` is the
+  // identity that survives, and it has to be checked, because eight template
+  // thumbnails are posting the same message about their own scale.
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (event.source !== previewFrame.current?.contentWindow) return;
+      const scale = (event.data as { dossierFit?: unknown } | null)?.dossierFit;
+      if (typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0) return;
+      // Only while the fit is automatic. Under a manual zoom the frame is
+      // reporting back the scale it was just given, and letting that set the
+      // handle would fight the hand dragging it.
+      if (zoomRef.current !== 0) return;
+      setPercent((was) => {
+        const next = Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, scale * 100)));
+        return next === was ? was : next;
+      });
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
   const inFlight = useRef(0);
 
@@ -555,6 +592,7 @@ export function ResumeScreen() {
 
           <Frame
             html={preview}
+            frameRef={previewFrame}
             title="Resume preview"
             className="card min-h-[70vh] flex-1 overflow-hidden"
             placeholder={
