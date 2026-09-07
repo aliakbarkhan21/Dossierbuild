@@ -9,6 +9,8 @@
 
 import {
   Briefcase,
+  Check,
+  ChevronDown,
   FilePlus2,
   FileText,
   Download,
@@ -21,7 +23,7 @@ import {
   Trash2,
   User,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import { MARKER_COLOUR_CLASS, markerStyle, useSlidingMarker } from "../lib/marker";
@@ -195,6 +197,10 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
  * is about, because "are you sure?" over a document you cannot see while
  * being asked is a question nobody can answer.
  */
+const PANEL =
+  "absolute left-3 top-full z-30 w-[248px] max-w-[calc(100vw-2rem)] rounded-md " +
+  "border border-line bg-surface p-2.5 shadow-raised";
+
 function CVSwitcher() {
   const { cvs, activeCv, newCv, switchCv, deleteCv } = useStore(
     useShallow((s) => ({
@@ -206,10 +212,32 @@ function CVSwitcher() {
     })),
   );
   const [busy, setBusy] = useState(false);
-  // Whether the delete is armed. In place rather than in a modal: the row is
-  // 200px of sidebar, and a dialog over the whole app for one line of
-  // confirmation is a bigger interruption than the thing being confirmed.
+  // Whether the delete is armed. Below the row rather than over the app: a
+  // modal for one line of confirmation is a bigger interruption than the
+  // thing being confirmed, and it takes you away from what you are deleting.
   const [arming, setArming] = useState(false);
+  const [open, setOpen] = useState(false);
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open && !arming) return;
+    const shut = () => {
+      setOpen(false);
+      setArming(false);
+    };
+    const away = (event: PointerEvent) => {
+      if (!rowRef.current?.contains(event.target as Node)) shut();
+    };
+    const key = (event: KeyboardEvent) => {
+      if (event.key === "Escape") shut();
+    };
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("keydown", key);
+    };
+  }, [open, arming]);
 
   async function run(work: () => Promise<void>) {
     setBusy(true);
@@ -221,87 +249,149 @@ function CVSwitcher() {
   }
 
   const active = cvs.find((cv) => cv.id === activeCv);
-
-  // Deleting is the one action here that a switch cannot undo, so it asks --
-  // and it asks about the CV you are looking at, which is why the prompt
-  // takes the row rather than sitting beside a list you could still change.
-  if (arming && active) {
-    return (
-      <div className="flex items-center gap-1 px-3 pb-1">
-        <span className="min-w-0 flex-1 truncate text-2xs text-muted" title={active.name}>
-          Delete “{active.name}”?
-        </span>
-        <button
-          type="button"
-          className="btn shrink-0 px-1.5 py-1 text-2xs text-poor"
-          disabled={busy}
-          onClick={() =>
-            void run(async () => {
-              await deleteCv(active.id);
-              setArming(false);
-            })
-          }
-        >
-          Delete
-        </button>
-        <button
-          type="button"
-          className="btn btn-quiet shrink-0 px-1.5 py-1 text-2xs"
-          disabled={busy}
-          onClick={() => setArming(false)}
-        >
-          Keep
-        </button>
-      </div>
-    );
-  }
+  const label = active?.name ?? "Your CV";
 
   return (
-    <div className="flex items-center gap-1.5 px-3 pb-1">
+    <div ref={rowRef} className="relative flex items-center gap-1.5 px-3 pb-1">
       {cvs.length > 1 ? (
-        <select
-          aria-label="Which CV"
-          className="field h-8 min-w-0 flex-1 py-1 text-xs"
-          value={activeCv}
-          disabled={busy}
-          onChange={(event) => void run(() => switchCv(event.target.value))}
-        >
-          {cvs.map((cv) => (
-            <option key={cv.id} value={cv.id}>
-              {cv.name}
-              {cv.blank ? " · empty" : ""}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <span className="min-w-0 flex-1 truncate text-xs text-faint">
-          {cvs[0]?.name ?? "Your CV"}
-        </span>
-      )}
-      <button
-        type="button"
-        className="btn btn-quiet shrink-0 px-1.5 py-1"
-        onClick={() => void run(newCv)}
-        disabled={busy}
-        title="Start a new CV. This one is saved and stays in the list."
-        aria-label="New CV"
-      >
-        <FilePlus2 size={15} />
-      </button>
-      {/* Only once there is somewhere to land. The last CV cannot go -- the
-          registry refuses it -- and a button that only ever errors is worse
-          than no button, so it is not shown until deleting means something. */}
-      {cvs.length > 1 && (
         <button
           type="button"
-          className="btn btn-quiet shrink-0 px-1.5 py-1"
-          onClick={() => setArming(true)}
+          className={[
+            // No border and no reserved arrow gutter: the chevron follows the
+            // last letter instead of being pinned to the right of a box, so a
+            // short name takes a short row and a long one gets every pixel
+            // between the logo above it and the buttons beside it.
+            "-mx-1 flex min-w-0 items-center gap-1 rounded px-1 py-1 text-sm font-medium",
+            "text-ink transition-colors hover:bg-sunken disabled:opacity-45",
+          ].join(" ")}
+          onClick={() => {
+            setArming(false);
+            setOpen((was) => !was);
+          }}
           disabled={busy}
-          title="Delete the CV you are on. A copy is kept in data/backups."
-          aria-label="Delete this CV"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-label="Which CV"
+          title={label}
         >
-          <Trash2 size={15} />
+          <span className="truncate">{label}</span>
+          <ChevronDown
+            size={14}
+            strokeWidth={2}
+            className={`shrink-0 text-muted transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+          />
         </button>
+      ) : (
+        <span className="min-w-0 truncate text-sm font-medium text-muted" title={label}>
+          {label}
+        </span>
+      )}
+
+      <span className="ml-auto flex shrink-0 items-center gap-1.5">
+        <button
+          type="button"
+          className="btn btn-quiet px-1.5 py-1"
+          onClick={() => void run(newCv)}
+          disabled={busy}
+          title="Start a new CV. This one is saved and stays in the list."
+          aria-label="New CV"
+        >
+          <FilePlus2 size={15} />
+        </button>
+        {/* Only once there is somewhere to land. The last CV cannot go -- the
+            registry refuses it -- and a button that only ever errors is worse
+            than no button, so it is not shown until deleting means something. */}
+        {cvs.length > 1 && (
+          <button
+            type="button"
+            className="btn btn-quiet px-1.5 py-1"
+            onClick={() => {
+              setOpen(false);
+              setArming(true);
+            }}
+            disabled={busy}
+            title="Delete the CV you are on. A copy is kept in data/backups."
+            aria-label="Delete this CV"
+          >
+            <Trash2 size={15} />
+          </button>
+        )}
+      </span>
+
+      {/* Deleting is the one action in this row that a switch cannot undo,
+          so it asks -- and it asks in the panel rather than in the row,
+          because the row is 200px of sidebar and the question is *which CV*.
+          A confirmation that has to truncate the name it is asking about is
+          not a confirmation. */}
+      {arming && active && (
+        <div className={PANEL}>
+          <p className="text-xs text-ink">
+            Delete “<span className="font-medium">{active.name}</span>”?
+          </p>
+          <p className="mt-1 text-2xs text-faint">
+            A copy is kept in data/backups, and the CVs you are not on are untouched.
+          </p>
+          <div className="mt-2.5 flex justify-end gap-1.5">
+            <button
+              type="button"
+              className="btn btn-quiet px-2 py-1 text-2xs"
+              disabled={busy}
+              onClick={() => setArming(false)}
+            >
+              Keep
+            </button>
+            <button
+              type="button"
+              className="btn px-2 py-1 text-2xs text-poor"
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  await deleteCv(active.id);
+                  setArming(false);
+                })
+              }
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* The list is where there is room to be complete: full names, and
+          "empty" said in words rather than squeezed into the trigger. */}
+      {open && (
+        <ul
+          role="listbox"
+          aria-label="Your CVs"
+          className={`${PANEL} max-h-72 overflow-y-auto p-0 py-1`}
+        >
+          {cvs.map((cv) => {
+            const on = cv.id === activeCv;
+            return (
+              <li key={cv.id}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={on}
+                  className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-xs hover:bg-sunken"
+                  onClick={() => {
+                    setOpen(false);
+                    if (!on) void run(() => switchCv(cv.id));
+                  }}
+                >
+                  <Check
+                    size={13}
+                    className={on ? "shrink-0 text-accent" : "shrink-0 opacity-0"}
+                  />
+                  <span className={`min-w-0 flex-1 truncate ${on ? "font-medium text-ink" : "text-muted"}`}>
+                    {cv.name}
+                  </span>
+                  {cv.blank && <span className="shrink-0 text-2xs text-faint">empty</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );
