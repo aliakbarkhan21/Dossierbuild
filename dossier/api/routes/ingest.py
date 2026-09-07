@@ -8,7 +8,7 @@ into a reviewable change rather than an overwrite.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from ...ai import parse as ai_parse
@@ -57,7 +57,12 @@ def parse_text(request: ParseRequest) -> Parsed:
     Nothing here writes to the profile. The result is handed back for review,
     and only ``/plan`` + the client's acceptance turn it into a change.
     """
-    result = ai_parse.parse_resume_text(request.text, model=request.model)
+    try:
+        result = ai_parse.parse_resume_text(request.text, model=request.model)
+    except ValueError as exc:
+        # An empty box is something the person can fix; say so rather than
+        # handing them a 500.
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return Parsed(
         profile=result.profile,
         model=result.model,

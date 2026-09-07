@@ -4,12 +4,19 @@
 to live somewhere. This is that somewhere: one small validated model covering
 the choices a person actually wants to make, and nothing more.
 
-**Curated, not open-ended.** There is no colour picker, no font box, no margin
-slider. A resume is read for six seconds by someone deciding whether to keep
-reading; the difference between a good one and a bad one is never the
-particular blue. Six accents that all print legibly, nine type pairings known
-to sit well together, three margin widths and a small type scale cover every
-real need and make a bad-looking output hard to produce by accident.
+**Curated, not open-ended.** There is no colour picker and no font box. A
+resume is read for six seconds by someone deciding whether to keep reading;
+the difference between a good one and a bad one is never the particular blue.
+Six accents that all print legibly, nine type pairings known to sit well
+together and a small type scale cover every real need and make a bad-looking
+output hard to produce by accident.
+
+Margins are the one exception, and the reason is arithmetic rather than taste:
+the difference between spilling onto a second sheet and not is often two
+millimetres, and the three presets step by four and five. So ``margin_mm``
+keeps the presets and ``margin_custom_mm`` takes a value between
+``MARGIN_MIN_MM`` and ``MARGIN_MAX_MM`` when someone needs the number in
+between. A choice with a measurable right answer is not a matter of taste.
 
 The design is stored beside the UI preferences rather than inside
 ``profile.json``: the profile is the material, this is how one rendering of it

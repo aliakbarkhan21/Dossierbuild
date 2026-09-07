@@ -14,11 +14,49 @@ with no API key at all.
 brief, and a first run with a worked example in it. See
 [CHANGELOG.md](CHANGELOG.md) for what changed and why.
 
+![The Resume screen: eight templates, and a preview that is the printed document](docs/resume.png)
+
+---
+
+## What is different about it
+
+Most resume tools hand your history and the job advert to a model together and
+print whatever comes back. Three things here are deliberately not that.
+
+**The model is never asked what the job requires.** `core/jobspec.py` reads
+the posting by rules — a technology lexicon, structural shapes, and your own
+declared vocabulary — weights each term by where it sits in the advert, and
+scores your profile against the result. So the gap analysis is deterministic,
+testable, and works with **no API key at all**. Only the rewriting step uses a
+model, and it is handed the analysis rather than the advert.
+
+![Tailor: a posting read by rules into weighted requirements, scored against the profile](docs/tailor.png)
+
+**A rewrite cannot add facts, and the check is a diff rather than a prompt.**
+Every suggestion is compared against the bullet it came from: any number, tool
+or employer that appears in neither the source nor anywhere else in your
+profile is flagged, and flagged suggestions arrive **unticked**. The posting's
+own vocabulary is deliberately excluded from what counts as known — a letter
+that picks up "Kubernetes" from the advert gets caught rather than waved
+through. The Applications screen then reports how often the audit fired and
+how often you accepted a flagged line anyway, because a guard nobody can see
+firing is a guard nobody should trust.
+
+**The writing standard is code, and the same code judges the model's output.**
+`core/quality.py` is a bullet linter — filler phrases, and a specificity check
+that reads the skills and technologies *you* entered rather than a fixed list.
+It never blocks a save. It is also what every AI rewrite is run through, so a
+suggestion that trades one kind of filler for another shows up as a score that
+did not move.
+
+![Health check: every bullet against the writing standard, with the line to fix](docs/health.png)
+
 ---
 
 ## What it does
 
-**Seven screens, and each does one thing.**
+**Seven screens, and each does one thing.** (The interview brief is a
+sheet inside Applications rather than a screen of its own.)
 
 | | |
 | --- | --- |
@@ -38,6 +76,15 @@ section order and visibility. Six named looks apply four coherent
 combinations each — twenty-four designs in two clicks. There is no colour
 picker, because the difference between a good resume and a bad one was never
 the particular blue.
+
+**More than one CV, when one genuinely will not do.** One master profile is
+still the default, and focus tags are still the right answer to "the same
+facts, aimed at a different job". But a research post and a support role are
+two different accounts of a life, not one document tailored twice — so the
+sidebar switches between CVs, each a profile file of exactly the same format.
+The design, the applications, the saved versions and the letters are shared:
+those are a record of a job search, not of a document. Starting one asks
+nothing, because the one you were on is already written to disk.
 
 **A saved version is the document you actually sent.** Profile and design
 together, because a resume is both: the same words at 92% type with tight
@@ -75,8 +122,9 @@ interface, so a machine running Dossierbuild needs Python and Chromium but no
 Node.
 
 On Windows, `scripts/launch.vbs` does all of that window-less and opens the
-browser once the port answers — it is what the desktop shortcut runs.
-`scripts/stop.cmd` stops it.
+browser once the port answers — it is what the desktop shortcut runs. There is
+no stop script: the page heartbeats while it is open, and the server exits a
+few seconds after the last tab closes.
 
 While working on the frontend, run Vite instead for hot reload:
 
@@ -106,7 +154,7 @@ docker run -p 8000:8000 -v "$PWD/data:/data" -e GEMINI_API_KEY=... dossierbuild
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                            # 171 checks, about 55 seconds (real PDFs)
+pytest                            # 178 checks, about a minute (real PDFs)
 cd web && npm test                # 18 checks on the undo stack's arithmetic
 ```
 
@@ -140,6 +188,7 @@ dossier/
     interview.py     the pre-interview brief, by rules over the posting
     sample.py        the worked example, written to the standard it teaches
     ids.py           stable short ids
+    cvs.py           more than one CV in one data directory
   ingest/    PDF · DOCX · LinkedIn -> profile, plus the merge review. No AI.
   ai/        every call that leaves this machine for a model
     client.py        the key, the model fallback ladder, the retry budget
@@ -238,10 +287,9 @@ parsing failure.
 Stated plainly, because a list of what a tool does not do is more useful than
 a claim that it does everything.
 
-- **One profile, not many.** There is no "switch between resumes": there is
-  one master profile, and saved versions are frozen archives of what was sent
-  rather than documents you can go on editing. Focus tags cover the common
-  reason people want two.
+- **Saved versions are archives, not documents.** You can read and reprint
+  exactly what an employer was sent, but you cannot go on editing it. To keep
+  working on something, start a CV or use a focus tag.
 - **No hosted sharing.** The HTML export is a self-contained file you can send
   or host yourself. There are no public links, accounts or expiry.
 - **No DOCX export.** PDF, self-contained HTML, and plain text.
@@ -254,9 +302,26 @@ a claim that it does everything.
 
 ---
 
-## Roadmap
+## What I would build next
 
-In progress towards v1.0: editing directly in the preview, a snippet library,
-bulk actions on bullets, a command palette covering every action, guided
-review and skill normalisation. This section becomes an honest "what I would
-build next" when the version is frozen.
+Not a promise, and not a list of things I ran out of time for — these are the
+four I would pick up first, and why.
+
+- **Editing in the preview.** Rendered blocks already carry `data-block-id`,
+  which is what the Health screen's jump-to-bullet uses, so the mapping from a
+  node back to a fact already exists. The invariant that makes it hard is the
+  one worth keeping: the printed document must not change by a pixel.
+- **A snippet library.** The same three sentences get retyped across
+  applications. They belong in a table, the way saved versions are.
+- **Bulk actions on bullets.** Multi-select, then delete, move to another
+  entry, or improve as a batch. Today every bullet is handled one at a time.
+- **Beyond Gemini.** The ladder in `ai/client.py` is Gemini-specific, and the
+  three prompts behind it are not. An interface over the call would let this
+  run against a local model, which suits an app whose whole argument is that
+  your history stays on your machine.
+
+---
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).

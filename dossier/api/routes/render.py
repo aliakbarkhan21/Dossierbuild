@@ -11,12 +11,12 @@ from __future__ import annotations
 from fastapi import APIRouter, Response
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from ...core.schema import Profile
 from ...core.storage import load_profile
 from ...render.context import build_context, suggested_filename
-from ...render.design import Design, load_design
+from ...render.design import TEMPLATES, Design, load_design
 from ...render.html import render_html, render_thumbnail
 from ...render.pdf import pdf_report, render_pdf
 from ...render.text import plain_text
@@ -36,6 +36,17 @@ class RenderRequest(BaseModel):
 
 class ThumbnailRequest(RenderRequest):
     template: str
+
+    @field_validator("template")
+    @classmethod
+    def known(cls, value: str) -> str:
+        # `Design` repairs an unknown template to the default, but this one
+        # arrives as a plain string and reaches the template map through
+        # `model_copy`, which does not re-validate. Unchecked, it was a
+        # KeyError and a 500.
+        if value not in TEMPLATES:
+            raise ValueError(f"Unknown template {value!r}.")
+        return value
 
 
 @router.post("/preview", response_class=Response)

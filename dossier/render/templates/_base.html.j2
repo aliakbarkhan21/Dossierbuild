@@ -175,7 +175,7 @@ body { padding-top: 0; }
   font-size: calc(var(--fs) * .92);
   color: var(--muted);
 }
-.contact li { display: inline-flex; align-items: baseline; }
+.contact li { display: inline-flex; align-items: baseline; min-width: 0; overflow-wrap: anywhere; }
 /* A separator drawn by CSS rather than typed into the data: it never ends up
    stranded at the end of a wrapped line the way a typed " | " does. */
 .contact li + li::before {
@@ -231,6 +231,19 @@ body { padding-top: 0; }
   font-size: calc(var(--fs) * 1.04);
 }
 .entry-sub { color: var(--body); font-weight: 600; }
+/* A flex child will not shrink below its own content's minimum width, and for
+   an unbroken token that minimum is the whole token -- so `overflow-wrap` on
+   `body` never gets the chance to break it and the text runs off the right
+   edge of the paper. It is not a hypothetical: a 300-character role title
+   printed with 104 characters in the PDF's text layer, the rest silently
+   gone, and a long portfolio URL vanished entirely. `min-width: 0` lets the
+   box shrink; `anywhere` lets a word break where there is no space to break
+   at. Real sources of one: a pasted link, a German compound, an import that
+   ran two fields together. */
+.entry-title,
+.entry-sub,
+.entry-note,
+.entry-link { min-width: 0; overflow-wrap: anywhere; }
 .entry-meta {
   color: var(--muted);
   font-size: calc(var(--fs) * .9);

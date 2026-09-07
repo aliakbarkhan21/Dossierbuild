@@ -14,16 +14,22 @@ retrying makes sense.
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from ..ai.parse import MissingAPIKey
+from ..core.cvs import CVError
 from ..core.schema import DATE_PATTERN
 from ..core.storage import ProfileError
 from ..ingest.extract import ExtractError
 from ..render.pdf import PDFError
 from ..render.photo import PhotoError
+
+
+logger = logging.getLogger("dossier.api")
 
 
 def problem(status: int, message: str, *, fix: str = "") -> JSONResponse:
@@ -113,9 +119,42 @@ def install(app: FastAPI) -> None:
             fix="Set GEMINI_API_KEY in .env. Get one free at aistudio.google.com/apikey.",
         )
 
+    @app.exception_handler(CVError)
+    async def _cv(_: Request, exc: CVError) -> JSONResponse:
+        # ``cvs.json`` sits under every route that touches a profile, health
+        # included, so a corrupt index would otherwise make the whole app
+        # answer 500 with nothing to act on.
+        return problem(422, str(exc), fix="Fix data/cvs.json, or move it aside to start a fresh list.")
+
     @app.exception_handler(PDFError)
     async def _pdf(_: Request, exc: PDFError) -> JSONResponse:
         # 503 rather than 500: every way this fails -- a missing browser, a
         # font fetch that timed out -- is fixed by acting and trying again,
         # not by the client changing its request.
         return problem(503, str(exc), fix="Try again. If it repeats, run: python -m playwright install chromium")
+
+    @app.exception_handler(Exception)
+    async def _unexpected(request: Request, exc: Exception) -> JSONResponse:
+        """The last handler, and the reason the ones above are worth writing.
+
+        Without it, anything not named above -- a model that will not answer,
+        an invalid key, a machine with no network -- arrives at the browser as
+        Starlette's plain-text ``Internal Server Error``. The client cannot
+        parse that as JSON, so it falls back to printing the status line, and
+        the careful sentence raised at the point of failure is thrown away.
+
+        The message is carried across as-is. Every ``RuntimeError`` this app
+        raises is already written for the person reading it -- ``ai/client.py``
+        explains that Gemini is congested and what to set to avoid it -- and a
+        message written for a person is better than "something went wrong".
+
+        The traceback still goes to the log: this changes what the user is
+        told, not what the developer can find out.
+        """
+        logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+        message = str(exc).strip() or f"{type(exc).__name__} while handling this request."
+        return problem(
+            500,
+            message,
+            fix="Try again. If it repeats, the server log has the full traceback.",
+        )

@@ -57,6 +57,10 @@ RETRYABLE = (
     "504", "DEADLINE_EXCEEDED",
 )
 
+#: The same set as ``RETRYABLE``, as numbers, for when the exception carries
+#: a code rather than only a sentence.
+RETRYABLE_CODES = frozenset({404, 429, 500, 503, 504})
+
 RETRY_BUDGET_SECONDS = 75
 
 # How long one attempt may take before the next model is tried.
@@ -162,6 +166,40 @@ def candidates(model: str | None) -> list[str]:
     return unique
 
 
+def _key_rejected(message: str) -> bool:
+    return "API_KEY_INVALID" in message or "API key not valid" in message
+
+
+def _retryable(exc: BaseException, message: str) -> bool:
+    """Whether another model, or another pass, is worth trying.
+
+    Two sources, because neither alone is enough.
+
+    **The status code, read off the exception rather than out of its text.**
+    ``str(exc)`` was the only input here, and substring matching on it is
+    wrong in both directions: a request id or a token count containing "429"
+    reads as rate limiting, while a genuine 500 does not match at all.
+
+    **The transport exceptions, which carry no status because no response
+    arrived.** This is the one that mattered. ``REQUEST_TIMEOUT_MS`` exists to
+    turn a slow model into "try the next one", but a timeout surfaces as
+    ``httpx.ReadTimeout`` whose ``str()`` is the single phrase "timed out" --
+    matching none of the tokens below, so the app's own deadline was aborting
+    the ladder it was built to drive. Being offline failed the same way.
+    """
+    code = getattr(exc, "code", None) or getattr(exc, "status_code", None)
+    if isinstance(code, int):
+        return code in RETRYABLE_CODES
+    try:
+        import httpx
+    except ImportError:  # pragma: no cover -- httpx ships with the SDK
+        pass
+    else:
+        if isinstance(exc, (httpx.TimeoutException, httpx.ConnectError, httpx.RemoteProtocolError)):
+            return True
+    return any(token in message for token in RETRYABLE)
+
+
 def short(message: str) -> str:
     """The first meaningful line of an API error, for a status line."""
     first = message.strip().splitlines()[0]
@@ -218,7 +256,16 @@ def generate(
                 )
             except Exception as exc:  # noqa: BLE001 -- inspected, then re-raised
                 message = str(exc)
-                if not any(token in message for token in RETRYABLE):
+                if _key_rejected(message):
+                    # Present but not valid: revoked, mistyped, or for another
+                    # project. Trying five more models with the same key only
+                    # spends a minute proving it again.
+                    raise MissingAPIKey(
+                        "Gemini rejected that API key. Check GEMINI_API_KEY in .env -- "
+                        "a key is about 39 characters and starts with AIza. "
+                        "Get a fresh one free at aistudio.google.com/apikey."
+                    ) from exc
+                if not _retryable(exc, message):
                     raise
                 failures[name] = short(message)
                 last_error = exc

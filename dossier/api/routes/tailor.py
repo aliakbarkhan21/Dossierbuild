@@ -17,7 +17,7 @@ covers it.
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from ...ai import tailor as ai_tailor
@@ -184,12 +184,17 @@ def rewrite(request: RewriteRequest) -> RewriteOut:
     """Propose rewrites. Writes nothing; every suggestion arrives audited."""
     profile = _profile(request.profile)
     report = jobspec.analyse(profile, request.text, title=request.title, company=request.company)
-    result = ai_tailor.tailor(
-        profile,
-        report,
-        entry_ids=set(request.entry_ids) if request.entry_ids else None,
-        model=request.model,
-    )
+    try:
+        result = ai_tailor.tailor(
+            profile,
+            report,
+            entry_ids=set(request.entry_ids) if request.entry_ids else None,
+            model=request.model,
+        )
+    except ValueError as exc:
+        # "There is nothing to tailor yet" is advice, not a failure. Reaching
+        # here through an empty profile used to produce a 500.
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return RewriteOut(
         model=result.model,
         summary=_suggestion(result.summary) if result.summary else None,

@@ -6,6 +6,72 @@ wrong for a while, it says that too.
 
 ---
 
+## Unreleased
+
+### Added
+
+- **More than one CV.** A switcher and a "new CV" button in the sidebar, and a
+  way to delete one. Each CV is a profile file of exactly the format
+  ``storage`` already reads, so every migration and the atomic write apply
+  unchanged. The design, the applications, the saved versions and the letters
+  stay shared: those are a record of a job search, not of a document. Starting
+  one asks nothing, because the one you were on is already on disk. Deleting
+  asks once and moves the file to ``data/backups`` rather than unlinking it.
+- **A licence.** MIT. Without one a public repository is legally
+  all-rights-reserved, which is not what a portfolio piece is for.
+- **Screenshots in the README**, taken on the app's own worked sample.
+
+### Fixed
+
+- **Long unbroken text no longer runs off the printed page.** ``.entry-line``
+  is a flex row and its children had no ``min-width: 0``, so a flex item would
+  not shrink below its content's minimum — and for an unbroken token that
+  minimum is the whole token, which meant the ``overflow-wrap`` rule on
+  ``body`` never got a chance. Measured before the fix: a 300-character role
+  title printed with **104 characters** in the PDF's text layer and the rest
+  silently gone; a long portfolio URL vanished entirely. All 300 now survive.
+  Triggered in practice by a pasted link, a compound word, or an import that
+  ran two fields together.
+- **Errors reach the person instead of the log.** There was no catch-all
+  exception handler, so anything not on the list of six typed handlers arrived
+  as Starlette's plain-text ``Internal Server Error`` — which the client
+  cannot parse as JSON, so it fell back to printing the status line. Every
+  carefully-worded ``RuntimeError`` in ``ai/client.py``, including the one
+  explaining that Gemini is congested and what to set to avoid it, was being
+  thrown away. Also adds a handler for ``CVError``: a corrupt ``cvs.json``
+  sits under every route that touches a profile, health included, and used to
+  make the whole app answer 500 with nothing to act on.
+- **A rejected API key says so.** A key that is present but invalid produced
+  ``500 Internal Server Error``; it now names the problem and where to get a
+  new one, and stops rather than spending the retry budget proving the same
+  key wrong five more times.
+- **The request timeout can now trigger the fallback ladder it was written
+  for.** Retryability was decided by substring-matching ``str(exc)``, which is
+  wrong in both directions: a request id containing "429" read as rate
+  limiting, and an ``httpx.ReadTimeout`` — whose ``str()`` is the single
+  phrase "timed out" — matched nothing. So ``REQUEST_TIMEOUT_MS``, which
+  exists to turn a slow model into "try the next one", was aborting the ladder
+  instead. Being offline failed the same way. Now read off the exception's
+  status code, with the transport exceptions handled by type.
+- **Two reachable 500s are now 422s.** "There is nothing to tailor yet" and
+  "There is no text to parse." are advice, and arrived as server errors.
+- **An unknown template key no longer 500s.** ``/api/render/thumbnail`` took
+  the template as a bare string and reached the template map through
+  ``model_copy``, which does not re-validate.
+
+### Documentation
+
+- The README listed "one profile, not many" under **Known limitations** three
+  days after multi-CV shipped, advertised a ``scripts/stop.cmd`` that was
+  deliberately deleted, claimed 171 tests against 178, said "seven screens"
+  above an eight-row table, and carried a roadmap "towards v1.0" under a v1.1
+  heading. All corrected, and the roadmap is now the honest "what I would
+  build next" it always said it would become.
+- ``render/design.py``'s module docstring stated as a design principle that
+  there is "no margin slider". The margin slider shipped in 1.1.
+
+---
+
 ## 1.1.0 — 2026-09-04
 
 The improved version. 1.0.0 made everything in the app work; this one adds the
