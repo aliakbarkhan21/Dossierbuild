@@ -22,6 +22,8 @@ what phase 3's accept/revert depends on.
 
 from __future__ import annotations
 
+from typing import get_args
+
 import os
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -35,6 +37,7 @@ from ..core.schema import (
     Basics,
     Certification,
     Education,
+    EmploymentType,
     Experience,
     Link,
     Profile,
@@ -235,10 +238,20 @@ def parse_resume_text(
 # Raw -> schema
 # --------------------------------------------------------------------------
 
-VALID_EMPLOYMENT = {
-    "internship", "placement", "part-time", "full-time",
-    "freelance", "volunteer", "research",
-}
+#: The schema's own spellings, keyed by their lowercase form. Derived from
+#: ``EmploymentType`` rather than retyped, so a value added to the schema
+#: cannot go missing here -- which is the bug this replaced.
+def _key(value: str) -> str:
+    """One spelling for a kind of employment, however it was written.
+
+    "Full-time", "Full Time", "full  time" and "FULL-TIME" are one answer, and
+    a resume will use all four. Spaces and underscores collapse to the hyphen
+    the schema uses.
+    """
+    return "-".join(value.strip().lower().replace("_", " ").replace("-", " ").split())
+
+
+EMPLOYMENT = {_key(value): value for value in get_args(EmploymentType)}
 
 
 def _date(value: str) -> str | None:
@@ -261,7 +274,19 @@ def _blocks(lines: list[str]) -> list[TextBlock]:
 
 
 def _employment(value: str) -> str:
-    return value.strip().title() if value.strip().lower() in VALID_EMPLOYMENT else "Other"
+    """Whatever the model called it, in the spelling the schema accepts.
+
+    This used to be ``value.title()``, which capitalises after *every*
+    non-letter -- so "full-time" became "Full-Time" and the schema, which
+    spells it "Full-time", rejected it. The two hyphenated values are the two
+    most common kinds of employment there are, and an import naming either one
+    failed on a raw Pydantic error. Nothing else in the set has a hyphen,
+    which is why it stayed hidden.
+
+    Matching against the schema's own values fixes the class of bug rather
+    than the instance: there is now no second list to keep in step.
+    """
+    return EMPLOYMENT.get(_key(value), "Other")
 
 
 def to_profile(raw: RawResume) -> Profile:

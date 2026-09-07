@@ -18,6 +18,7 @@ import logging
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
 from fastapi.responses import JSONResponse
 
 from ..ai.parse import MissingAPIKey
@@ -132,6 +133,29 @@ def install(app: FastAPI) -> None:
         # font fetch that timed out -- is fixed by acting and trying again,
         # not by the client changing its request.
         return problem(503, str(exc), fix="Try again. If it repeats, run: python -m playwright install chromium")
+
+    @app.exception_handler(ValidationError)
+    async def _model(_: Request, exc: ValidationError) -> JSONResponse:
+        """A Pydantic error raised inside a route, said in English.
+
+        ``RequestValidationError`` above covers a bad *request body*. This
+        covers the other way one arrives: something the app builds itself
+        failing its own schema -- an imported resume whose employment type the
+        model spelled differently, say. Same ``describe()``, because the
+        person reading it has the same question either way.
+
+        Without this it reached the catch-all below, which carries the message
+        across verbatim -- and verbatim, here, is "1 validation error for
+        Experience employment_type Input should be 'Internship', ...
+        [type=literal_error] For further information visit
+        https://errors.pydantic.dev/". True, and addressed to the wrong reader.
+        """
+        problems = [describe(dict(error)) for error in exc.errors()]
+        return problem(
+            422,
+            "; ".join(problems[:3]) + ("; and more" if len(problems) > 3 else ""),
+            fix="Nothing was saved. If this came from an import, the file can be brought in again.",
+        )
 
     @app.exception_handler(Exception)
     async def _unexpected(request: Request, exc: Exception) -> JSONResponse:
