@@ -20,6 +20,16 @@ wrong for a while, it says that too.
 - **A licence.** MIT. Without one a public repository is legally
   all-rights-reserved, which is not what a portfolio piece is for.
 - **Screenshots in the README**, taken on the app's own worked sample.
+- **A Settings screen.** The API key, which model to try first, what this copy
+  can do, and where the files are. The key is checked with Google before being
+  stored, so a typo fails in the box rather than on the screen where you next
+  needed it; it never travels back to the client; and a key exported in your
+  shell is reported as one this screen cannot remove, rather than being given
+  a button that would not work.
+- **Continuous integration.** Both suites and a real Chromium on every push,
+  deliberately with no API key set -- everything but three features is meant
+  to work without one, and a run with no key is the only thing that proves it.
+  All 213 pass that way.
 
 ### Fixed
 
@@ -76,6 +86,16 @@ wrong for a while, it says that too.
   Ünsal-Öztürk-Resume-Classic.pdf. Twenty-six tests, and the first non-ASCII
   fixtures in the suite -- which is why this survived to 1.1: every profile in
   every test was called "A. Student".
+- **`chromium_ready()` no longer spawns a Playwright driver on every call.**
+  It is called by `/api/health`, which the open page heartbeats against, so
+  the cost was being paid continuously. 0.50s to 0.00s. Only a success is
+  cached; a failure can change while the app runs, because the fix for it is
+  to install the browser.
+- **`ENV_PATH` was fixed at the project's own `.env`**, so a second copy of
+  the app -- or the test suite -- would write over the key belonging to the
+  real one. Overridable by `DOSSIER_ENV_FILE`, which `conftest` now sets.
+- **A rejected key is one sentence, not a wall of JSON.** The SDK's `str()` is
+  the entire error body; `.message` is what Google wrote for a person.
 - **An unknown template key no longer 500s.** ``/api/render/thumbnail`` took
   the template as a bare string and reached the template map through
   ``model_copy``, which does not re-validate.

@@ -1,5 +1,7 @@
 # Dossierbuild
 
+[![Checks](https://github.com/aliakbarkhan21/Dossierbuild/actions/workflows/checks.yml/badge.svg)](https://github.com/aliakbarkhan21/Dossierbuild/actions/workflows/checks.yml)
+
 An AI-assisted resume builder that runs on your own machine. You keep one
 complete master profile of everything you have done; each application gets a
 version re-angled at that job, printed to a real PDF, and filed against the
@@ -154,8 +156,8 @@ docker run -p 8000:8000 -v "$PWD/data:/data" -e GEMINI_API_KEY=... dossierbuild
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                            # 178 checks, about a minute (real PDFs)
-cd web && npm test                # 18 checks on the undo stack's arithmetic
+pytest                            # 213 checks, about 90 seconds (real PDFs)
+cd web && npm test                # 25 checks on the undo stack and the API client
 ```
 
 Or without pytest — each script runs on the app's own dependencies:

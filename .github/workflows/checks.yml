@@ -1,0 +1,86 @@
+# What has to be true before a change lands.
+#
+# The suite prints real PDFs rather than mocking Chromium, which is the whole
+# reason it catches anything -- a mocked renderer passes on the day the browser
+# goes missing. So CI installs Chromium and pays the minute. The alternative is
+# a green tick that means less than the tests it is reporting on.
+#
+# No API key is present here, and that is deliberate: everything except three
+# features is meant to work without one, and a run with no key is the only
+# thing that actually proves it.
+
+name: Checks
+
+on:
+  push:
+    branches: [main, v1-final]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # A second push supersedes the first; nobody needs the older answer.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python — tests and checks, with a real browser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Install Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Tests
+        run: pytest -q
+
+      # Run separately as well as through `test_checks.py`: these are the
+      # scripts a reader is told to run in the README, so the README's claim
+      # is what is being verified.
+      - name: Checks
+        run: |
+          for script in phase1 phase2 import tailor db; do
+            echo "--- check_$script"
+            python "scripts/check_$script.py"
+          done
+
+  web:
+    name: Frontend — types and the undo stack
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+
+      # `tsc --strict` is the only static gate this project has, so it is a
+      # blocking step rather than a warning.
+      - name: Typecheck
+        run: npx tsc -b --noEmit
+
+      - name: Tests
+        run: npx vitest run
+
+      # A build failure is a broken app even when every test passes: the
+      # server serves `web/dist`, and nothing else builds it.
+      - name: Build
+        run: npm run build
