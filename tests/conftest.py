@@ -20,4 +20,11 @@ for path in (ROOT, ROOT / "scripts"):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
-os.environ["DOSSIER_DATA_DIR"] = tempfile.mkdtemp(prefix="dossier-tests-")
+_SANDBOX = tempfile.mkdtemp(prefix="dossier-tests-")
+os.environ["DOSSIER_DATA_DIR"] = _SANDBOX
+
+# The same guard for the key file. ``remember_api_key`` writes a real .env,
+# and the Settings routes call it -- so without this a test run would
+# overwrite the key belonging to the copy of the app the developer actually
+# uses. Set here, before any import reads it, for the same reason as above.
+os.environ["DOSSIER_ENV_FILE"] = str(Path(_SANDBOX) / ".env")

@@ -33,8 +33,27 @@ class PDFError(RuntimeError):
     """Rendering failed, with a message worth showing a person."""
 
 
-def chromium_ready() -> tuple[bool, str]:
+#: A successful answer, kept. Finding out costs a Node driver spawn, and the
+#: answer is a property of the installation rather than of the request -- but
+#: `/api/health` asks on every poll and the Settings screen asks on every
+#: read, so it was being paid over and over. Only a *success* is cached: a
+#: failure is the case that can change while the app is running, because the
+#: fix for it is to go and install the browser.
+_READY: tuple[bool, str] | None = None
+
+
+def chromium_ready(*, recheck: bool = False) -> tuple[bool, str]:
     """Whether the browser Playwright needs is actually installed."""
+    global _READY
+    if _READY is not None and not recheck:
+        return _READY
+    result = _chromium_ready()
+    if result[0]:
+        _READY = result
+    return result
+
+
+def _chromium_ready() -> tuple[bool, str]:
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:

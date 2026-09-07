@@ -35,6 +35,7 @@ from .routes import (  # noqa: E402
     letter,
     profile,
     render,
+    settings,
     suggest,
     tailor,
 )
@@ -100,6 +101,7 @@ app.include_router(applications.versions)
 app.include_router(letter.router)
 app.include_router(letter.filed)
 app.include_router(suggest.router)
+app.include_router(settings.router)
 
 lifetime.install(app)
 

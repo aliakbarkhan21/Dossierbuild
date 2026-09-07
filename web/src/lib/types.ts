@@ -524,3 +524,30 @@ export interface CVList {
   cvs: CVSummary[];
   active: string;
 }
+
+/** Everything about the installation rather than about the document. */
+export interface Capability {
+  ok: boolean;
+  detail: string;
+}
+
+export interface SettingsStorage {
+  data_dir: string;
+  env_file: string;
+  backups: number;
+  bytes: number;
+}
+
+export interface Settings {
+  key_set: boolean;
+  /** `AIza…9f2b`. Never the key itself. */
+  key_hint: string;
+  /** Exported in the shell rather than written by us, so we cannot remove it. */
+  key_from_environment: boolean;
+  /** Empty means no pin: walk the ladder from the top. */
+  model: string;
+  models: string[];
+  storage: SettingsStorage;
+  ai: Capability;
+  pdf: Capability;
+}

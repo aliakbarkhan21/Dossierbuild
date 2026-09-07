@@ -358,7 +358,10 @@ def to_profile(raw: RawResume) -> Profile:
 # mid-session works immediately, with no restart.
 
 
-ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
+# Overridable so a test -- or a second copy of the app pointed at its own data
+# directory -- cannot write over the key belonging to the real one. It defaults
+# to the project's own .env, which is where it has always been.
+ENV_PATH = Path(os.environ.get("DOSSIER_ENV_FILE") or Path(__file__).resolve().parents[2] / ".env")
 
 
 def use_api_key(key: str) -> None:
@@ -380,9 +383,16 @@ def verify_api_key(key: str) -> str | None:
     try:
         client = genai.Client(api_key=key.strip())
         next(iter(client.models.list()), None)
-    except Exception as exc:  # noqa: BLE001 -- surfaced to the user verbatim
-        detail = str(exc).strip().splitlines()[0][:200]
-        return f"That key was refused: {detail}"
+    except Exception as exc:  # noqa: BLE001 -- surfaced to the user
+        # `str()` on the SDK's error is the whole JSON body -- status, code,
+        # a @type URL and a metadata dict -- which is a wall of punctuation to
+        # someone who has just mistyped a key. `.message` is the one sentence
+        # Google wrote for a person, so prefer it and fall back to the first
+        # line only when there is nothing better.
+        detail = str(getattr(exc, "message", "") or "").strip()
+        if not detail:
+            detail = str(exc).strip().splitlines()[0]
+        return f"That key was refused: {detail[:200]}"
     return None
 
 

@@ -9,12 +9,17 @@
 
 import type {
   ApplicationStatus,
+  CVList,
   Design,
   DesignOptions,
   Draft,
   Extracted,
   FitReport,
   Health,
+  InterviewBrief,
+  LetterBody,
+  LetterDetail,
+  LetterSummary,
   MatchReport,
   MergePlan,
   Overview,
@@ -22,15 +27,11 @@ import type {
   PdfResult,
   Profile,
   QualityReport,
-  InterviewBrief,
-  LetterBody,
-  LetterDetail,
-  LetterSummary,
   RewriteResult,
+  Settings,
   Suggestion,
   Version,
   VersionDetail,
-  CVList,
 } from "./types";
 
 export class ApiError extends Error {
@@ -288,6 +289,11 @@ export const api = {
     const disposition = response.headers.get("content-disposition") ?? "";
     return { blob: await response.blob(), filename: filenameFrom(disposition, "Cover-Letter.pdf") };
   },
+
+  settings: () => request<Settings>("/api/settings"),
+  saveKey: (key: string) => request<Settings>("/api/settings/key", "PUT", { key }),
+  clearKey: () => request<Settings>("/api/settings/key", "DELETE"),
+  pinModel: (model: string) => request<Settings>("/api/settings/model", "PUT", { model }),
 
   analysePosting: (body: { text: string; title?: string; company?: string; profile?: Profile }) =>
     request<MatchReport>("/api/tailor/analyse", "POST", body),

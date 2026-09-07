@@ -117,7 +117,7 @@ def client():
     key = next((os.environ[v] for v in API_KEY_VARS if os.environ.get(v)), None)
     if not key:
         raise MissingAPIKey(
-            "No Gemini API key found. Paste one into the Import page "
+            "No Gemini API key found. Add one on the Settings screen "
             "(get one free at aistudio.google.com/apikey), or set "
             "GEMINI_API_KEY in .env."
         )
@@ -129,6 +129,19 @@ def client():
     built = genai.Client(api_key=key, http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS))
     _client = (key, built)
     return built
+
+
+def forget() -> None:
+    """Drop the cached client and the remembered model.
+
+    Called when Settings changes the key or pins a model. The client is keyed
+    on the key so it would rebuild anyway, but ``_last_good`` would not: after
+    a key change it points at a model chosen for a different account, and
+    after a pin it would outrank the pin on the first attempt.
+    """
+    global _client, _last_good
+    _client = None
+    _last_good = None
 
 
 def warm() -> None:
@@ -261,9 +274,9 @@ def generate(
                     # project. Trying five more models with the same key only
                     # spends a minute proving it again.
                     raise MissingAPIKey(
-                        "Gemini rejected that API key. Check GEMINI_API_KEY in .env -- "
-                        "a key is about 39 characters and starts with AIza. "
-                        "Get a fresh one free at aistudio.google.com/apikey."
+                        "Gemini rejected that API key. Check it on the Settings "
+                        "screen -- pasting it there tests it before saving. Get a "
+                        "fresh one free at aistudio.google.com/apikey."
                     ) from exc
                 if not _retryable(exc, message):
                     raise

@@ -18,6 +18,7 @@ import {
   Target,
   Moon,
   PanelLeftClose,
+  Settings as SettingsIcon,
   Stethoscope,
   Sun,
   Trash2,
@@ -142,14 +143,34 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
       </ul>
 
       <div className="mt-auto border-t border-line p-3">
-        <button
-          type="button"
-          className="btn btn-quiet w-full justify-start"
-          onClick={() => setModeState(toggleMode())}
-        >
-          {mode === "dark" ? <Moon size={15} /> : <Sun size={15} />}
-          {mode === "dark" ? "Dark" : "Light"}
-        </button>
+        {/* Both of these are about the app rather than about the document, which
+            is why they sit down here with each other rather than in the nav
+            above: that list is places to work, and neither of these is one.
+            The palette hint stays in the top bar -- it is the only thing that
+            tells anyone the palette exists. */}
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            className="btn btn-quiet min-w-0 flex-1 justify-start"
+            onClick={() => setModeState(toggleMode())}
+          >
+            {mode === "dark" ? <Moon size={15} /> : <Sun size={15} />}
+            {mode === "dark" ? "Dark" : "Light"}
+          </button>
+          <NavLink
+            to="/settings"
+            title="Your API key, the model, and where your data lives"
+            aria-label="Settings"
+            className={({ isActive }) =>
+              [
+                "btn btn-quiet shrink-0 px-1.5 py-1",
+                isActive ? "border-accent text-accent" : "",
+              ].join(" ")
+            }
+          >
+            <SettingsIcon size={15} />
+          </NavLink>
+        </div>
 
         {/* What the app can actually do right now, stated rather than
             discovered when a button fails. */}
