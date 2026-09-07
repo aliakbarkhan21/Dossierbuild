@@ -472,40 +472,66 @@ ul.bul li::before {
     return y;
   }
 
+  //: The seam's height, and it has to match `.pagebreak`'s. The band is not
+  //: an overlay drawn over the text -- it occupies real space in the flow,
+  //: which is the only way nothing ends up behind it.
+  var GAP = 14;
+
+  /** Top of the seam after page `i` (1-based), in sheet coordinates. */
+  function seamTop(i, usable) {
+    return PAD + i * usable + (i - 1) * GAP;
+  }
+
+  /** Where page `i`'s content begins. `seamTop(0)` makes page one work too. */
+  function pageTop(i, usable) {
+    return seamTop(i - 1, usable) + GAP;
+  }
+
+  /** The last pixel of content, ignoring the min-height set for the paper. */
+  function contentBottom() {
+    return sheet.scrollHeight - PAD;
+  }
+
   /**
-   * Push every block that straddles a page boundary onto the next page.
+   * Give every page break real space, and move what would sit in it.
    *
-   * One block per pass, then re-measure: moving anything shifts everything
-   * below it, and a push can add a page, which adds a boundary. The guard is
-   * a ceiling on passes rather than a correctness condition -- each pass
-   * either moves one block or stops.
+   * The band used to be painted over the flow on the reasoning that it
+   * "covers the few pixels of the line the printer cuts through anyway". The
+   * printer cuts through nothing -- `ul.bul li`, `.entry-head` and
+   * `.skill-row` all carry `break-inside: avoid` -- so covering anything is
+   * covering text that is really there. Pushing the straddling block to the
+   * boundary was not enough either: the band is 14px tall and centred on the
+   * cut, so it still painted over the first 7px of whatever started the next
+   * page. Measured: band 1603-1624, block starting 1613.
+   *
+   * So the seam is a real gap now. Each page holds `usable` of content, then
+   * `GAP` of nothing with the band in it, then the next page. A block that
+   * would land in the gap, or cross it, is moved to the far side -- which is
+   * what the printer does with it.
    */
-  function settle(pages, usable) {
-    for (var guard = 0; guard < 24; guard++) {
-      var moved = false;
-      for (var i = 1; i < pages && !moved; i++) {
-        var cut = PAD + usable * i;
-        var atoms = sheet.querySelectorAll(ATOMS);
-        for (var a = 0; a < atoms.length; a++) {
-          var el = atoms[a];
-          var top = topWithin(el, sheet);
-          var bottom = top + el.offsetHeight;
-          // Half a pixel of tolerance: a block ending exactly on the cut is
-          // on this page, not straddling it.
-          if (top < cut - 0.5 && bottom > cut + 0.5) {
-            // Never push the block that starts a page -- it is already as far
-            // up as it can go, and pushing it would loop.
-            if (top <= PAD + usable * (i - 1) + 0.5) break;
-            var current = parseFloat(getComputedStyle(el).marginTop) || 0;
-            el.style.marginTop = (current + (cut - top)) + 'px';
-            el.setAttribute('data-pushed', '');
-            moved = true;
-            break;
-          }
+  function settle(usable) {
+    var pages = 1;
+    for (var i = 1; i < 60; i++) {
+      var seam = seamTop(i, usable);
+      if (contentBottom() <= seam + 0.5) break;
+
+      var atoms = sheet.querySelectorAll(ATOMS);
+      for (var a = 0; a < atoms.length; a++) {
+        var el = atoms[a];
+        var top = topWithin(el, sheet);
+        var bottom = top + el.offsetHeight;
+        // Reaches the seam, and starts before the far side of it.
+        if (bottom > seam + 0.5 && top < seam + GAP - 0.5) {
+          // A block that already begins this page cannot be moved off it --
+          // it is as high as it goes, and pushing it would not terminate.
+          if (top <= pageTop(i, usable) + 0.5) break;
+          var current = parseFloat(getComputedStyle(el).marginTop) || 0;
+          el.style.marginTop = (current + (seam + GAP - top)) + 'px';
+          el.setAttribute('data-pushed', '');
+          break;
         }
       }
-      if (!moved) break;
-      pages = Math.max(1, Math.ceil((sheet.scrollHeight - PAD * 2) / usable));
+      pages = i + 1;
     }
     return pages;
   }
@@ -564,7 +590,11 @@ ul.bul li::before {
     // as well would move the content twice and change the printed document,
     // which is the one thing that must not happen here. `breaks` is false for
     // the print, but `numbered` can be true, so `measure()` does run.
-    if (breaks) pages = settle(pages, usable);
+    // In print, Chromium's own pagination does this; pushing as well would
+    // move the content twice and change the printed document, which is the
+    // one thing that must not happen here. `breaks` is false for the print,
+    // but `numbered` can be true, so `measure()` does run there.
+    if (breaks) pages = settle(usable);
 
     // Paper is paper: a two-page resume whose second page holds four lines
     // still shows two full sheets, because that is what comes out of the
@@ -576,7 +606,8 @@ ul.bul li::before {
     // of it is `usable` tall, not `PAGE_H`. `PAGE_H * pages` added `PAD * 2`
     // of blank paper for every page after the first: 240px of nothing under
     // a three-page CV.
-    sheet.style.minHeight = (PAD * 2 + usable * pages) + 'px';
+    sheet.style.minHeight =
+      (PAD * 2 + usable * pages + (breaks ? GAP * (pages - 1) : 0)) + 'px';
 
     // The page number the print will carry, drawn where the print puts it.
     //
@@ -596,7 +627,7 @@ ul.bul li::before {
         // per page: +25px on page one, +146px on page two, +267px on page
         // three. So "2 / 3" was drawn a seventh of a page *below* its own
         // seam -- which is to say, on page three.
-        tag.style.top = (PAD + usable * (n + 1) - 17) + 'px';
+        tag.style.top = (seamTop(n + 1, usable) - 17) + 'px';
         tag.style.right = PAD + 'px';
         sheet.appendChild(tag);
       }
@@ -606,9 +637,9 @@ ul.bul li::before {
       for (var i = 1; i < pages; i++) {
         var gap = document.createElement('div');
         gap.className = 'pagebreak';
-        // Centred on the cut rather than starting at it, so the sheet above
-        // ends where the paper ends.
-        gap.style.top = (PAD + usable * i - 7) + 'px';
+        // At the cut, not centred on it: the seam is real space in the flow
+        // now, so the band fills a gap rather than covering text.
+        gap.style.top = seamTop(i, usable) + 'px';
         sheet.appendChild(gap);
       }
     }

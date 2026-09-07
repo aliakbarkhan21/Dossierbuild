@@ -184,8 +184,17 @@ Rules, in order of importance:
    "Present", "Current" and "Ongoing" mean the end date is an empty string.
 4. Split each role's description into its individual bullet points. One bullet
    per achievement, as the resume laid them out.
-5. Sort skills into the category headings the resume itself uses. If it lists
-   skills without headings, use one group labelled "Skills".
+5. Sort skills into the category headings the resume itself uses, and keep
+   the resume's own wording for the group label. A great many resumes never
+   use the word "skills" for this section: "Core Expertise", "Core
+   Competencies", "Areas of Expertise", "Technical Skills", "Key Skills",
+   "Capabilities", "Competencies", "Technologies", "Tools" and "Specialisms"
+   all mean the same thing and all belong in `skills`. So does a list of
+   capabilities separated by pipes, commas, bullets or slashes under any
+   heading of that kind -- split it on the separator, one item each. If a
+   resume lists skills with no heading at all, use one group labelled
+   "Skills". Losing this section entirely is a common and serious failure:
+   for a senior candidate it is often the densest part of the document.
 6. A project belongs in projects, not experience, even if it is described in
    detail. Coursework and modules belong to the education entry.
 7. If the text is garbled or interleaved (common with two-column PDFs), extract
