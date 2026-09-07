@@ -18,6 +18,7 @@ from datetime import date
 
 from ..core.schema import Profile
 from .context import build_context
+from .naming import safe_stem
 from .design import Design
 from .html import _env, _variables
 
@@ -104,7 +105,6 @@ def render_letter_html(
 
 def letter_filename(profile: Profile, letter: LetterDocument) -> str:
     """Named for the reader, the way `suggested_filename` names the resume."""
-    parts = [p for p in (profile.basics.name, "Cover Letter", letter.company) if p.strip()]
-    stem = "-".join("".join(c for c in p if c.isalnum() or c in " -").strip().replace(" ", "-")
-                    for p in parts)
+    parts = (profile.basics.name, "Cover Letter", letter.company)
+    stem = "-".join(s for s in (safe_stem(p) for p in parts) if s)
     return f"{stem or 'Cover-Letter'}.pdf"

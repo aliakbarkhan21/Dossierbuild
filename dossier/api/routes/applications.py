@@ -27,6 +27,8 @@ from ...render.design import Design, load_design
 from ...render.html import render_html
 from ...render.pdf import pdf_report, render_pdf
 
+from ..downloads import attachment
+
 router = APIRouter(prefix="/api/applications", tags=["applications"])
 
 # Versions are addressed by their own id rather than through the application
@@ -409,7 +411,9 @@ def reprint(version_id: str, connection: sqlite3.Connection = Depends(db)) -> Re
         content=data,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="{suggested_filename(profile, design)}"',
+            "Content-Disposition": attachment(
+                suggested_filename(profile, design), fallback="Resume"
+            ),
             "X-Pages": str(report.pages),
             "X-Words": str(report.words),
             "X-Machine-Readable": "1" if report.machine_readable else "0",

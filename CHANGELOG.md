@@ -55,6 +55,27 @@ wrong for a while, it says that too.
   status code, with the transport exceptions handled by type.
 - **Two reachable 500s are now 422s.** "There is nothing to tailor yet" and
   "There is no text to parse." are advice, and arrived as server errors.
+- **An applicant whose name is not written in the Latin alphabet can
+  download their documents.** The name went into a ``Content-Disposition``
+  header, Starlette encodes headers as latin-1, and nothing caught the
+  ``UnicodeEncodeError`` -- so a cover letter for someone called 李明 or محمد
+  returned **HTTP 500**. The resume path dodged the crash by deleting the
+  characters instead, which is not better: "Ünsal Öztürk" downloaded as
+  ``nsal-zt-rk-Resume-Classic.pdf`` and a name in Han characters vanished
+  entirely, leaving a file named after a template.
+
+  Fixed on both sides, because it took both. The server now sends RFC 6266's
+  two forms in one header: a transliterated ``filename=`` that folds accents
+  rather than deleting letters, and ``filename*=`` carrying the real
+  characters as percent-encoded UTF-8. The client was the other half -- it
+  fetches the file as a blob and hands it over with ``<a download>``, so the
+  browser never reads the header itself, and the regex there only ever
+  matched the ASCII form. It reads the encoded one first now.
+
+  Verified in a browser: 李明-Resume-Classic.pdf, محمد-الأحمد-Resume-Classic.pdf,
+  Ünsal-Öztürk-Resume-Classic.pdf. Twenty-six tests, and the first non-ASCII
+  fixtures in the suite -- which is why this survived to 1.1: every profile in
+  every test was called "A. Student".
 - **An unknown template key no longer 500s.** ``/api/render/thumbnail`` took
   the template as a bare string and reached the template map through
   ``model_copy``, which does not re-validate.

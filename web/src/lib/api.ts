@@ -162,10 +162,9 @@ export const api = {
     });
     if (!response.ok) throw await failure(response);
     const disposition = response.headers.get("content-disposition") ?? "";
-    const match = /filename="([^"]+)"/.exec(disposition);
     return {
       blob: await response.blob(),
-      filename: match?.[1] ?? "Resume.pdf",
+      filename: filenameFrom(disposition, "Resume.pdf"),
       pages: Number(response.headers.get("X-Pages") ?? 0),
       words: Number(response.headers.get("X-Words") ?? 0),
       machineReadable: response.headers.get("X-Machine-Readable") === "1",
@@ -231,10 +230,9 @@ export const api = {
     const response = await fetch(`/api/versions/${id}/pdf`, { method: "POST" });
     if (!response.ok) throw await failure(response);
     const disposition = response.headers.get("content-disposition") ?? "";
-    const match = /filename="([^"]+)"/.exec(disposition);
     return {
       blob: await response.blob(),
-      filename: match?.[1] ?? "Resume.pdf",
+      filename: filenameFrom(disposition, "Resume.pdf"),
       pages: Number(response.headers.get("X-Pages") ?? 0),
       words: Number(response.headers.get("X-Words") ?? 0),
       machineReadable: response.headers.get("X-Machine-Readable") === "1",
@@ -279,16 +277,16 @@ export const api = {
       body: JSON.stringify(body),
     });
     if (!response.ok) throw await failure(response);
-    const match = /filename="([^"]+)"/.exec(response.headers.get("content-disposition") ?? "");
-    return { blob: await response.blob(), filename: match?.[1] ?? "Cover-Letter.pdf" };
+    const disposition = response.headers.get("content-disposition") ?? "";
+    return { blob: await response.blob(), filename: filenameFrom(disposition, "Cover-Letter.pdf") };
   },
 
   /** The same letter again, in the design it was written in. */
   async filedLetterPdf(id: string): Promise<{ blob: Blob; filename: string }> {
     const response = await fetch(`/api/letter/${id}/pdf`, { method: "POST" });
     if (!response.ok) throw await failure(response);
-    const match = /filename="([^"]+)"/.exec(response.headers.get("content-disposition") ?? "");
-    return { blob: await response.blob(), filename: match?.[1] ?? "Cover-Letter.pdf" };
+    const disposition = response.headers.get("content-disposition") ?? "";
+    return { blob: await response.blob(), filename: filenameFrom(disposition, "Cover-Letter.pdf") };
   },
 
   analysePosting: (body: { text: string; title?: string; company?: string; profile?: Profile }) =>
@@ -324,6 +322,33 @@ export const api = {
       accept_candidates,
     }),
 };
+
+/**
+ * The filename the server chose, out of a `Content-Disposition` header.
+ *
+ * The download is a blob and an `<a download>`, so the browser never reads
+ * this header itself -- whatever is returned here is the name the file lands
+ * under. That matters more than it sounds: a resume for an applicant called
+ * 李明 was arriving as `Resume-Classic.pdf` with the name deleted, because
+ * this only ever looked at `filename="..."`, which is the ASCII half.
+ *
+ * RFC 6266 sends both. `filename*` carries the real characters as
+ * percent-encoded UTF-8 and is preferred; `filename` is the transliterated
+ * fallback for anything that cannot read the first.
+ */
+export function filenameFrom(disposition: string, fallback: string): string {
+  const extended = /filename\*=(?:UTF-8|utf-8)''([^;]+)/.exec(disposition)?.[1];
+  if (extended) {
+    try {
+      const decoded = decodeURIComponent(extended.trim());
+      if (decoded) return decoded;
+    } catch {
+      // A malformed percent sequence is not worth failing a download over;
+      // the plain half below is still a perfectly good name.
+    }
+  }
+  return /filename="([^"]+)"/.exec(disposition)?.[1] ?? fallback;
+}
 
 /** Hand the browser a file without leaving the page. */
 export function download(blob: Blob, filename: string): void {

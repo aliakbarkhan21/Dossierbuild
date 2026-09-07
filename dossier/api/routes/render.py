@@ -21,6 +21,8 @@ from ...render.html import render_html, render_thumbnail
 from ...render.pdf import pdf_report, render_pdf
 from ...render.text import plain_text
 
+from ..downloads import attachment
+
 router = APIRouter(prefix="/api/render", tags=["render"])
 
 
@@ -78,7 +80,7 @@ def print_html(request: RenderRequest) -> Response:
     return Response(
         content=html,
         media_type="text/html; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": attachment(filename, fallback="Resume")},
     )
 
 
@@ -90,7 +92,7 @@ def text(request: RenderRequest) -> Response:
     return Response(
         content=plain_text(profile, date_format=design.date_format),
         media_type="text/plain; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": attachment(filename, fallback="Resume")},
     )
 
 
@@ -114,7 +116,7 @@ def pdf(request: RenderRequest) -> Response:
         content=data,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Disposition": attachment(filename, fallback="Resume"),
             "X-Pages": str(report.pages),
             "X-Words": str(report.words),
             "X-Machine-Readable": "1" if report.machine_readable else "0",

@@ -30,6 +30,8 @@ from ...render.design import Design, load_design
 from ...render.letter import LetterDocument, letter_filename, render_letter_html
 from ...render.pdf import pdf_report, render_pdf
 
+from ..downloads import attachment
+
 router = APIRouter(prefix="/api/letter", tags=["letter"])
 filed = APIRouter(prefix="/api/applications", tags=["letter"])
 
@@ -298,7 +300,9 @@ def _printed(profile: Profile, design: Design, document: LetterDocument) -> Resp
         content=data,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="{letter_filename(profile, document)}"',
+            "Content-Disposition": attachment(
+                letter_filename(profile, document), fallback="Cover-Letter"
+            ),
             "X-Pages": str(report.pages),
             "X-Words": str(report.words),
             "X-Machine-Readable": "1" if report.machine_readable else "0",

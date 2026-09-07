@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 
 from ..core.schema import Profile, entry_label, format_range
 from .design import Design, normalise_tag, SECTION_LABELS
+from .naming import safe_stem
 from .photo import STORED_PX, photo_data_uri
 
 
@@ -441,9 +442,15 @@ def suggested_filename(profile: Profile, design: Design, suffix: str = "pdf") ->
 
     Named for the reader, not for us: this file lands in a stranger's
     downloads folder next to forty others called ``resume.pdf``.
+
+    The name is kept in the alphabet it was written in. This used to be
+    ``[^A-Za-z0-9]`` replaced with dashes, which meant "Ünsal Öztürk"
+    downloaded as ``nsal-zt-rk`` and a name in Han characters was deleted
+    outright, leaving a file named after a template. Carrying it safely across
+    an HTTP header is ``api.downloads.attachment``'s job, not this one's.
     """
-    name = re.sub(r"[^A-Za-z0-9]+", "-", profile.basics.name.strip()).strip("-")
-    template = design.template_spec.name.replace(" ", "-")
+    name = safe_stem(profile.basics.name)
+    template = safe_stem(design.template_spec.name)
     stem = "-".join(p for p in (name, "Resume", template) if p)
     return f"{stem or 'Resume'}.{suffix}"
 
