@@ -94,6 +94,8 @@ interface State {
   activeCv: string;
   newCv: () => Promise<void>;
   switchCv: (id: string) => Promise<void>;
+  deleteCv: (id: string) => Promise<void>;
+  syncCvs: () => Promise<void>;
   adoptCv: (list: CVList) => Promise<void>;
   loadSample: () => Promise<void>;
   clearProfile: () => Promise<void>;
@@ -323,6 +325,7 @@ export const useStore = create<State>()(
           s.savedAt = new Date();
         });
         void get().refreshQuality();
+        void get().syncCvs();
         // Autosave stays quiet. The header already reports "Saving" and then
         // "Saved 14:32"; a toast every time typing pauses would be noise
         // announcing that nothing went wrong.
@@ -417,6 +420,64 @@ export const useStore = create<State>()(
         await get().adoptCv(await api.switchCv(id));
       } catch (error) {
         if (error instanceof ApiError) toast.error(error.message, error.fix);
+      }
+    },
+
+    /**
+     * Remove a CV. The file is not unlinked -- the registry moves it into
+     * ``data/backups`` -- so this is recoverable by hand, which is why it
+     * asks once in the sidebar rather than twice.
+     *
+     * The profile is reloaded only when the CV being deleted is the open one.
+     * Deleting a different CV changes nothing about the document in front of
+     * you, and reloading it there would throw away any edit autosave has not
+     * written yet.
+     */
+    async deleteCv(id) {
+      try {
+        const wasActive = id === get().activeCv;
+        const list = await api.deleteCv(id);
+        if (wasActive) {
+          await get().adoptCv(list);
+        } else {
+          set((s) => {
+            s.cvs = list.cvs;
+            s.activeCv = list.active;
+          });
+        }
+        toast.info("CV deleted", "A copy is in data/backups if you need it back.");
+      } catch (error) {
+        if (error instanceof ApiError) toast.error(error.message, error.fix);
+      }
+    },
+
+    /**
+     * Keep the sidebar's label honest after a save, and no more often.
+     *
+     * A CV we named ("CV 2") takes the profile's name the first time one is
+     * saved into it, and stops being empty. Neither is something the client
+     * can work out, so it asks -- but only when what it is showing could
+     * actually have gone stale. A CV the user has named themselves never
+     * changes name under them, so saving into one asks nothing.
+     *
+     * It matters more than a label usually would: the delete confirmation
+     * names the CV it is about, and a stale name there is the one way this
+     * control could take the wrong document.
+     */
+    async syncCvs() {
+      const { cvs, activeCv, profile } = get();
+      const mine = cvs.find((cv) => cv.id === activeCv);
+      const named = profile?.basics.name.trim() ?? "";
+      const couldRename = mine?.auto_named && named && mine.name !== named;
+      if (!mine || (!mine.blank && !couldRename)) return;
+      try {
+        const list = await api.cvs();
+        set((s) => {
+          s.cvs = list.cvs;
+          s.activeCv = list.active;
+        });
+      } catch {
+        // A label one save out of date is not worth interrupting anyone over.
       }
     },
 

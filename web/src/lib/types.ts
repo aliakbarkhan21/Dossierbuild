@@ -516,6 +516,8 @@ export interface CVSummary {
   created: string;
   updated: string;
   blank: boolean;
+  /** True while the name is still generated, and so still follows the profile. */
+  auto_named: boolean;
 }
 
 export interface CVList {

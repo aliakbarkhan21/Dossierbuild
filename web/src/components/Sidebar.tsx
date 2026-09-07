@@ -18,6 +18,7 @@ import {
   PanelLeftClose,
   Stethoscope,
   Sun,
+  Trash2,
   User,
 } from "lucide-react";
 import { useState } from "react";
@@ -188,17 +189,27 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
  *
  * Hidden entirely while there is only one CV and it is untouched -- a
  * switcher with one entry teaches nothing. The "New CV" button stays.
+ *
+ * **Deleting does ask, once.** Not out of ceremony: it is the only action in
+ * this row that a click cannot put back. It arms in place and names the CV it
+ * is about, because "are you sure?" over a document you cannot see while
+ * being asked is a question nobody can answer.
  */
 function CVSwitcher() {
-  const { cvs, activeCv, newCv, switchCv } = useStore(
+  const { cvs, activeCv, newCv, switchCv, deleteCv } = useStore(
     useShallow((s) => ({
       cvs: s.cvs,
       activeCv: s.activeCv,
       newCv: s.newCv,
       switchCv: s.switchCv,
+      deleteCv: s.deleteCv,
     })),
   );
   const [busy, setBusy] = useState(false);
+  // Whether the delete is armed. In place rather than in a modal: the row is
+  // 200px of sidebar, and a dialog over the whole app for one line of
+  // confirmation is a bigger interruption than the thing being confirmed.
+  const [arming, setArming] = useState(false);
 
   async function run(work: () => Promise<void>) {
     setBusy(true);
@@ -207,6 +218,42 @@ function CVSwitcher() {
     } finally {
       setBusy(false);
     }
+  }
+
+  const active = cvs.find((cv) => cv.id === activeCv);
+
+  // Deleting is the one action here that a switch cannot undo, so it asks --
+  // and it asks about the CV you are looking at, which is why the prompt
+  // takes the row rather than sitting beside a list you could still change.
+  if (arming && active) {
+    return (
+      <div className="flex items-center gap-1 px-3 pb-1">
+        <span className="min-w-0 flex-1 truncate text-2xs text-muted" title={active.name}>
+          Delete “{active.name}”?
+        </span>
+        <button
+          type="button"
+          className="btn shrink-0 px-1.5 py-1 text-2xs text-poor"
+          disabled={busy}
+          onClick={() =>
+            void run(async () => {
+              await deleteCv(active.id);
+              setArming(false);
+            })
+          }
+        >
+          Delete
+        </button>
+        <button
+          type="button"
+          className="btn btn-quiet shrink-0 px-1.5 py-1 text-2xs"
+          disabled={busy}
+          onClick={() => setArming(false)}
+        >
+          Keep
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -241,6 +288,21 @@ function CVSwitcher() {
       >
         <FilePlus2 size={15} />
       </button>
+      {/* Only once there is somewhere to land. The last CV cannot go -- the
+          registry refuses it -- and a button that only ever errors is worse
+          than no button, so it is not shown until deleting means something. */}
+      {cvs.length > 1 && (
+        <button
+          type="button"
+          className="btn btn-quiet shrink-0 px-1.5 py-1"
+          onClick={() => setArming(true)}
+          disabled={busy}
+          title="Delete the CV you are on. A copy is kept in data/backups."
+          aria-label="Delete this CV"
+        >
+          <Trash2 size={15} />
+        </button>
+      )}
     </div>
   );
 }

@@ -23,6 +23,9 @@ class CVOut(BaseModel):
     updated: str
     #: Whether this CV has anything in it yet, so the list can say so.
     blank: bool
+    #: True while the name is one we generated. The client uses it to know
+    #: whether saving a profile could rename this CV under it.
+    auto_named: bool
 
 
 class CVList(BaseModel):
@@ -41,7 +44,14 @@ def _describe(cv: registry.CV) -> CVOut:
         # A CV whose file will not parse still belongs in the list -- hiding it
         # is how someone loses a document. Opening it reports what is wrong.
         blank = False
-    return CVOut(id=cv.id, name=cv.name, created=cv.created, updated=cv.updated, blank=blank)
+    return CVOut(
+        id=cv.id,
+        name=cv.name,
+        created=cv.created,
+        updated=cv.updated,
+        blank=blank,
+        auto_named=cv.auto_named,
+    )
 
 
 def _listing() -> CVList:
