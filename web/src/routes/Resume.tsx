@@ -1632,6 +1632,25 @@ function SectionOrder({
   const move = (key: string, delta: number) =>
     moveTo(design.order.indexOf(key), design.order.indexOf(key) + delta);
 
+  // Which heading is being renamed, if any.
+  const [editing, setEditing] = useState("");
+
+  /**
+   * Rename a section's heading, or clear the override.
+   *
+   * Typing the default back in removes the override rather than storing it:
+   * a design that agrees with every default should carry nothing, so a later
+   * change to a default reaches the people who never disagreed with it.
+   */
+  const rename = (key: string, value: string, fallback: string) => {
+    setEditing("");
+    const text = value.trim().replace(/\s+/g, " ").slice(0, 40);
+    const labels = { ...(design.labels ?? {}) };
+    if (!text || text === fallback) delete labels[key];
+    else labels[key] = text;
+    onChange({ labels });
+  };
+
   const { dragging, over, offset, listRef, startDrag } = useReorder(moveTo);
   // One row's height, read when the drag starts. Every row here is the same
   // height, so one number is the whole of the shuffle: a row that has to get
@@ -1671,7 +1690,8 @@ function SectionOrder({
         className="flex flex-col divide-y divide-line rounded-md border border-line"
       >
         {design.order.map((key, index) => {
-          const label = options.sections.find((s) => s.key === key)?.name ?? key;
+          const fallback = options.sections.find((s) => s.key === key)?.name ?? key;
+          const label = design.labels?.[key] || fallback;
           const shown = !design.hidden.includes(key);
           const lifted = dragging === index;
           return (
@@ -1710,7 +1730,40 @@ function SectionOrder({
               >
                 <GripVertical size={13} />
               </span>
-              <span className={shown ? "" : "text-faint line-through"}>{label}</span>
+              {/* The heading is the control. A fourth button in a row that
+                  already carries a grip, two arrows and Hide would crowd it,
+                  and the thing being renamed is right there to click. */}
+              {editing === key ? (
+                <input
+                  className="field min-w-0 flex-1 px-1.5 py-0.5 text-sm"
+                  defaultValue={label}
+                  autoFocus
+                  aria-label={`Heading for ${fallback}`}
+                  onBlur={(event) => rename(key, event.target.value, fallback)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") event.currentTarget.blur();
+                    if (event.key === "Escape") {
+                      // Put the original back before blurring, or the blur
+                      // handler would save whatever was half-typed.
+                      event.currentTarget.value = label;
+                      event.currentTarget.blur();
+                    }
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEditing(key)}
+                  title={`Rename "${label}" — it prints on the resume`}
+                  className={[
+                    "min-w-0 truncate rounded px-1 text-left decoration-dotted underline-offset-4",
+                    "hover:underline",
+                    shown ? "" : "text-faint line-through",
+                  ].join(" ")}
+                >
+                  {label}
+                </button>
+              )}
               {!has(key) && <span className="text-2xs text-faint">empty</span>}
               <span className="ml-auto flex items-center gap-0.5">
                 <button

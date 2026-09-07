@@ -147,8 +147,29 @@ class RawLink(BaseModel):
     url: str = ""
 
 
+class RawHeadings(BaseModel):
+    """The resume's own wording for each section it has.
+
+    Asked for separately from the content so the writer's headings survive the
+    import. A CV that says CORE EXPERTISE should not come back saying
+    "Skills": the app knows where the facts belong, and the writer knows what
+    to call them.
+    """
+
+    summary: str = ""
+    experience: str = ""
+    projects: str = ""
+    education: str = ""
+    skills: str = ""
+    certifications: str = ""
+    awards: str = ""
+    achievements: str = ""
+
+
 class RawResume(BaseModel):
     """Everything a resume can contain, as the model returns it."""
+
+    headings: RawHeadings = Field(default_factory=RawHeadings)
 
     name: str = ""
     headline: str = ""
@@ -205,6 +226,15 @@ Rules, in order of importance:
    If a line does not clearly say which it is, put it in `awards` -- that is
    where a reader will look first, and moving one entry is easier than
    noticing it went missing.
+9. Fill in `headings` with the resume's own wording for each section you
+   found, exactly as written but in normal capitals: "CORE EXPERTISE" is
+   "Core Expertise", "EXECUTIVE PROFILE" is "Executive Profile". Leave a
+   heading empty if the resume has no section of that kind, or if it uses the
+   ordinary word for it. These are what the rebuilt resume will print, so a
+   writer who called it "Areas of Expertise" gets that back rather than being
+   told it is "Skills". Match the section by what it contains, not by its
+   name: a heading you have never seen before still belongs to whichever of
+   the eight its content fits.
 """
 
 
@@ -213,6 +243,26 @@ class ParseResult:
     profile: Profile
     model: str
     raw: RawResume
+
+    @property
+    def headings(self) -> dict[str, str]:
+        """The writer's own section names, for the design to adopt.
+
+        One heading, one section. Resumes routinely run two of ours together
+        -- "Education and Certifications" is a single heading over two things
+        the app keeps apart -- and adopting it for both would print the same
+        words twice on the page. The first section to claim it keeps it; the
+        rest fall back to their defaults, which is the readable outcome.
+        """
+        seen: set[str] = set()
+        out: dict[str, str] = {}
+        for key, value in self.raw.headings.model_dump().items():
+            text = " ".join(str(value).split())
+            if not text or text.casefold() in seen:
+                continue
+            seen.add(text.casefold())
+            out[key] = text
+        return out
 
 
 def parse_resume_text(

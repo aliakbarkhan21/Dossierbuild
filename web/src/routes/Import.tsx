@@ -25,9 +25,11 @@ type Tab = "linkedin" | "file" | "paste";
 export function ImportScreen() {
   const shell = useShell();
   const navigate = useNavigate();
-  const { reloadProfile, health } = useStore(useShallow((s) => ({
+  const { reloadProfile, health, design, setDesign } = useStore(useShallow((s) => ({
     reloadProfile: s.reloadProfile,
     health: s.health,
+    design: s.design,
+    setDesign: s.setDesign,
   })));
 
   const [tab, setTab] = useState<Tab>("linkedin");
@@ -38,10 +40,40 @@ export function ImportScreen() {
   const [source, setSource] = useState("Import");
   const [accepted, setAccepted] = useState<Set<string>>(new Set());
   const [acceptedFields, setAcceptedFields] = useState<Set<string>>(new Set());
+  // The resume's own section headings, held from the parse until the import
+  // is accepted -- a heading is only worth adopting if the content arrives.
+  const [headings, setHeadings] = useState<Record<string, string>>({});
 
-  async function propose(profile: Profile, label: string, notes: string[] = []) {
+  /**
+   * Print the writer's own section names rather than ours.
+   *
+   * A CV that says CORE EXPERTISE should not come back saying "Skills". The
+   * app decides where facts belong; the writer decides what to call them.
+   * Existing overrides win -- if you have already renamed a heading yourself,
+   * an import does not get to change it back.
+   */
+  function adoptHeadings() {
+    const found = Object.entries(headings).filter(([, value]) => value.trim());
+    if (!found.length || !design) return;
+    const labels = { ...(design.labels ?? {}) };
+    let added = 0;
+    for (const [key, value] of found) {
+      if (labels[key]) continue;
+      labels[key] = value.trim();
+      added++;
+    }
+    if (added) setDesign({ labels }, "Adopted the resume's own headings");
+  }
+
+  async function propose(
+    profile: Profile,
+    label: string,
+    notes: string[] = [],
+    headings: Record<string, string> = {},
+  ) {
     setCandidate(profile);
     setSource(label);
+    setHeadings(headings);
     const result = await api.plan(profile, label);
     result.notes = [...notes, ...result.notes];
     setPlan(result);
@@ -72,6 +104,7 @@ export function ImportScreen() {
     );
     if (!result) return;
     reloadProfile(result.profile, "Imported into the profile");
+    adoptHeadings();
     toast.success(
       result.changes.length ? result.changes.join(". ") : "Nothing was selected.",
       "Not saved yet — press Save changes when it looks right.",
@@ -250,7 +283,12 @@ export function ImportScreen() {
               onPick={(file) =>
                 void run("linkedin", async () => {
                   const parsed = await api.linkedin(file);
-                  await propose(parsed.profile, `LinkedIn export (${file.name})`, parsed.notes);
+                  await propose(
+                    parsed.profile,
+                    `LinkedIn export (${file.name})`,
+                    parsed.notes,
+                    parsed.headings ?? {},
+                  );
                 })
               }
             />
@@ -309,7 +347,7 @@ export function ImportScreen() {
                 onClick={() =>
                   void run("parse", async () => {
                     const parsed = await api.parse(text);
-                    await propose(parsed.profile, "Pasted text", parsed.notes);
+                    await propose(parsed.profile, "Pasted text", parsed.notes, parsed.headings ?? {});
                   })
                 }
               >

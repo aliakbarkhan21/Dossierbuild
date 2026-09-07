@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -400,6 +401,16 @@ SECTION_KEYS: tuple[str, ...] = tuple(key for key, _label in RESUME_SECTIONS)
 SECTION_LABELS: dict[str, str] = dict(RESUME_SECTIONS)
 
 
+def section_label(key: str, labels: Mapping[str, str] | None = None) -> str:
+    """What to print above a section: the writer's word, or ours.
+
+    Takes the mapping rather than the whole ``Design`` so the plain-text
+    export can use it without taking a design it has no other use for.
+    """
+    override = (labels or {}).get(key)
+    return override or SECTION_LABELS.get(key, key.title())
+
+
 # --------------------------------------------------------------------------
 # Looks
 # --------------------------------------------------------------------------
@@ -557,6 +568,20 @@ class Design(BaseModel):
     scale: int = 100
     order: list[str] = Field(default_factory=lambda: list(SECTION_KEYS))
     hidden: list[str] = Field(default_factory=list)
+    labels: dict[str, str] = Field(default_factory=dict)
+    """What each section is called on the page, where the default is wrong.
+
+    Resumes do not agree on these words. "Skills" is "Core Expertise" on one
+    CV and "Technical Proficiencies" on the next; "Honors" is "Awards" almost
+    everywhere outside the US. Fixed headings meant the app quietly renamed a
+    section the writer had already named.
+
+    Here rather than in ``schema.py`` for the same reason as ``hidden`` and
+    ``order``: what a section is *called* is a presentation choice, and the
+    same facts printed for two employers can carry different headings. Only
+    keys that differ from the default are stored, so a profile that accepts
+    every default carries nothing.
+    """
     focus: str = ""
     """Which job family this printing is aimed at. "" prints everything.
 
@@ -644,6 +669,21 @@ class Design(BaseModel):
         """
         deduped = list(dict.fromkeys(k for k in v if k in SECTION_KEYS))
         return deduped + [k for k in SECTION_KEYS if k not in deduped]
+
+    @field_validator("labels")
+    @classmethod
+    def _labels(cls, v: dict[str, str]) -> dict[str, str]:
+        # Unknown keys dropped rather than rejected, so a design written by a
+        # build with a section this one has not got still loads. A label equal
+        # to the default is not stored: it is not an override.
+        out: dict[str, str] = {}
+        for key, label in (v or {}).items():
+            if key not in SECTION_KEYS:
+                continue
+            text = " ".join(str(label).split())[:40]
+            if text and text != SECTION_LABELS.get(key):
+                out[key] = text
+        return out
 
     @field_validator("focus")
     @classmethod

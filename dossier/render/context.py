@@ -15,7 +15,7 @@ import re
 from dataclasses import dataclass, field
 
 from ..core.schema import Profile, entry_label, format_range
-from .design import Design, normalise_tag, SECTION_LABELS
+from .design import Design, normalise_tag, section_label
 from .naming import safe_stem
 from .photo import STORED_PX, photo_data_uri
 
@@ -280,7 +280,7 @@ def _education_entry(item, design: Design) -> Entry:
 
 def _build_section(profile: Profile, design: Design, key: str) -> Section | None:
     """One section, or ``None`` when there is nothing in it worth a heading."""
-    label = SECTION_LABELS.get(key, key.title())
+    label = section_label(key, design.labels)
 
     if key == "summary":
         text = profile.summary.text.strip()

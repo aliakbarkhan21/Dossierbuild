@@ -14,11 +14,18 @@ already cut to one page.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from ..core.schema import LIST_SECTIONS, Profile, entry_label, format_range
-from .design import SECTION_LABELS
+from .design import section_label
 
 
-def plain_text(profile: Profile, *, date_format: str = "month") -> str:
+def plain_text(
+    profile: Profile,
+    *,
+    date_format: str = "month",
+    labels: Mapping[str, str] | None = None,
+) -> str:
     """The whole profile as readable text, ending in a newline.
 
     Takes the date style rather than a whole design: this format has no
@@ -45,7 +52,7 @@ def plain_text(profile: Profile, *, date_format: str = "month") -> str:
         entries = getattr(profile, key, [])
         if not entries:
             continue
-        title = SECTION_LABELS.get(key, key.title()).upper()
+        title = section_label(key, labels).upper()
         out += ["", title, "-" * len(title)]
         for entry in entries:
             head = entry_label(entry)

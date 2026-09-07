@@ -153,6 +153,8 @@ export interface Design {
   scale: number;
   order: string[];
   hidden: string[];
+  /** What each section is called, where the default is not the writer's word. */
+  labels: Record<string, string>;
   /** Which job family this printing is aimed at. "" prints everything. */
   focus: string;
   show_links: boolean;
@@ -269,6 +271,8 @@ export interface Parsed {
   profile: Profile;
   model: string;
   notes: string[];
+  /** The resume's own section headings, adopted into the design on accept. */
+  headings?: Record<string, string>;
 }
 
 export interface MergeProposal {
