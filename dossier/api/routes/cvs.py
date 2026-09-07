@@ -21,6 +21,8 @@ class CVOut(BaseModel):
     name: str
     created: str
     updated: str
+    #: The focus this CV opens with. A default, not a lock.
+    focus: str
     #: Whether this CV has anything in it yet, so the list can say so.
     blank: bool
     #: True while the name is one we generated. The client uses it to know
@@ -51,6 +53,7 @@ def _describe(cv: registry.CV) -> CVOut:
         updated=cv.updated,
         blank=blank,
         auto_named=cv.auto_named,
+        focus=cv.focus,
     )
 
 

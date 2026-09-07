@@ -29,8 +29,10 @@ load_dotenv()
 from . import errors, lifetime, static  # noqa: E402
 from .routes import (  # noqa: E402
     applications,
+    backups,
     cvs,
     design,
+    focus,
     ingest,
     letter,
     profile,
@@ -102,6 +104,8 @@ app.include_router(letter.router)
 app.include_router(letter.filed)
 app.include_router(suggest.router)
 app.include_router(settings.router)
+app.include_router(backups.router)
+app.include_router(focus.router)
 
 lifetime.install(app)
 

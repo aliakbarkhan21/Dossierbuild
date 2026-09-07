@@ -13,7 +13,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useStore } from "../lib/store";
-import { toggleMode } from "../lib/theme";
+import { cycleMode } from "../lib/theme";
 
 export interface Action {
   id: string;
@@ -92,7 +92,7 @@ export function CommandPalette({
         group: "Do",
         label: "Switch light / dark",
         run: () => {
-          toggleMode();
+          cycleMode();
         },
       },
       ...extra,

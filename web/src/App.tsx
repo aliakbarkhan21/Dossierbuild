@@ -15,6 +15,7 @@ import { Toaster } from "./components/Toaster";
 import { startHeartbeat } from "./lib/heartbeat";
 import { useStore } from "./lib/store";
 import { ApplicationsScreen } from "./routes/Applications";
+import { FocusScreen } from "./routes/Focus";
 import { HealthScreen } from "./routes/Health";
 import { LetterScreen } from "./routes/Letter";
 import { ImportScreen } from "./routes/Import";
@@ -269,6 +270,7 @@ export default function App() {
               <Route path="/letter" element={<LetterScreen />} />
               <Route path="/import" element={<ImportScreen />} />
               <Route path="/health" element={<HealthScreen />} />
+              <Route path="/focus" element={<FocusScreen />} />
               <Route path="/settings" element={<SettingsScreen />} />
               <Route path="*" element={<Navigate to="/profile" replace />} />
             </Routes>

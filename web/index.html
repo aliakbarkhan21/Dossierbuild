@@ -27,7 +27,11 @@
       (function () {
         try {
           var saved = localStorage.getItem("dossier.mode");
-          var dark = saved ? saved === "dark"
+          // "system", and anything unrecognised, follows the operating
+          // system. Storing the choice explicitly is what lets someone go
+          // back to following it after once picking a side.
+          var dark = saved === "dark" || saved === "light"
+            ? saved === "dark"
             : window.matchMedia("(prefers-color-scheme: dark)").matches;
           if (dark) document.documentElement.classList.add("dark");
         } catch (e) {}

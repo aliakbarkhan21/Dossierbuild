@@ -21,6 +21,7 @@
 import { Check, Copy, KeyRound, Loader2, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
+import { BackupsCard } from "../components/BackupsCard";
 import { ApiError, api } from "../lib/api";
 import { toast } from "../lib/toast";
 import type { Capability, Settings } from "../lib/types";
@@ -87,6 +88,7 @@ export function SettingsScreen() {
             <KeyCard data={data} busy={busy} run={run} />
             <ModelCard data={data} busy={busy} run={run} />
             <CapabilityCard data={data} />
+            <BackupsCard />
             <DataCard data={data} />
           </>
         )}

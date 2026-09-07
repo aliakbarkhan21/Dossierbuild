@@ -97,6 +97,8 @@ interface State {
   deleteCv: (id: string) => Promise<void>;
   syncCvs: () => Promise<void>;
   adoptCv: (list: CVList) => Promise<void>;
+  /** Take the server's profile after something changed it behind us. */
+  refreshProfile: () => Promise<void>;
   loadSample: () => Promise<void>;
   clearProfile: () => Promise<void>;
   /** Hide the chip without touching the data, for "I am building on this". */
@@ -478,6 +480,29 @@ export const useStore = create<State>()(
         });
       } catch {
         // A label one save out of date is not worth interrupting anyone over.
+      }
+    },
+
+    /**
+     * Re-read the profile after the server changed it under us.
+     *
+     * One caller today: renaming a focus retags every line in a single pass
+     * on the server, so the copy in this store is a rename behind. Any
+     * pending edit is written first -- discarding what someone typed to pick
+     * up a change they asked for would be a poor trade, and autosave means
+     * the window is small but not zero.
+     */
+    async refreshProfile() {
+      if (get().dirty) await get().save({ silent: true });
+      try {
+        const profile = await api.getProfile();
+        set((s) => {
+          s.profile = profile;
+          s.dirty = false;
+        });
+        void get().refreshQuality();
+      } catch (error) {
+        if (error instanceof ApiError) toast.error(error.message, error.fix);
       }
     },
 

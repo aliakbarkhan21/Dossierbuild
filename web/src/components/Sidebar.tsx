@@ -16,11 +16,13 @@ import {
   Download,
   Mail,
   Target,
+  Crosshair,
   Moon,
   PanelLeftClose,
   Settings as SettingsIcon,
   Stethoscope,
   Sun,
+  Monitor,
   Trash2,
   User,
 } from "lucide-react";
@@ -28,7 +30,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import { MARKER_COLOUR_CLASS, markerStyle, useSlidingMarker } from "../lib/marker";
-import { currentMode, toggleMode, type Mode } from "../lib/theme";
+import { currentMode, cycleMode, watchSystem, type Mode } from "../lib/theme";
 import { useShallow } from "zustand/react/shallow";
 import { useStore } from "../lib/store";
 
@@ -36,6 +38,12 @@ const NAV = [
   { to: "/profile", label: "Profile", icon: User, hint: "Everything you have done" },
   { to: "/resume", label: "Resume", icon: FileText, hint: "Choose a look and print it" },
   { to: "/tailor", label: "Tailor", icon: Target, hint: "Aim it at one job posting" },
+  {
+    to: "/focus",
+    label: "Focus",
+    icon: Crosshair,
+    hint: "One profile, aimed at several kinds of job",
+  },
   {
     to: "/applications",
     label: "Applications",
@@ -54,6 +62,10 @@ const NAV = [
 
 export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   const [mode, setModeState] = useState<Mode>(currentMode);
+  // The OS can change while a tab is open -- an evening schedule is exactly
+  // when it does -- and "System" that only reads the setting at load is wrong
+  // at the one moment it matters.
+  useEffect(() => watchSystem(setModeState), []);
   const health = useStore((s) => s.health);
   // The active link is found by `aria-current="page"`, which NavLink sets
   // itself -- using its own idea of active is what stops the highlight and
@@ -152,10 +164,17 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
           <button
             type="button"
             className="btn btn-quiet min-w-0 flex-1 justify-start"
-            onClick={() => setModeState(toggleMode())}
+            onClick={() => setModeState(cycleMode())}
+            title="Light, dark, or whatever this computer is set to"
           >
-            {mode === "dark" ? <Moon size={15} /> : <Sun size={15} />}
-            {mode === "dark" ? "Dark" : "Light"}
+            {mode === "system" ? (
+              <Monitor size={15} />
+            ) : mode === "dark" ? (
+              <Moon size={15} />
+            ) : (
+              <Sun size={15} />
+            )}
+            {mode === "system" ? "System" : mode === "dark" ? "Dark" : "Light"}
           </button>
           <NavLink
             to="/settings"

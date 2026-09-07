@@ -9,6 +9,8 @@
 
 import type {
   ApplicationStatus,
+  BackupList,
+  Coverage,
   CVList,
   Design,
   DesignOptions,
@@ -289,6 +291,16 @@ export const api = {
     const disposition = response.headers.get("content-disposition") ?? "";
     return { blob: await response.blob(), filename: filenameFrom(disposition, "Cover-Letter.pdf") };
   },
+
+  focus: () => request<Coverage>("/api/focus"),
+  setDefaultFocus: (focus: string) => request<Coverage>("/api/focus/default", "PUT", { focus }),
+  renameFocus: (old: string, next: string) =>
+    request<Coverage>("/api/focus/rename", "POST", { old, new: next }),
+
+  backups: () => request<BackupList>("/api/backups"),
+  readBackup: (id: string) => request<Profile>(`/api/backups/${id}`),
+  restoreBackup: (id: string, name = "") =>
+    request<{ cv_id: string }>(`/api/backups/${id}/restore`, "POST", { name }),
 
   settings: () => request<Settings>("/api/settings"),
   saveKey: (key: string) => request<Settings>("/api/settings/key", "PUT", { key }),

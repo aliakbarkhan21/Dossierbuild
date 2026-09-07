@@ -34,6 +34,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from ..core.schema import normalise_tag
 from ..core.storage import DATA_DIR
 
 DESIGN_PATH = DATA_DIR / "design.json"
@@ -201,14 +202,11 @@ DEFAULT_LAYOUT = "stacked"
 # --------------------------------------------------------------------------
 
 
-def normalise_tag(value: str) -> str:
-    """One spelling for a tag, wherever it was typed.
+# Moved to ``core.schema``: how a tag is spelled is a fact about the profile
+# rather than about how one is rendered, and ``core.focus`` needs it without
+# ``core`` importing ``render``. Re-exported, so every existing import of
+# ``design.normalise_tag`` still resolves.
 
-    Lowercased and stripped of a leading hash, because people type "#backend"
-    in one box and "Backend" in another and mean the same thing. Anything that
-    normalises to nothing is no tag at all.
-    """
-    return value.strip().lstrip("#").strip().lower()
 
 
 @dataclass(frozen=True)

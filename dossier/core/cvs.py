@@ -57,6 +57,11 @@ class CV:
     #: True while the name is still one we generated, so a profile saved into
     #: this CV may claim it. See ``adopt_profile_name``.
     auto_named: bool
+    #: The focus tag this CV opens with. A *default*, not a lock: the picker
+    #: on the Resume screen still overrides it for one printing. Binding the
+    #: focus rigidly to the CV would undo the reason focus tags exist -- one
+    #: profile printed several ways without a second CV to keep in step.
+    focus: str = ""
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -65,6 +70,7 @@ class CV:
             "created": self.created,
             "updated": self.updated,
             "auto_named": self.auto_named,
+            "focus": self.focus,
         }
 
 
@@ -122,7 +128,7 @@ def _adopt() -> dict[str, object]:
         "version": INDEX_VERSION,
         "active": cv_id,
         "cvs": [
-            CV(id=cv_id, name=name, created=now, updated=now, auto_named=auto).as_dict()
+            CV(id=cv_id, name=name, created=now, updated=now, auto_named=auto, focus="").as_dict()
         ],
     }
     _write_index(data)
@@ -157,6 +163,7 @@ def _entries(data: dict[str, object]) -> list[CV]:
                 created=str(row.get("created") or ""),
                 updated=str(row.get("updated") or ""),
                 auto_named=bool(row.get("auto_named", False)),
+                focus=str(row.get("focus") or ""),
             )
         )
     return out
@@ -202,6 +209,7 @@ def create(name: str | None = None) -> CV:
         created=now,
         updated=now,
         auto_named=not chosen,
+        focus="",
     )
     CVS_DIR.mkdir(parents=True, exist_ok=True)
     # An empty file rather than no file: `load_profile` copes with a missing
@@ -284,7 +292,20 @@ def touch(cv_id: str | None = None) -> None:
     _update(cv_id or str(data.get("active") or ""))
 
 
-def _update(cv_id: str, *, name: str | None = None, auto_named: bool | None = None) -> CV:
+def set_focus(cv_id: str, focus: str) -> CV:
+    """Which focus this CV opens with. Empty means "print everything"."""
+    from .schema import normalise_tag
+
+    return _update(cv_id, focus=normalise_tag(focus))
+
+
+def _update(
+    cv_id: str,
+    *,
+    name: str | None = None,
+    auto_named: bool | None = None,
+    focus: str | None = None,
+) -> CV:
     data = _index()
     found: CV | None = None
     rows = []
@@ -294,6 +315,8 @@ def _update(cv_id: str, *, name: str | None = None, auto_named: bool | None = No
                 row["name"] = name
             if auto_named is not None:
                 row["auto_named"] = auto_named
+            if focus is not None:
+                row["focus"] = focus
             row["updated"] = _now()
             found = CV(
                 id=cv_id,
@@ -301,6 +324,7 @@ def _update(cv_id: str, *, name: str | None = None, auto_named: bool | None = No
                 created=str(row.get("created") or ""),
                 updated=str(row["updated"]),
                 auto_named=bool(row.get("auto_named", False)),
+                focus=str(row.get("focus") or ""),
             )
         rows.append(row)
     if found is None:

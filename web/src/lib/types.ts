@@ -551,3 +551,44 @@ export interface Settings {
   ai: Capability;
   pdf: Capability;
 }
+
+/** A copy the app kept before a write, or a whole CV that was deleted. */
+export interface BackupSummary {
+  id: string;
+  cv_id: string;
+  /** Blank when that CV is gone -- which is when the backup matters most. */
+  cv_name: string;
+  deleted_cv: boolean;
+  taken: string;
+  name: string;
+  headline: string;
+  entries: number;
+  bullets: number;
+  bytes: number;
+  /** Set when the file will not parse. Listed anyway, so it is not a mystery. */
+  unreadable: string;
+}
+
+export interface BackupList {
+  backups: BackupSummary[];
+  /** How many are kept per CV, so the screen can say why old ones go. */
+  keep: number;
+}
+
+/** One focus tag, and how much of the profile it actually selects. */
+export interface FocusCount {
+  tag: string;
+  bullets: number;
+  skills: number;
+  /** Names of the CVs that open with this focus. */
+  cvs: string[];
+}
+
+export interface Coverage {
+  focuses: FocusCount[];
+  /** These print under every focus, and are usually most of the CV. */
+  untagged_bullets: number;
+  untagged_skills: number;
+  active_cv: string;
+  active_focus: string;
+}

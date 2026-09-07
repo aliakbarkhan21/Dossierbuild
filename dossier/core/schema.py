@@ -27,6 +27,20 @@ from .ids import new_id
 
 SCHEMA_VERSION = 4
 
+
+def normalise_tag(value: str) -> str:
+    """One spelling for a tag, wherever it was typed.
+
+    Lowercased and stripped of a leading hash, because people type "#backend"
+    in one box and "Backend" in another and mean the same thing. Anything that
+    normalises to nothing is no tag at all.
+
+    Lives here rather than in ``render.design`` -- where it was until the
+    focus screen needed it -- because how a tag is spelled is a fact about the
+    profile, and ``core`` must not import ``render``.
+    """
+    return value.strip().lstrip("#").strip().lower()
+
 # --------------------------------------------------------------------------
 # Shared field types
 # --------------------------------------------------------------------------
