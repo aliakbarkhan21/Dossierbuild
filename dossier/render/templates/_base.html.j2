@@ -460,6 +460,56 @@ ul.bul li::before {
     desk.style.minWidth = scaledWidth > lastDeskW ? scaledWidth + 'px' : '';
   }
 
+  //: Blocks the print stylesheet refuses to break inside. A cut landing on one
+  //: moves it whole, so the preview has to move it too.
+  var ATOMS = 'ul.bul li, .entry-head, .skill-row, .lines li, .stack li';
+
+  /** Offset within the sheet, unscaled -- `getBoundingClientRect` is not,
+      and the preview is under a zoom transform. */
+  function topWithin(el, root) {
+    var y = 0;
+    while (el && el !== root) { y += el.offsetTop; el = el.offsetParent; }
+    return y;
+  }
+
+  /**
+   * Push every block that straddles a page boundary onto the next page.
+   *
+   * One block per pass, then re-measure: moving anything shifts everything
+   * below it, and a push can add a page, which adds a boundary. The guard is
+   * a ceiling on passes rather than a correctness condition -- each pass
+   * either moves one block or stops.
+   */
+  function settle(pages, usable) {
+    for (var guard = 0; guard < 24; guard++) {
+      var moved = false;
+      for (var i = 1; i < pages && !moved; i++) {
+        var cut = PAD + usable * i;
+        var atoms = sheet.querySelectorAll(ATOMS);
+        for (var a = 0; a < atoms.length; a++) {
+          var el = atoms[a];
+          var top = topWithin(el, sheet);
+          var bottom = top + el.offsetHeight;
+          // Half a pixel of tolerance: a block ending exactly on the cut is
+          // on this page, not straddling it.
+          if (top < cut - 0.5 && bottom > cut + 0.5) {
+            // Never push the block that starts a page -- it is already as far
+            // up as it can go, and pushing it would loop.
+            if (top <= PAD + usable * (i - 1) + 0.5) break;
+            var current = parseFloat(getComputedStyle(el).marginTop) || 0;
+            el.style.marginTop = (current + (cut - top)) + 'px';
+            el.setAttribute('data-pushed', '');
+            moved = true;
+            break;
+          }
+        }
+      }
+      if (!moved) break;
+      pages = Math.max(1, Math.ceil((sheet.scrollHeight - PAD * 2) / usable));
+    }
+    return pages;
+  }
+
   function measure() {
     // A thumbnail wants the scale and nothing else.
     //
@@ -477,6 +527,12 @@ ul.bul li::before {
     Array.prototype.forEach.call(
       document.querySelectorAll('.pagebreak, .pagenum'), function (n) { n.remove(); }
     );
+    // Pushes are an output of the last pass too, and one left in place would
+    // be measured as content and pushed again on the next.
+    Array.prototype.forEach.call(
+      sheet.querySelectorAll('[data-pushed]'),
+      function (n) { n.style.marginTop = ''; n.removeAttribute('data-pushed'); }
+    );
     // All of these have to go before measuring: the markers, the page
     // numbers and the stretched paper are outputs of the last pass, and
     // measuring them would make every pass believe the document had grown.
@@ -488,10 +544,39 @@ ul.bul li::before {
     var content = sheet.scrollHeight - PAD * 2;
     var usable = PAGE_H - PAD * 2;
     pages = Math.max(1, Math.ceil(content / usable));
+
+    // What the printer would do with the line the cut lands on.
+    //
+    // The band used to be drawn straight over the flow, on the reasoning that
+    // it "covers the few pixels of the line the printer cuts through anyway".
+    // The printer cuts through nothing: `ul.bul li`, `.entry-head` and
+    // `.skill-row` all carry `break-inside: avoid`, so a block that will not
+    // fit moves to the next page whole. Measured on a two-page document, the
+    // band sat at 1470px across a bullet spanning 1466-1520 -- a bullet the
+    // PDF printed intact at the top of page two. The preview was showing a
+    // cut that does not happen, in an app whose claim is that the preview is
+    // the printed document.
+    //
+    // So: move the same blocks the printer moves, then draw the cut in the
+    // gap that leaves. Page count is recomputed after, because pushing
+    // content down is exactly the thing that can add a page.
+    // Preview only. In print, Chromium's own pagination does this -- pushing
+    // as well would move the content twice and change the printed document,
+    // which is the one thing that must not happen here. `breaks` is false for
+    // the print, but `numbered` can be true, so `measure()` does run.
+    if (breaks) pages = settle(pages, usable);
+
     // Paper is paper: a two-page resume whose second page holds four lines
     // still shows two full sheets, because that is what comes out of the
     // printer.
-    sheet.style.minHeight = (PAGE_H * pages) + 'px';
+    //
+    // Height in the preview's own model, which is not `PAGE_H * pages`. The
+    // preview is one continuous column that pays the margin once at the top
+    // and once at the bottom, with a band drawn over each seam -- so a page
+    // of it is `usable` tall, not `PAGE_H`. `PAGE_H * pages` added `PAD * 2`
+    // of blank paper for every page after the first: 240px of nothing under
+    // a three-page CV.
+    sheet.style.minHeight = (PAD * 2 + usable * pages) + 'px';
 
     // The page number the print will carry, drawn where the print puts it.
     //
@@ -504,8 +589,14 @@ ul.bul li::before {
         var tag = document.createElement('div');
         tag.className = 'pagenum';
         tag.textContent = (n + 1) + ' / ' + pages;
-        // Inside the bottom margin band, as Chromium's footer is.
-        tag.style.top = (PAGE_H * (n + 1) - PAD * 0.5 - 5) + 'px';
+        // Just above the seam, in the same coordinates the bands use.
+        //
+        // This read `PAGE_H * (n + 1)`, a different model of where a page
+        // ends from the one the bands use, and the two drift apart by `PAD`
+        // per page: +25px on page one, +146px on page two, +267px on page
+        // three. So "2 / 3" was drawn a seventh of a page *below* its own
+        // seam -- which is to say, on page three.
+        tag.style.top = (PAD + usable * (n + 1) - 17) + 'px';
         tag.style.right = PAD + 'px';
         sheet.appendChild(tag);
       }
