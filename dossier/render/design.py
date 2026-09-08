@@ -434,9 +434,12 @@ def section_label(key: str, labels: Mapping[str, str] | None = None) -> str:
     Takes the mapping rather than the whole ``Design`` so the plain-text
     export can use it without taking a design it has no other use for.
     """
-    override = (labels or {}).get(key)
-    if override:
-        return override
+    labels = labels or {}
+    # `in` rather than truthiness: "" is an override meaning "no heading",
+    # and falling through to the default would print the very heading the
+    # writer asked us not to.
+    if key in labels:
+        return labels[key]
     # A custom section has no default to fall back on -- its heading is the
     # only name it has, and it lives on the profile. Callers that have the
     # profile pass the title in as the fallback; the rest get "" rather than
@@ -714,10 +717,16 @@ class Design(BaseModel):
             if key not in SECTION_KEYS and not is_custom(key):
                 continue
             text = " ".join(str(label).split())[:40]
-            # A custom section's default is its own title, which is not
-            # visible from here, so its override is always kept and
-            # ``build_context`` drops it if the two agree.
-            if text and (is_custom(key) or text != SECTION_LABELS.get(key)):
+            # An empty override is a real value: "print this section with no
+            # heading". It is what a resume that ran two of our sections under
+            # one heading needs, and it is not the same as having no opinion
+            # -- which is spelled by the key being absent.
+            if not text:
+                out[key] = ""
+            elif is_custom(key) or text != SECTION_LABELS.get(key):
+                # A custom section's default is its own title, which is not
+                # visible from here, so its override is always kept and
+                # ``build_context`` drops it if the two agree.
                 out[key] = text
         return out
 

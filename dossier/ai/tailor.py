@@ -263,7 +263,7 @@ def _known_vocabulary(profile: Profile) -> frozenset[str]:
     have written this word", so employers, roles and institutions count too.
     """
     terms: set[str] = set(build_vocabulary(profile))
-    declared: list[str] = [profile.basics.name, profile.basics.headline]
+    declared: list[str] = [plain(profile.basics.name), plain(profile.basics.headline)]
     for entry in profile.experience:
         declared += [entry.role, entry.organisation, entry.location]
     for project in profile.projects:

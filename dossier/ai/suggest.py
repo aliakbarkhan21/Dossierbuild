@@ -99,7 +99,7 @@ def _profile_facts(profile: Profile) -> str:
     Used as the audit's source when drafting a summary: a summary legitimately
     draws on any fact already in the document, so all of them count as given.
     """
-    parts = [profile.basics.headline]
+    parts = [plain(profile.basics.headline)]
     parts += [plain(block.text) for _section, _owner, block in iter_bullets(profile)]
     for entry in profile.experience:
         parts += [entry.role, entry.organisation]
@@ -271,8 +271,8 @@ def suggest_summary(profile: Profile, *, note: str = "", model: str | None = Non
             "",
             "Everything you may use is below. Do not add to it.",
             "---",
-            f"Name: {profile.basics.name}",
-            f"Headline: {profile.basics.headline}",
+            f"Name: {plain(profile.basics.name)}",
+            f"Headline: {plain(profile.basics.headline)}",
             facts[:4000],
             "---",
             f"\nWhat they want emphasised: {note.strip()}" if note.strip() else "",

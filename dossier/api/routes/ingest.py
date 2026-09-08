@@ -51,6 +51,10 @@ class Parsed(BaseModel):
     #: The resume's own section headings, for the design to adopt on accept.
     #: A CV that says "Core Expertise" should not come back saying "Skills".
     headings: dict[str, str] = {}
+    #: Sections the resume ran together under one of those headings.
+    #: They print beneath it rather than under a heading of their own,
+    #: because the writer wrote one heading and meant one heading.
+    covered: dict[str, str] = {}
 
 
 @router.post("/parse", response_model=Parsed)
@@ -70,6 +74,7 @@ def parse_text(request: ParseRequest) -> Parsed:
         profile=result.profile,
         model=result.model,
         headings=result.headings,
+        covered=result.covered,
         notes=[
             f"Parsed by {result.model}. It was told to transcribe, not rewrite -- "
             "check the bullets say what the resume actually said."

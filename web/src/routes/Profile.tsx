@@ -24,6 +24,7 @@ import { MARKER_COLOUR_CLASS, markerStyle, useSlidingMarker } from "../lib/marke
 import { isBlank, useStore } from "../lib/store";
 import { moveWithin, useReorder } from "../lib/reorder";
 import { Tags, tagsInUse } from "../components/Tags";
+import { plain } from "../lib/markup";
 import type { ListSection, Profile } from "../lib/types";
 
 type Kind = "text" | "month" | "csv" | "select" | "url" | "prose";
@@ -271,10 +272,10 @@ export function ProfileScreen() {
   return (
     <>
       <TopBar
-        title={profile.basics.name || "Your profile"}
+        title={plain(profile.basics.name) || "Your profile"}
         subtitle={
           <>
-            {profile.basics.headline || "Everything you have done, in one place"}
+            {plain(profile.basics.headline) || "Everything you have done, in one place"}
             {quality ? ` · ${quality.bullets} bullets · ${done}/${TABS.length} sections` : ""}
           </>
         }
@@ -486,20 +487,42 @@ function SampleChip() {
    Fields
    ---------------------------------------------------------------------- */
 
+/**
+ * One labelled field.
+ *
+ * The wrapper is a `<label>` only when the thing inside it is a real form
+ * control. A `contenteditable` is not one, and wrapping it in a label breaks
+ * it in a way that looks like nothing at all: clicking runs the label's
+ * activation behaviour, which hands focus to its labelable descendant, finds
+ * none, and drops the focus the click had just given the div. The field
+ * appeared dead unless you held the mouse down and dragged a selection —
+ * which is exactly what it did in the Other tab.
+ *
+ * So a rich field gets a plain `<div>` and an `aria-label` on the editor
+ * itself, which is what a `role="textbox"` wants anyway.
+ */
 function Field({
   label,
   children,
   half,
+  rich,
 }: {
   label: string;
   children: React.ReactNode;
   half?: boolean;
+  rich?: boolean;
 }) {
-  return (
-    <label className={half ? "sm:col-span-1" : "sm:col-span-2"}>
+  const className = half ? "sm:col-span-1" : "sm:col-span-2";
+  const inner = (
+    <>
       <span className="label">{label}</span>
       {children}
-    </label>
+    </>
+  );
+  return rich ? (
+    <div className={className}>{inner}</div>
+  ) : (
+    <label className={className}>{inner}</label>
   );
 }
 
@@ -668,41 +691,51 @@ function MonthInput({
  * profile on every change, because the preview and the save both want it; the
  * text on screen is simply left alone until focus leaves.
  */
+/**
+ * A comma-separated list, and the three marks inside it.
+ *
+ * The obvious version -- render `value.join(", ")`, split on every keystroke
+ * -- cannot accept a comma. Typing one makes a trailing empty item, `filter`
+ * drops it, the list re-renders without it, and the character disappears the
+ * instant it is pressed. Same for the space after it, and for any item you
+ * try to edit in the middle.
+ *
+ * `RichText` already solves that for free: it refuses to redraw a field that
+ * has focus, so what is being typed is left alone and only a change from
+ * somewhere else -- an undo, an import, the read-back after a save -- rewrites
+ * it. The parsed list still goes up on every change, because the preview and
+ * the save both want it.
+ *
+ * A mark spanning a comma splits into two unbalanced halves, and each half is
+ * closed independently on the way to the page. That is the right answer
+ * rather than a compromise: somebody who emboldens "Python, SQL" wants both
+ * of them bold.
+ */
 function CsvInput({
   value,
   onChange,
   placeholder,
+  ariaLabel,
 }: {
   value: string[];
   onChange: (value: string[]) => void;
   placeholder?: string;
+  ariaLabel?: string;
 }) {
-  const [draft, setDraft] = useState(value.join(", "));
-
-  // Follow the value when it changes from somewhere else: an undo, an import,
-  // or the read-back after a save. Comparing the parsed lists rather than the
-  // strings means the user's own spacing is not overwritten while they type.
-  useEffect(() => {
-    const shown = draft.split(",").map((p) => p.trim()).filter(Boolean);
-    if (shown.join("\u0000") !== value.join("\u0000")) setDraft(value.join(", "));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
-
   return (
-    <input
-      className="field"
-      value={draft}
+    <RichText
+      singleLine
+      ariaLabel={ariaLabel}
+      value={value.join(", ")}
       placeholder={placeholder}
-      onChange={(event) => {
-        setDraft(event.target.value);
+      onChange={(next) =>
         onChange(
-          event.target.value
+          next
             .split(",")
             .map((part) => part.trim())
             .filter(Boolean),
-        );
-      }}
-      onBlur={() => setDraft(value.join(", "))}
+        )
+      }
     />
   );
 }
@@ -720,20 +753,24 @@ function ContactForm({ profile, edit }: { profile: Profile; edit: Edit }) {
     <section className="card p-5">
       <h2 className="mb-4 font-display text-lg">Contact details</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Full name" half>
+        <Field label="Full name" half rich>
           {/* Named so "Start clean" can put the cursor here: a button that
               says it will start you typing has to actually do that. */}
-          <TextInput
+          <RichText
             id="field-name"
+            singleLine
+            ariaLabel="Full name"
             value={basics.name}
-            onChange={(e) => edit((d) => void (d.basics.name = e.target.value))}
+            onChange={(next) => edit((d) => void (d.basics.name = next))}
           />
         </Field>
-        <Field label="Headline" half>
-          <TextInput
+        <Field label="Headline" half rich>
+          <RichText
+            singleLine
+            ariaLabel="Headline"
             value={basics.headline}
             placeholder="Second-year CS & AI student"
-            onChange={(e) => edit((d) => void (d.basics.headline = e.target.value))}
+            onChange={(next) => edit((d) => void (d.basics.headline = next))}
           />
         </Field>
         <Field label="Email" half>
@@ -749,11 +786,13 @@ function ContactForm({ profile, edit }: { profile: Profile; edit: Edit }) {
             onChange={(e) => edit((d) => void (d.basics.phone = e.target.value))}
           />
         </Field>
-        <Field label="Location" half>
-          <TextInput
+        <Field label="Location" half rich>
+          <RichText
+            singleLine
+            ariaLabel="Location"
             value={basics.location}
             placeholder="Manchester, UK"
-            onChange={(e) => edit((d) => void (d.basics.location = e.target.value))}
+            onChange={(next) => edit((d) => void (d.basics.location = next))}
           />
         </Field>
       </div>
@@ -763,12 +802,17 @@ function ContactForm({ profile, edit }: { profile: Profile; edit: Edit }) {
         <div className="flex flex-col gap-2">
           {basics.links.map((link, index) => (
             <div key={link.id || index} className="flex gap-2">
-              <input
-                className="field sm:w-48"
-                placeholder="GitHub"
-                value={link.label}
-                onChange={(e) => edit((d) => void (d.basics.links[index]!.label = e.target.value))}
-              />
+              {/* The label is words and takes the marks; the address beside
+                  it is an address, and a marked-up href goes nowhere. */}
+              <div className="sm:w-48">
+                <RichText
+                  singleLine
+                  ariaLabel={`Label for link ${index + 1}`}
+                  placeholder="GitHub"
+                  value={link.label}
+                  onChange={(next) => edit((d) => void (d.basics.links[index]!.label = next))}
+                />
+              </div>
               <input
                 className="field flex-1"
                 placeholder="github.com/you"
@@ -998,9 +1042,10 @@ function EntryList({
               }
               if (field.kind === "csv") {
                 return (
-                  <Field key={field.key} label={field.label} half={field.half}>
+                  <Field key={field.key} label={field.label} half={field.half} rich>
                     <CsvInput
                       value={(value as string[]) ?? []}
+                      ariaLabel={`${field.label}, ${spec.singular} ${index + 1}`}
                       placeholder={field.placeholder}
                       onChange={(next) => mutate(index, field.key, next)}
                     />
@@ -1026,7 +1071,7 @@ function EntryList({
               }
               if (field.kind === "prose") {
                 return (
-                  <Field key={field.key} label={field.label} half={field.half}>
+                  <Field key={field.key} label={field.label} half={field.half} rich>
                     <RichText
                       value={String(value ?? "")}
                       placeholder={field.placeholder}
@@ -1036,12 +1081,27 @@ function EntryList({
                   </Field>
                 );
               }
+              // An address, not writing: no toolbar, because an href built
+              // out of marked-up text is a link that leads nowhere.
+              if (field.kind === "url") {
+                return (
+                  <Field key={field.key} label={field.label} half={field.half}>
+                    <TextInput
+                      value={String(value ?? "")}
+                      placeholder={field.placeholder}
+                      onChange={(event) => mutate(index, field.key, event.target.value)}
+                    />
+                  </Field>
+                );
+              }
               return (
-                <Field key={field.key} label={field.label} half={field.half}>
-                  <TextInput
+                <Field key={field.key} label={field.label} half={field.half} rich>
+                  <RichText
+                    singleLine
+                    ariaLabel={`${field.label}, ${spec.singular} ${index + 1}`}
                     value={String(value ?? "")}
                     placeholder={field.placeholder}
-                    onChange={(event) => mutate(index, field.key, event.target.value)}
+                    onChange={(next) => mutate(index, field.key, next)}
                   />
                 </Field>
               );
@@ -1090,7 +1150,9 @@ function entryTitle(section: ListSection, entry: Record<string, unknown>): strin
         : section === "sections"
           ? [entry.title]
           : [entry.role, entry.organisation];
-  return parts.filter(Boolean).join(" — ");
+  // The words, for a prompt and a heading. A model handed "<b>Founder</b>"
+  // is a model told the tag is part of the job title.
+  return parts.filter(Boolean).map((part) => plain(String(part))).join(" — ");
 }
 
 /**

@@ -1635,12 +1635,19 @@ function SectionOrder({
     ...profile.sections.map((s) => s.id).filter((id) => !design.order.includes(id)),
   ];
 
-  /** A section's name: the design's override, the writer's heading, or ours. */
+  /**
+   * A section's name: the design's override, the writer's heading, or ours.
+   *
+   * `""` is an override and not a missing one — it means "print this with no
+   * heading", which is what a CV that ran two of our sections under a single
+   * heading needs. Hence `in` rather than truthiness.
+   */
   const nameOf = (key: string) =>
-    design.labels?.[key] ||
-    profile.sections.find((s) => s.id === key)?.title ||
-    options.sections.find((s) => s.key === key)?.name ||
-    "Untitled section";
+    design.labels && key in design.labels
+      ? design.labels[key]!
+      : profile.sections.find((s) => s.id === key)?.title ||
+        options.sections.find((s) => s.key === key)?.name ||
+        "Untitled section";
 
   /** The fallback a rename compares against, to know it is not an override. */
   const defaultOf = (key: string) =>
@@ -1683,7 +1690,12 @@ function SectionOrder({
     setEditing("");
     const text = value.trim().replace(/\s+/g, " ").slice(0, 40);
     const labels = { ...(design.labels ?? {}) };
-    if (!text || text === fallback) delete labels[key];
+    // Emptying the box prints the section with no heading of its own — the
+    // way two sections a CV wrote under one heading are meant to sit. Typing
+    // the default back removes the override instead, so a design that agrees
+    // with every default carries nothing and a later change to a default
+    // still reaches the people who never disagreed with it.
+    if (text === fallback) delete labels[key];
     else labels[key] = text;
     onChange({ labels });
   };
@@ -1778,6 +1790,7 @@ function SectionOrder({
                   className="field min-w-0 flex-1 px-1.5 py-0.5 text-sm"
                   defaultValue={label}
                   autoFocus
+                  placeholder={`empty prints no heading · "${fallback}" restores the default`}
                   aria-label={`Heading for ${fallback}`}
                   onBlur={(event) => rename(key, event.target.value, fallback)}
                   onKeyDown={(event) => {
@@ -1794,14 +1807,25 @@ function SectionOrder({
                 <button
                   type="button"
                   onClick={() => setEditing(key)}
-                  title={`Rename "${label}" — it prints on the resume`}
+                  title={
+                    label
+                      ? `Rename "${label}" — it prints on the resume`
+                      : `${fallback} prints with no heading. Click to give it one.`
+                  }
                   className={[
                     "min-w-0 truncate rounded px-1 text-left decoration-dotted underline-offset-4",
                     "hover:underline",
                     shown ? "" : "text-faint line-through",
                   ].join(" ")}
                 >
-                  {label}
+                  {/* A row with nothing in it reads as a bug. Naming the
+                      section and saying it prints unheaded is the truth, and
+                      it is one click from being changed. */}
+                  {label || (
+                    <span className="text-faint">
+                      {fallback} <span className="text-2xs">· no heading</span>
+                    </span>
+                  )}
                 </button>
               )}
               {!has(key) && <span className="text-2xs text-faint">empty</span>}

@@ -37,14 +37,15 @@ def plain_text(
     out: list[str] = []
     b = profile.basics
 
-    if b.name:
-        out += [b.name.upper(), "=" * len(b.name)]
+    name = plain(b.name)
+    if name:
+        out += [name.upper(), "=" * len(name)]
 
-    contact = " | ".join(x for x in (b.email, b.phone, b.location) if x)
+    contact = " | ".join(plain(x) for x in (b.email, b.phone, b.location) if x)
     if contact:
         out.append(contact)
     if b.links:
-        out.append(" | ".join(f"{ln.label}: {ln.url}" for ln in b.links if ln.url))
+        out.append(" | ".join(f"{plain(ln.label)}: {ln.url}" for ln in b.links if ln.url))
 
     if profile.summary.text.strip():
         out += ["", "SUMMARY", "-------", plain(profile.summary.text).strip()]
@@ -82,7 +83,7 @@ def plain_text(
             # Skill groups carry ``items``; the narrative sections carry
             # ``bullets``. No entry has both, so the two loops never collide.
             for item in getattr(entry, "items", []) or []:
-                out.append(f"  {item}")
+                out.append(f"  {plain(item)}")
             for block in getattr(entry, "bullets", []) or []:
                 if block.text.strip():
                     # This format is for pasting into a textarea on somebody

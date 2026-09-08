@@ -13,6 +13,7 @@ paper, the typeface and the PDF.
 """
 
 from __future__ import annotations
+from ...core.markup import plain
 
 import sqlite3
 from typing import Iterator
@@ -70,7 +71,7 @@ class LetterBody(BaseModel):
             paragraphs=[p.strip() for p in self.paragraphs if p.strip()],
             greeting=self.greeting or drafting.greeting_for(self.recipient),
             closing=self.closing or drafting.closing_for(self.recipient),
-            signature=self.signature or profile.basics.name,
+            signature=self.signature or plain(profile.basics.name),
             recipient=self.recipient,
             company=self.company,
             role=self.role,

@@ -47,8 +47,22 @@ def test_an_unknown_section_is_dropped_rather_than_rejected() -> None:
     }
 
 
-def test_an_empty_label_clears_rather_than_prints_nothing() -> None:
-    assert design({"skills": "   "}).labels == {}
+def test_an_empty_label_means_print_no_heading() -> None:
+    """It is a real override, not the absence of one.
+
+    A CV that runs two of our sections under a single heading needs the
+    second to print beneath it rather than under a heading of its own.
+    Falling back to the default there is what produced
+
+        CERTIFICATIONS ... EDUCATION AND CERTIFICATIONS
+
+    -- the same word twice, from a writer who wrote it once.
+    """
+    assert design({"skills": "   "}).labels == {"skills": ""}
+    assert section_label("skills", {"skills": ""}) == ""
+    # Having no opinion is spelled by the key being absent, and still gets
+    # the default.
+    assert section_label("skills", {}) == SECTION_LABELS["skills"]
 
 
 def test_the_heading_reaches_the_rendered_document() -> None:
@@ -88,3 +102,26 @@ def test_one_heading_is_adopted_by_one_section() -> None:
 
 def test_blank_headings_are_left_at_their_defaults() -> None:
     assert result(summary="  ", skills="Core Expertise").headings == {"skills": "Core Expertise"}
+
+
+def test_a_section_with_no_heading_prints_its_content_and_no_band() -> None:
+    """The content has to survive; only the heading goes."""
+    html = render_html(sample_profile(), design({"certifications": ""}))
+    assert "<h2>Certifications</h2>" not in html
+    # Whatever the sample's first certification is, it is still on the page.
+    certification = sample_profile().certifications[0].name
+    assert certification in html
+
+
+def test_the_import_reports_which_sections_one_heading_covered() -> None:
+    """Both halves of the answer: who keeps the words, and who sits under it."""
+    parsed = result(education="Education and Certifications",
+                    certifications="Education and Certifications")
+    assert parsed.headings == {"education": "Education and Certifications"}
+    assert parsed.covered == {"certifications": "education"}
+
+
+def test_a_heading_used_once_covers_nothing() -> None:
+    parsed = result(skills="Core Expertise", education="Education")
+    assert parsed.covered == {}
+    assert parsed.headings == {"skills": "Core Expertise", "education": "Education"}

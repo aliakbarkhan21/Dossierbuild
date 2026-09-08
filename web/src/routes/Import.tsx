@@ -43,6 +43,8 @@ export function ImportScreen() {
   // The resume's own section headings, held from the parse until the import
   // is accepted -- a heading is only worth adopting if the content arrives.
   const [headings, setHeadings] = useState<Record<string, string>>({});
+  // Sections the resume ran together under one of those headings.
+  const [covered, setCovered] = useState<Record<string, string>>({});
 
   /**
    * Print the writer's own section names rather than ours.
@@ -54,8 +56,9 @@ export function ImportScreen() {
    */
   function adoptHeadings(merged: Profile) {
     const found = Object.entries(headings).filter(([, value]) => value.trim());
-    if (!found.length || !design) return;
+    if ((!found.length && !Object.keys(covered).length) || !design) return;
     const labels = { ...(design.labels ?? {}) };
+    let order = [...design.order];
     // A heading a custom section already owns is not adopted twice. The model
     // can report "Executive Qualifications" as the name of a built-in section
     // *and* bring it back as a section of its own, and the visible result of
@@ -70,7 +73,28 @@ export function ImportScreen() {
       labels[key] = value.trim();
       added++;
     }
-    if (added) setDesign({ labels }, "Adopted the resume's own headings");
+    /**
+     * A heading the resume wrote once prints once.
+     *
+     * "Education and Certifications" is a single heading over two sections
+     * the app keeps apart. The one that claimed the words keeps them; the
+     * other prints with no heading of its own — and moves directly beneath
+     * it, because a section with no heading floating three sections away
+     * from the one that names it is worse than the duplicate this fixes.
+     */
+    for (const [loser, winner] of Object.entries(covered)) {
+      if (labels[loser] !== undefined || !labels[winner]) continue;
+      labels[loser] = "";
+      added++;
+      const from = order.indexOf(loser);
+      const to = order.indexOf(winner);
+      if (from >= 0 && to >= 0) {
+        order.splice(from, 1);
+        order.splice(order.indexOf(winner) + 1, 0, loser);
+      }
+    }
+
+    if (added) setDesign({ labels, order }, "Adopted the resume's own headings");
   }
 
   async function propose(
@@ -78,10 +102,12 @@ export function ImportScreen() {
     label: string,
     notes: string[] = [],
     headings: Record<string, string> = {},
+    covered: Record<string, string> = {},
   ) {
     setCandidate(profile);
     setSource(label);
     setHeadings(headings);
+    setCovered(covered);
     const result = await api.plan(profile, label);
     result.notes = [...notes, ...result.notes];
     setPlan(result);
@@ -300,6 +326,7 @@ export function ImportScreen() {
                     `LinkedIn export (${file.name})`,
                     parsed.notes,
                     parsed.headings ?? {},
+                    parsed.covered ?? {},
                   );
                 })
               }
@@ -359,7 +386,13 @@ export function ImportScreen() {
                 onClick={() =>
                   void run("parse", async () => {
                     const parsed = await api.parse(text);
-                    await propose(parsed.profile, "Pasted text", parsed.notes, parsed.headings ?? {});
+                    await propose(
+                      parsed.profile,
+                      "Pasted text",
+                      parsed.notes,
+                      parsed.headings ?? {},
+                      parsed.covered ?? {},
+                    );
                   })
                 }
               >

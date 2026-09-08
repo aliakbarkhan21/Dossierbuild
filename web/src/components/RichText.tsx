@@ -1,11 +1,13 @@
 /**
- * A prose field that can carry bold, italic and underline — and nothing else.
+ * A field that can carry bold, italic and underline — and nothing else.
  *
- * Three deliberate limits, because a resume is not a document with rich text
- * in it, it is a plain document with the occasional emphasised number.
+ * Used for every piece of writing on the resume: the name, a job title, an
+ * organisation, a skill group, a bullet, the summary. Three deliberate
+ * limits, because a resume is not a document with rich text in it, it is a
+ * plain document with the occasional emphasised number.
  *
  * **Three marks.** No colours, no sizes, no fonts, no lists. Those are the
- * design's job and they are on Resume, where changing one changes the whole
+ * design's job and they live on Resume, where changing one changes the whole
  * document rather than one line of it. A field that can set type size is a
  * field somebody uses to make one bullet bigger than its neighbours.
  *
@@ -17,16 +19,20 @@
  * read from the other end.
  *
  * **Paste arrives plain.** Most text pasted into a CV comes out of Word or a
- * job posting, and it brings its own fonts, sizes and colours with it. Taking
- * the words and leaving the styling is not a limitation here; it is the
- * feature. Formatting is something you apply afterwards, on purpose.
+ * job posting and brings its own fonts, sizes and colours with it. Taking the
+ * words and leaving the styling is not a limitation here, it is the feature.
+ *
+ * Four kinds of field deliberately do *not* get one. Email, phone and links
+ * are addresses, and an `href` built out of marked-up text is a link that
+ * goes nowhere. Dates and the employment-type dropdown are structured values
+ * rather than writing.
  *
  * `document.execCommand` is deprecated and is still the only API that will
- * bold a selection across a range of text nodes in every browser. The
- * replacement is to reimplement range splitting by hand, which is a great
- * deal of code to arrive at what the built-in already does. What comes out of
- * it is normalised by `serialize` on the way to the store, so the deprecated
- * call's output shape is not what gets saved.
+ * bold a selection spanning several text nodes in every browser. The
+ * alternative is reimplementing range splitting by hand to arrive at what the
+ * built-in already does. What comes out of it is normalised by `serialize` on
+ * the way to the store, so the deprecated call's output shape is never what
+ * gets saved.
  */
 
 import { Bold, Italic, Underline } from "lucide-react";
@@ -53,12 +59,12 @@ const BLOCK = /^(DIV|P|LI|TR|BLOCKQUOTE|H[1-6])$/;
  * shows is what the PDF prints, and a `<` typed into a bullet is a `<` in
  * both.
  */
-function toHtml(value: string): string {
+function toHtml(value: string, singleLine: boolean): string {
   const escaped = (value || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/\n/g, "<br>");
+    .replace(/\n/g, singleLine ? " " : "<br>");
   return escaped.replace(/&lt;(\/?)(b|i|u)&gt;/g, "<$1$2>");
 }
 
@@ -90,7 +96,7 @@ function serialize(node: Node): string {
   return inner;
 }
 
-function read(root: HTMLElement): string {
+function read(root: HTMLElement, singleLine: boolean): string {
   let out = "";
   root.childNodes.forEach((child) => {
     out += serialize(child);
@@ -98,7 +104,8 @@ function read(root: HTMLElement): string {
   // A contenteditable's first block is the field's own first line, so the
   // newline that opened it is an artefact of the markup rather than a line
   // the writer typed.
-  return out.replace(/^\n+/, "").replace(/\n{3,}/g, "\n\n");
+  out = out.replace(/^\n+/, "").replace(/\n{3,}/g, "\n\n");
+  return singleLine ? out.replace(/\s*\n+\s*/g, " ") : out;
 }
 
 export function RichText({
@@ -108,6 +115,8 @@ export function RichText({
   className = "",
   blockId,
   ariaLabel,
+  singleLine = false,
+  id,
 }: {
   value: string;
   onChange: (next: string) => void;
@@ -116,12 +125,15 @@ export function RichText({
   /** Kept so the Health screen can still scroll to and flash one bullet. */
   blockId?: string;
   ariaLabel?: string;
+  /** A name, a job title, an organisation: one line, and Enter ends it. */
+  singleLine?: boolean;
+  id?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [focused, setFocused] = useState(false);
   // Whether to draw the placeholder. Tracked rather than left to `:empty`,
   // because a contenteditable that has been typed in and cleared keeps a
-  // stray `<br>` in most browsers — so it is not `:empty`, and the CSS
+  // stray `<br>` in most browsers — so it is not `:empty`, and a CSS
   // placeholder would never come back.
   const [blank, setBlank] = useState(!value);
   // Which marks the caret currently sits inside, for the pressed state.
@@ -132,21 +144,21 @@ export function RichText({
    * import, an AI rewrite, the read-back after a save.
    *
    * Guarded on the *serialized* form rather than the raw HTML. Without the
-   * guard, every keystroke would write the DOM the component had just read,
-   * collapsing the selection and putting the caret back at the start; with
-   * the guard, typing leaves the node alone and only a genuine outside change
+   * guard, every keystroke would write back the DOM the component had just
+   * read, collapsing the selection and putting the caret at the start; with
+   * it, typing leaves the node alone and only a genuine outside change
    * redraws it.
    */
   useEffect(() => {
     const el = ref.current;
     if (!el || document.activeElement === el) return;
-    if (read(el) !== value) el.innerHTML = toHtml(value);
+    if (read(el, singleLine) !== value) el.innerHTML = toHtml(value, singleLine);
     setBlank(!value);
-  }, [value]);
+  }, [value, singleLine]);
 
   useEffect(() => {
     const el = ref.current;
-    if (el && !el.innerHTML) el.innerHTML = toHtml(value);
+    if (el && !el.innerHTML) el.innerHTML = toHtml(value, singleLine);
     // Once, on mount: the effect above deliberately skips a focused field.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -154,10 +166,10 @@ export function RichText({
   const sync = useCallback(() => {
     const el = ref.current;
     if (!el) return;
-    const next = read(el);
+    const next = read(el, singleLine);
     setBlank(!next);
     onChange(next);
-  }, [onChange]);
+  }, [onChange, singleLine]);
 
   const refreshMarks = useCallback(() => {
     setActive(
@@ -196,26 +208,28 @@ export function RichText({
       {blank && placeholder && (
         <span
           aria-hidden
-          className="pointer-events-none absolute left-[0.6rem] top-[0.4rem] z-0 select-none text-faint"
+          className="pointer-events-none absolute left-[0.6rem] top-[0.4rem] z-0 select-none truncate text-faint"
+          style={{ maxWidth: "calc(100% - 1.2rem)" }}
         >
           {placeholder}
         </span>
       )}
+
       <div
         ref={ref}
+        id={id}
         contentEditable
         suppressContentEditableWarning
         role="textbox"
-        aria-multiline="true"
+        aria-multiline={!singleLine}
         aria-label={ariaLabel}
         data-block-id={blockId}
         spellCheck
         className={[
-          // The right padding is permanent, not applied on focus. The toolbar
-          // sits in that space, and adding the room only when it appears
-          // would reflow the sentence under the cursor the instant somebody
-          // clicked into it.
-          "field relative z-10 resize-y overflow-auto whitespace-pre-wrap break-words bg-transparent pr-[4.75rem]",
+          "field relative z-10 break-words bg-transparent",
+          singleLine
+            ? "overflow-x-auto whitespace-nowrap"
+            : "resize-y overflow-auto whitespace-pre-wrap",
           className,
         ].join(" ")}
         onInput={sync}
@@ -235,30 +249,35 @@ export function RichText({
           );
           if (hit) {
             // The browser would do this anyway, but not with styleWithCSS
-            // turned off — so the shortcut and the button have to be the same
-            // code path or they produce different markup.
+            // turned off — so the shortcut and the button have to be one code
+            // path or they produce different markup.
             event.preventDefault();
             apply(hit.key);
+            return;
+          }
+          // A job title is one line. Enter would otherwise open a second one
+          // inside a box only tall enough for the first.
+          if (singleLine && event.key === "Enter") {
+            event.preventDefault();
+            event.currentTarget.blur();
           }
         }}
         onPaste={(event) => {
           event.preventDefault();
           const text = event.clipboardData.getData("text/plain");
-          document.execCommand("insertText", false, text);
+          document.execCommand("insertText", false, singleLine ? text.replace(/\s+/g, " ") : text);
           sync();
         }}
       />
 
-      {/* Only while the field has focus. A permanent strip on every bullet
-          would put thirty toolbars on one screen, which is how a small
-          feature makes a whole editor look busy. */}
+      {/* Above the field, not inside it. Inside meant reserving a strip of
+          every field for a toolbar that is visible a fraction of the time,
+          and a one-line box has no room to reserve. Only while the field has
+          focus: a permanent strip on forty fields is how a small feature
+          makes a whole editor look busy. */}
       {focused && (
         <div
-          // Above the field, which is itself above the placeholder. Without
-          // the z-index the field wins the stacking order and swallows the
-          // click: the button is visible, does nothing, and puts the caret in
-          // the text instead. Found in a browser, not by a test.
-          className="absolute right-1 top-1 z-20 flex gap-0.5 rounded-md border border-line bg-surface p-0.5 shadow-raised"
+          className="absolute bottom-full right-0 z-30 mb-1 flex gap-0.5 rounded-md border border-line bg-surface p-0.5 shadow-raised"
           // The field must not lose the selection to a button press, or the
           // command would have nothing to act on.
           onMouseDown={(event) => event.preventDefault()}

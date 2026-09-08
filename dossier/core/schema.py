@@ -24,6 +24,7 @@ from typing import Annotated, Iterator, Literal, Optional
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints
 
 from .ids import new_id
+from .markup import plain
 
 SCHEMA_VERSION = 5
 
@@ -425,23 +426,34 @@ def format_range(start: str | None, end: str | None, *, style: str = "month") ->
 
 
 def entry_label(entry: object) -> str:
-    """A short human label for an entry, for UI headings and logs."""
+    """A short human label for an entry, for UI headings and logs.
+
+    Always the words, never the markup. This is the one function every part of
+    the app reaches for when it needs to *name* an entry -- the tailoring
+    prompt, the posting matcher, the guard record in the database, the
+    interview brief, the import review -- so stripping here is what keeps a
+    bolded job title from arriving at a model as "<b>Founder</b> & CEO" or
+    being written into a table as a label nobody can search for.
+    """
+    def words(*parts: str) -> str:
+        return " - ".join(plain(p) for p in parts if p)
+
     if isinstance(entry, Experience):
-        return " - ".join(p for p in (entry.role, entry.organisation) if p) or "Untitled role"
+        return words(entry.role, entry.organisation) or "Untitled role"
     if isinstance(entry, Project):
-        return entry.name or "Untitled project"
+        return plain(entry.name) or "Untitled project"
     if isinstance(entry, Education):
-        return " - ".join(p for p in (entry.credential, entry.institution) if p) or "Untitled study"
+        return words(entry.credential, entry.institution) or "Untitled study"
     if isinstance(entry, SkillGroup):
-        return entry.label or "Untitled group"
+        return plain(entry.label) or "Untitled group"
     if isinstance(entry, Certification):
-        return entry.name or "Untitled certification"
+        return plain(entry.name) or "Untitled certification"
     if isinstance(entry, Award):
-        return entry.title or "Untitled honor"
+        return plain(entry.title) or "Untitled honor"
     if isinstance(entry, Achievement):
-        return entry.title or "Untitled achievement"
+        return plain(entry.title) or "Untitled achievement"
     if isinstance(entry, CustomSection):
-        return entry.title or "Untitled section"
+        return plain(entry.title) or "Untitled section"
     return "Entry"
 
 

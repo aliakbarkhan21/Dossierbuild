@@ -277,21 +277,47 @@ class ParseResult:
     def headings(self) -> dict[str, str]:
         """The writer's own section names, for the design to adopt.
 
-        One heading, one section. Resumes routinely run two of ours together
-        -- "Education and Certifications" is a single heading over two things
-        the app keeps apart -- and adopting it for both would print the same
-        words twice on the page. The first section to claim it keeps it; the
-        rest fall back to their defaults, which is the readable outcome.
+        One heading, one section: the first to claim a heading keeps it. See
+        ``covered`` for what happens to the others.
         """
-        seen: set[str] = set()
-        out: dict[str, str] = {}
+        return self._split()[0]
+
+    @property
+    def covered(self) -> dict[str, str]:
+        """``{section: the section whose heading already covers it}``.
+
+        Resumes routinely run two of ours together -- "Education and
+        Certifications" is one heading over two things the app keeps apart.
+        The first fix here was to let the first section claim the heading and
+        the rest fall back to their defaults, which printed
+
+            CERTIFICATIONS
+            ...
+            EDUCATION AND CERTIFICATIONS
+
+        and reads as a mistake, because it is one: the word appears twice and
+        the writer wrote it once. What the CV actually says is that these are
+        one section, so the second prints with no heading of its own and the
+        import sets it directly beneath the first. One heading over both,
+        which is the page the writer already has.
+        """
+        return self._split()[1]
+
+    def _split(self) -> tuple[dict[str, str], dict[str, str]]:
+        claimed: dict[str, str] = {}
+        headings: dict[str, str] = {}
+        covered: dict[str, str] = {}
         for key, value in self.raw.headings.model_dump().items():
             text = " ".join(str(value).split())
-            if not text or text.casefold() in seen:
+            if not text:
                 continue
-            seen.add(text.casefold())
-            out[key] = text
-        return out
+            winner = claimed.get(text.casefold())
+            if winner is None:
+                claimed[text.casefold()] = key
+                headings[key] = text
+            else:
+                covered[key] = winner
+        return headings, covered
 
 
 def parse_resume_text(

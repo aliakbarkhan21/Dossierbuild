@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from ..core.markup import rich
+from ..core.markup import plain, rich
 from ..core.schema import Profile, entry_label, format_range
 from .design import Design, is_custom, normalise_tag, section_label
 from .naming import safe_stem
@@ -192,18 +192,25 @@ def build_contact(profile: Profile, design: Design) -> list[ContactItem]:
 
     def add(text: str, href: str, kind: str) -> None:
         text = (text or "").strip()
-        if not text or text.lower() in seen:
+        # Deduplicated on the words. Somebody who emboldened their email in
+        # one box and not in the other still put it there once.
+        key = plain(text).lower()
+        if not text or key in seen:
             return
-        seen.add(text.lower())
-        items.append(ContactItem(text=text, href=href, kind=kind))
+        seen.add(key)
+        items.append(ContactItem(text=rich(text), href=href, kind=kind))
 
     basics = profile.basics
-    add(basics.email, f"mailto:{basics.email}" if basics.email else "", "email")
-    add(basics.phone, phone_href(basics.phone), "phone")
+    # The two that are addresses rather than words. An href built out of
+    # marked-up text is a link that goes nowhere, which is why the editor
+    # offers no formatting on these two either.
+    email = plain(basics.email).strip()
+    add(email, f"mailto:{email}" if email else "", "email")
+    add(plain(basics.phone), phone_href(basics.phone), "phone")
     add(basics.location, "", "location")
     if design.show_links:
         for link in basics.links:
-            url = normalise_url(link.url)
+            url = normalise_url(plain(link.url))
             label = (link.label or "").strip() or display_url(url)
             if url or label:
                 add(label, url, "link")
@@ -242,25 +249,25 @@ def _experience_entry(item, design: Design) -> Entry:
     # while "(Internship)" changes how the whole entry reads.
     note = item.employment_type if item.employment_type not in ("Full-time", "Other") else ""
     return Entry(
-        title=item.role.strip(),
-        subtitle=item.organisation.strip(),
+        title=rich(item.role.strip()),
+        subtitle=rich(item.organisation.strip()),
         dates=format_range(item.start, item.end, style=design.date_format),
-        place=item.location.strip(),
+        place=rich(item.location.strip()),
         note=note,
         bullets=_entry_bullets(item, design.focus),
     )
 
 
 def _project_entry(item, design: Design) -> Entry:
-    url = normalise_url(item.url)
+    url = normalise_url(plain(item.url))
     return Entry(
-        title=item.name.strip(),
-        subtitle=item.tagline.strip(),
+        title=rich(item.name.strip()),
+        subtitle=rich(item.tagline.strip()),
         dates=format_range(item.start, item.end, style=design.date_format),
         url=url,
         url_text=display_url(url),
         tag_label="Stack",
-        tags=[t.strip() for t in item.tech if t.strip()],
+        tags=[rich(t.strip()) for t in item.tech if t.strip()],
         bullets=_entry_bullets(item, design.focus),
     )
 
@@ -273,13 +280,13 @@ def _education_entry(item, design: Design) -> Entry:
     # credential: people write grades that already contain brackets
     # ("Predicted First (79%)"), and nesting those reads as a typo.
     return Entry(
-        title=item.credential.strip(),
-        subtitle=item.institution.strip(),
+        title=rich(item.credential.strip()),
+        subtitle=rich(item.institution.strip()),
         dates=format_range(item.start, item.end, style=design.date_format),
-        place=item.location.strip(),
-        detail=item.grade.strip(),
+        place=rich(item.location.strip()),
+        detail=rich(item.grade.strip()),
         tag_label="Modules",
-        tags=[c.strip() for c in item.coursework if c.strip()],
+        tags=[rich(c.strip()) for c in item.coursework if c.strip()],
         bullets=_entry_bullets(item, design.focus),
     )
 
@@ -310,7 +317,8 @@ def _custom_section(profile: Profile, design: Design, key: str) -> Section | Non
     ]
     if not text and not lines:
         return None
-    label = (design.labels or {}).get(key) or custom.title.strip()
+    labels = design.labels or {}
+    label = labels[key] if key in labels else custom.title.strip()
     return Section(key, label, "free", text=rich(text), lines=lines)
 
 
@@ -339,7 +347,7 @@ def _build_section(profile: Profile, design: Design, key: str) -> Section | None
 
     if key == "skills":
         groups = [
-            (g.label.strip() or "Skills", [i.strip() for i in g.items if i.strip()])
+            (rich(g.label.strip() or "Skills"), [rich(i.strip()) for i in g.items if i.strip()])
             for g in profile.skills
             if any(i.strip() for i in g.items) and wanted(g.tags, design.focus)
         ]
@@ -360,9 +368,9 @@ def _build_section(profile: Profile, design: Design, key: str) -> Section | None
                 rest.append(format_date(c.issued, blank="", style=design.date_format))
             lines.append(
                 Line(
-                    name=c.name.strip(),
-                    text=" · ".join(p for p in rest if p),
-                    url=normalise_url(c.url),
+                    name=rich(c.name.strip()),
+                    text=rich(" · ".join(p for p in rest if p)),
+                    url=normalise_url(plain(c.url)),
                 )
             )
         return Section(key, label, "lines", lines=lines) if lines else None
@@ -382,7 +390,7 @@ def _build_section(profile: Profile, design: Design, key: str) -> Section | None
             line = " · ".join(p for p in parts if p)
             if a.note.strip():
                 line += f". {a.note.strip()}"
-            lines.append(Line(text=line))
+            lines.append(Line(text=rich(line)))
         return Section(key, label, "lines", lines=lines) if lines else None
 
     if key == "achievements":
@@ -400,7 +408,7 @@ def _build_section(profile: Profile, design: Design, key: str) -> Section | None
             line = " · ".join(p for p in parts if p)
             if a.note.strip():
                 line += f". {a.note.strip()}"
-            lines.append(Line(text=line))
+            lines.append(Line(text=rich(line)))
         return Section(key, label, "lines", lines=lines) if lines else None
 
     return None
@@ -432,12 +440,15 @@ def build_context(
         photo_data_uri(profile.basics.photo, photo_size) if design.wants_photo else ""
     )
     return ResumeContext(
-        name=name,
-        headline=headline,
+        name=rich(name),
+        headline=rich(headline),
         contact=build_contact(profile, design),
         sections=sections,
         photo=portrait,
-        initials=initials(name) if design.wants_photo else "",
+        # A monogram is two letters read out of a name, so it reads the name
+        # rather than the markup -- otherwise emboldening a first name turns
+        # the initials into "BA".
+        initials=initials(plain(name)) if design.wants_photo else "",
     )
 
 
@@ -488,7 +499,7 @@ def suggested_filename(profile: Profile, design: Design, suffix: str = "pdf") ->
     outright, leaving a file named after a template. Carrying it safely across
     an HTTP header is ``api.downloads.attachment``'s job, not this one's.
     """
-    name = safe_stem(profile.basics.name)
+    name = safe_stem(plain(profile.basics.name))
     template = safe_stem(design.template_spec.name)
     stem = "-".join(p for p in (name, "Resume", template) if p)
     return f"{stem or 'Resume'}.{suffix}"

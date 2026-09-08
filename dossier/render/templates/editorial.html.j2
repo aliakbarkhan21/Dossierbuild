@@ -131,7 +131,7 @@
     {%- endif %}
     {%- for s in r.only(SIDE) %}
     <section class="sec sec-{{ s.key }}">
-      <h2>{{ s.label }}</h2>
+      {%- if s.label %}<h2>{{ s.label }}</h2>{% endif %}
       {%- if s.kind == 'groups' %}
         {%- for label, items in s.groups %}
         <div class="side-group-label">{{ label }}</div>

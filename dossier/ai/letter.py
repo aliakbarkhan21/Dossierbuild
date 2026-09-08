@@ -104,9 +104,9 @@ def _dossier(profile: Profile) -> str:
     which job, because "at Northgate Labs I cut an ETL run from 42 minutes to
     9" is a letter and "I have experience with ETL" is not.
     """
-    lines: list[str] = [f"Name: {profile.basics.name}"]
+    lines: list[str] = [f"Name: {plain(profile.basics.name)}"]
     if profile.basics.headline:
-        lines.append(f"Headline: {profile.basics.headline}")
+        lines.append(f"Headline: {plain(profile.basics.headline)}")
     if profile.basics.location:
         lines.append(f"Based in: {profile.basics.location}")
     if profile.summary.text:
@@ -268,7 +268,7 @@ def draft_letter(
         greeting=greeting_for(recipient),
         paragraphs=paragraphs,
         closing=closing_for(recipient),
-        signature=profile.basics.name,
+        signature=plain(profile.basics.name),
         model=used,
         # Audited as one block against the record. The company and the role
         # are given, so they are added to what counts as known -- naming the

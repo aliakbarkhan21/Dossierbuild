@@ -6,6 +6,7 @@ from fastapi import APIRouter, File, UploadFile
 from pydantic import BaseModel
 
 from ...core.quality import Finding, build_vocabulary, check_text, summarise
+from ...core.markup import plain
 from ...core.schema import LIST_SECTIONS, Profile, iter_bullets
 from ...core import cvs
 from ...core.storage import dedupe_ids, default_profile_path, load_profile, save_profile
@@ -72,7 +73,9 @@ def write_profile(incoming: Profile) -> SaveResult:
     # person in it the first time there is one, so the switcher is a list of
     # names rather than a list of numbers. A CV the user has named is left
     # alone -- see `cvs.adopt_profile_name`.
-    cvs.adopt_profile_name(incoming.basics.name)
+    # The words. This names the CV in the sidebar, and a list of files is
+    # not the place for markup.
+    cvs.adopt_profile_name(plain(incoming.basics.name))
     return SaveResult(saved=True, path=str(path), schema_version=incoming.schema_version)
 
 

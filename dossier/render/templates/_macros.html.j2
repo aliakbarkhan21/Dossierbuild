@@ -126,7 +126,7 @@
 #}
 {% macro side_section(s) -%}
 <section class="sec sec-{{ s.key }}">
-  <h2>{{ s.label }}</h2>
+  {%- if s.label %}<h2>{{ s.label }}</h2>{% endif %}
   {%- if s.kind == 'text' %}
   <p class="summary">{{ s.text }}</p>
   {%- elif s.kind == 'groups' %}

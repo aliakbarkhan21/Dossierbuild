@@ -290,6 +290,15 @@ export interface Parsed {
   notes: string[];
   /** The resume's own section headings, adopted into the design on accept. */
   headings?: Record<string, string>;
+  /**
+   * `{section: the section whose heading already covers it}`.
+   *
+   * A CV that says "Education and Certifications" once has written one
+   * heading over two of our sections. The covered one prints beneath the
+   * other with no heading of its own, rather than falling back to its
+   * default and putting the word on the page twice.
+   */
+  covered?: Record<string, string>;
 }
 
 export interface MergeProposal {
