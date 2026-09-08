@@ -10,6 +10,7 @@ import {
   Briefcase,
   Check,
   Download,
+  ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
   PenLine,
@@ -197,6 +198,9 @@ export function ResumeScreen() {
    * a page whose every paragraph has a caret in it is a page you cannot read
    * without editing it by accident.
    */
+  // Which design group is open. On the Template gallery to begin with,
+  // because choosing one is the first thing anybody does here.
+  const groups = useGroups("template");
   const [onPage, setOnPage] = useState(false);
   // Read by the message listener, which is registered once and would
   // otherwise close over the mode as it was on mount.
@@ -512,12 +516,32 @@ export function ResumeScreen() {
             : "minmax(0,340px) minmax(0,1fr)",
         }}
       >
-        {/* The clip is what lets the panel leave sideways. `overflow-x: clip`
-            rather than `hidden` deliberately: `clip` is the one value that
-            does not make a scroll container, so the vertical overflow stays
-            `visible` and a panel taller than the window still scrolls with
-            the page instead of being cut off at the fold. */}
-        <div hidden={folded} className="min-w-0 overflow-x-clip">
+        {/* Its own scroll, and it stays put.
+            The panel is taller than most windows, and it used to scroll with
+            the page -- so reaching the Sections list at the bottom of it
+            carried the preview off the top of the screen, and every
+            adjustment cost a trip back up to see what it did. Sticky, with
+            its own overflow, the controls and the document scroll
+            independently: whatever you are changing, the page it changes is
+            still in front of you.
+
+            `overflow-x: clip` rather than `hidden` deliberately -- it is what
+            lets the panel leave sideways when collapsed without the
+            horizontal scrollbar `hidden` would imply. Pairing `clip` on one
+            axis with `auto` on the other is legal and is exactly what is
+            wanted here. */}
+        <div
+          hidden={folded}
+          className="min-w-0 self-start overflow-x-clip overflow-y-auto overscroll-contain"
+          style={{
+            position: "sticky",
+            // Under the top bar, which is sticky at the top of the same
+            // scroller. Measured rather than guessed: `--topbar` is set from
+            // the header's own height in App.tsx.
+            top: "var(--topbar, 61px)",
+            maxHeight: "calc(100dvh - var(--topbar, 61px))",
+          }}
+        >
           <div
             inert={collapsed}
             className="flex min-w-0 flex-col gap-5"
@@ -561,16 +585,13 @@ export function ResumeScreen() {
               onPick={(patch) => setDesign({ margin_custom_mm: null, ...patch })}
             />
 
-            <section>
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <h2 className="text-xl font-semibold">Template</h2>
-                <Segmented
-                  ariaLabel="Which templates to show"
-                  choices={FILTERS.map((f) => ({ key: f.label, label: f.label }))}
-                  value={filter}
-                  onChange={setFilter}
-                />
-              </div>
+            <Group id="template" title="Template" groups={groups} summary={template?.name}>
+              <Segmented
+                ariaLabel="Which templates to show"
+                choices={FILTERS.map((f) => ({ key: f.label, label: f.label }))}
+                value={filter}
+                onChange={setFilter}
+              />
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {/* Every card stays mounted; the filter only hides them.
@@ -589,7 +610,7 @@ export function ResumeScreen() {
                   />
                 ))}
               </div>
-            </section>
+            </Group>
 
             <DesignPanel
               design={design}
@@ -597,6 +618,7 @@ export function ResumeScreen() {
               profile={profile}
               onChange={setDesign}
               onProfile={edit}
+              groups={groups}
             />
           </div>
         </div>
@@ -1236,12 +1258,92 @@ function Badge({ children, tone }: { children: React.ReactNode; tone?: "good" | 
   );
 }
 
+/**
+ * One open group at a time, remembered between visits.
+ *
+ * The design panel is a column of eleven controls and an eight-card gallery,
+ * and all of it open at once is about nine hundred pixels -- so any change
+ * meant scrolling to reach the control and scrolling back to see what it did.
+ * Grouping is what makes the panel a screenful; the sticky scroll beside it is
+ * what makes the document stay put while you work.
+ *
+ * One at a time rather than free-for-all: with several open the panel is as
+ * tall as it ever was, and the arrangement stops meaning anything. Which one
+ * survives a reload, because somebody adjusting the section order does it more
+ * than once.
+ */
+const GROUP_KEY = "dossier:design-group";
+
+function useGroups(initial: string) {
+  const [open, setOpen] = useState(() => {
+    try {
+      return localStorage.getItem(GROUP_KEY) ?? initial;
+    } catch {
+      return initial;
+    }
+  });
+  const toggle = (key: string) =>
+    setOpen((was) => {
+      const next = was === key ? "" : key;
+      try {
+        localStorage.setItem(GROUP_KEY, next);
+      } catch {
+        /* a browser that will not remember is not a reason to fail */
+      }
+      return next;
+    });
+  return { open, toggle };
+}
+
+type Groups = ReturnType<typeof useGroups>;
+
+function Group({
+  id,
+  title,
+  summary,
+  groups,
+  children,
+}: {
+  id: string;
+  title: string;
+  /** What is set right now, so a closed group still answers its own question. */
+  summary?: React.ReactNode;
+  groups: Groups;
+  children: React.ReactNode;
+}) {
+  const open = groups.open === id;
+  return (
+    <section className="card overflow-hidden p-0">
+      <button
+        type="button"
+        onClick={() => groups.toggle(id)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors duration-150 hover:bg-sunken"
+      >
+        <ChevronRight
+          size={14}
+          className="shrink-0 text-faint transition-transform duration-200"
+          style={{ transform: open ? "rotate(90deg)" : "none" }}
+        />
+        <span className="text-sm font-semibold">{title}</span>
+        {/* The current value, on the closed row. A collapsed panel that says
+            nothing about what is set is a panel you have to open to read. */}
+        {!open && summary && (
+          <span className="ml-auto min-w-0 truncate text-2xs text-muted">{summary}</span>
+        )}
+      </button>
+      {open && <div className="flex flex-col gap-4 border-t border-line p-4">{children}</div>}
+    </section>
+  );
+}
+
 function DesignPanel({
   design,
   options,
   profile,
   onChange,
   onProfile,
+  groups,
 }: {
   design: Design;
   options: {
@@ -1260,11 +1362,20 @@ function DesignPanel({
   profile: Profile;
   onChange: (patch: Partial<Design>) => void;
   onProfile: (mutate: (profile: Profile) => void) => void;
+  groups: Groups;
 }) {
   const usesPhoto = options.templates.find((t) => t.key === design.template)?.photo ?? false;
+  const named = (list: { key: string; name: string }[], key: string) =>
+    list.find((x) => x.key === key)?.name ?? key;
 
   return (
-    <section className="card flex flex-col gap-4 p-4">
+    <>
+    <Group
+      id="type"
+      title="Colour and type"
+      groups={groups}
+      summary={`${named(options.accents, design.accent)} · ${named(options.fonts, design.fonts)}`}
+    >
       <div>
         <span className="label">Accent</span>
         <div className="flex gap-1.5">
@@ -1313,6 +1424,14 @@ function DesignPanel({
           controls for one decision, and the second answers the first. The
           named presets live on -- they are what the curated looks set -- and
           the slider reads whichever margin is in force. */}
+    </Group>
+
+    <Group
+      id="page"
+      title="Page and spacing"
+      groups={groups}
+      summary={`${named(options.pages, design.page)} · ${design.margin_custom_mm ?? PRESET_MM[design.margin] ?? 16}mm`}
+    >
       <div className="grid grid-cols-2 gap-3">
         <Choice
           label="Paper"
@@ -1351,6 +1470,9 @@ function DesignPanel({
         onChange={(scale) => onChange({ scale })}
       />
 
+    </Group>
+
+    <Group id="show" title="What appears on the page" groups={groups}>
       <div className="flex flex-col gap-1.5">
         <Toggle
           checked={design.show_links}
@@ -1373,6 +1495,14 @@ function DesignPanel({
         <PortraitControls design={design} profile={profile} onChange={onChange} onProfile={onProfile} />
       )}
 
+    </Group>
+
+    <Group
+      id="sections"
+      title="Sections"
+      groups={groups}
+      summary={`${design.order.filter((k) => !design.hidden.includes(k)).length} on the CV`}
+    >
       <SectionOrder design={design} options={options} profile={profile} onChange={onChange} />
 
       <button
@@ -1394,7 +1524,8 @@ function DesignPanel({
         <RotateCcw size={14} />
         Reset design
       </button>
-    </section>
+    </Group>
+    </>
   );
 }
 

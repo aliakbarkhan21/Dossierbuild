@@ -9,7 +9,7 @@
 
 import { Command, History, PanelLeftOpen, Redo2, Undo2, X } from "lucide-react";
 import { Switch } from "./Switch";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { useShallow } from "zustand/react/shallow";
 
@@ -254,8 +254,29 @@ export function TopBar({
   onShowSidebar,
   onOpenPalette,
 }: Props) {
+  /**
+   * Publish this bar's height as `--topbar`.
+   *
+   * Anything else that wants to stick below it needs the number, and the
+   * number is not a constant: the Profile screen puts a row of tabs under the
+   * title and is half as tall again. Measured with a `ResizeObserver` so it
+   * survives a wrapped subtitle, a narrower window and a screen that has tabs
+   * on Tuesday and not on Wednesday.
+   */
+  const bar = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = bar.current;
+    if (!el) return;
+    const publish = () =>
+      document.documentElement.style.setProperty("--topbar", `${Math.round(el.offsetHeight)}px`);
+    publish();
+    const watch = new ResizeObserver(publish);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
+
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur">
+    <header ref={bar} className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur">
       <div className="flex items-center gap-2 px-4 py-3 sm:gap-4 sm:px-6">
         {sidebarHidden && (
           <button
