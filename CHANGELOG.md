@@ -41,6 +41,17 @@ wrong for a while, it says that too.
   like a typed one.
 - **Times New Roman**, with Tinos behind it -- metrically identical, so a PDF
   built in CI breaks its lines in the same places as one built on a laptop.
+- **The design belongs to the CV.** Typeface, template, layout, paper,
+  margins, section order -- all of it was one file shared by every CV, on the
+  reasoning that the look is a habit of the person rather than a fact about
+  the document. That holds until somebody keeps two CVs for two different
+  people, at which point setting Times New Roman on one silently reset the
+  other. Section order was the sharper version: it can name a custom section,
+  and a custom section belongs to exactly one profile, so a shared order
+  carried ids the CV in front of you had never heard of and printed them as
+  "Untitled section". One design file per CV now, and a CV that has never been
+  styled reads the old shared one -- so nobody's look changes on the day this
+  landed, and the two stop moving together the moment either is touched.
 - **Removing a section from the CV.** A bin on every row of the section list,
   built-in or one you added, and it takes that section off this document and
   nothing else: remove Experience and every job is still in the Profile

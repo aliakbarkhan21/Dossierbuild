@@ -508,11 +508,17 @@ export const useStore = create<State>()(
 
     /** The half both of the above share: take the server's word for it. */
     async adoptCv(list: CVList) {
-      const profile = await api.getProfile();
+      // The design comes with the profile. It is a property of the document,
+      // not a habit of the person -- which only became obvious when somebody
+      // kept two CVs for two different people and setting a typeface on one
+      // silently reset the other. Fetched together so a switch never shows
+      // one CV's material under another's design, even for a frame.
+      const [profile, design] = await Promise.all([api.getProfile(), api.getDesign()]);
       set((s) => {
         s.cvs = list.cvs;
         s.activeCv = list.active;
         s.profile = profile;
+        s.design = design;
         s.past = [];
         s.future = [];
         s.dirty = false;

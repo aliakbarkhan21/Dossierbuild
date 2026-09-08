@@ -38,7 +38,36 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from ..core.schema import normalise_tag
 from ..core.storage import DATA_DIR
 
-DESIGN_PATH = DATA_DIR / "design.json"
+#: Where the design lived when there was only ever one of it. Still read, and
+#: never written: it is what every CV starts from, so nobody's look changes on
+#: the day designs became per-CV.
+LEGACY_DESIGN_PATH = DATA_DIR / "design.json"
+
+DESIGNS_DIR = DATA_DIR / "designs"
+
+
+def design_path(cv_id: str | None = None) -> Path:
+    """Where one CV's design lives.
+
+    One file per CV, because a design is a property of a document. It was one
+    file for all of them on the reasoning that the *look* is a habit of the
+    person rather than a fact about the CV -- and that is true right up until
+    somebody keeps two CVs for two different people, at which point setting
+    Times New Roman on one silently reset the other. Reported exactly that
+    way: "my uncle's CV settings have been applied to my CV as well".
+
+    Section order is the sharper version of the same problem. It can name a
+    custom section, and a custom section belongs to exactly one profile, so a
+    shared order carried ids the CV in front of you had never heard of -- and
+    printed them as "Untitled section".
+
+    Imported inside the function: ``cvs`` needs ``DATA_DIR`` from ``storage``,
+    which this module already imports, and a top-level import either way is a
+    cycle.
+    """
+    from ..core import cvs
+
+    return DESIGNS_DIR / f"{cv_id or cvs.active_id()}.json"
 
 MM_PER_INCH = 25.4
 CSS_DPI = 96.0
@@ -828,16 +857,26 @@ class Design(BaseModel):
 
 
 def load_design(path: Path | None = None) -> Design:
-    path = path or DESIGN_PATH
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        return Design.model_validate(raw)
-    except Exception:  # noqa: BLE001 -- missing, corrupt, outdated: same answer
-        return Design()
+    """This CV's design, or the one everything used to share, or the defaults.
+
+    The fallback chain is the migration. A CV with no design of its own reads
+    the old shared file, so the look somebody spent an afternoon on is still
+    there the first time they open it -- and the moment they change anything,
+    it is written to their own file and the two stop moving together.
+    """
+    for candidate in ([path] if path else [design_path(), LEGACY_DESIGN_PATH]):
+        try:
+            raw = json.loads(candidate.read_text(encoding="utf-8"))
+            return Design.model_validate(raw)
+        except Exception:  # noqa: BLE001 -- missing, corrupt, outdated: same answer
+            continue
+    return Design()
 
 
 def save_design(design: Design, path: Path | None = None) -> None:
-    path = path or DESIGN_PATH
+    # The legacy shared file is never written again. It stays on disk as what
+    # a CV that has never been styled starts from.
+    path = path or design_path()
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(".json.tmp")

@@ -1734,10 +1734,38 @@ function SectionOrder({
    * and the first drag writes it into the order for good. Mirrors
    * `Design.visible_sections`, which does exactly this for the render.
    */
+  /**
+   * The rows to show: this CV's sections, in the design's order.
+   *
+   * The design is one file shared by every CV -- the look of a document is
+   * not a fact about which document it is. Its `order`, though, can name a
+   * custom section, and a custom section belongs to exactly one profile. So
+   * switching CV used to leave rows for sections this one has never had,
+   * labelled "Untitled section" because there was nothing to read a name off.
+   *
+   * They are hidden here rather than deleted, and that is the point: the
+   * other CV's arrangement is still the other CV's, and throwing it away
+   * because you looked at this one would be a worse bug than the one being
+   * fixed. `writeOrder` puts them back where they were on the way out.
+   */
+  const owned = new Set(profile.sections.map((s) => s.id));
+  const foreign = (key: string) => key.startsWith("cus_") && !owned.has(key);
+
   const order = [
-    ...design.order,
+    ...design.order.filter((key) => !foreign(key)),
     ...profile.sections.map((s) => s.id).filter((id) => !design.order.includes(id)),
   ];
+
+  /** Save a new visible order, with the other CVs' sections put back. */
+  const writeOrder = (visible: string[], patch: Partial<Design> = {}) => {
+    const out = [...visible];
+    design.order.forEach((key, index) => {
+      // Back at the index it held, so a section hidden from this screen keeps
+      // its neighbours when you switch to the CV that owns it.
+      if (foreign(key)) out.splice(Math.min(index, out.length), 0, key);
+    });
+    onChange({ ...patch, order: out });
+  };
 
   /**
    * A section's name: the design's override, the writer's heading, or ours.
@@ -1774,7 +1802,7 @@ function SectionOrder({
     const target = Math.max(0, Math.min(next.length - 1, to));
     if (from < 0 || from === target) return;
     moveWithin(next, from, target);
-    onChange({ order: next });
+    writeOrder(next);
   };
 
   const move = (key: string, delta: number) =>
@@ -1848,7 +1876,7 @@ function SectionOrder({
     // The order goes with it. Removing a custom section that had no position
     // yet would otherwise leave it off the page and unplaced, and putting it
     // back would send it to the bottom rather than where it was.
-    onChange({ hidden, order });
+    writeOrder(order, { hidden });
     if (!design.hidden.includes(key)) {
       toast.info(
         `"${nameOf(key) || "That section"}" is off this CV`,
