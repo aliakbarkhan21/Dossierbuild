@@ -22,7 +22,6 @@ import {
   Settings as SettingsIcon,
   ScanSearch,
   Sun,
-  Monitor,
   Trash2,
   User,
 } from "lucide-react";
@@ -30,7 +29,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import { MARKER_COLOUR_CLASS, markerStyle, useSlidingMarker } from "../lib/marker";
-import { currentMode, cycleMode, watchSystem, type Mode } from "../lib/theme";
+import { currentMode, cycleMode, type Mode } from "../lib/theme";
 import { useShallow } from "zustand/react/shallow";
 import { useStore } from "../lib/store";
 
@@ -62,10 +61,6 @@ const NAV = [
 
 export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   const [mode, setModeState] = useState<Mode>(currentMode);
-  // The OS can change while a tab is open -- an evening schedule is exactly
-  // when it does -- and "System" that only reads the setting at load is wrong
-  // at the one moment it matters.
-  useEffect(() => watchSystem(setModeState), []);
   const health = useStore((s) => s.health);
   // The active link is found by `aria-current="page"`, which NavLink sets
   // itself -- using its own idea of active is what stops the highlight and
@@ -165,16 +160,14 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
             type="button"
             className="btn btn-quiet min-w-0 flex-1 justify-start"
             onClick={() => setModeState(cycleMode())}
-            title="Light, dark, or whatever this computer is set to"
+            // The label names what you are looking at, not what pressing it
+            // does. It is the one readable place the current theme is stated,
+            // and a button that reads "Dark" while the app is light would be
+            // lying to make room for an instruction nobody needs.
+            title={mode === "dark" ? "Switch to light" : "Switch to dark"}
           >
-            {mode === "system" ? (
-              <Monitor size={15} />
-            ) : mode === "dark" ? (
-              <Moon size={15} />
-            ) : (
-              <Sun size={15} />
-            )}
-            {mode === "system" ? "System" : mode === "dark" ? "Dark" : "Light"}
+            {mode === "dark" ? <Moon size={15} /> : <Sun size={15} />}
+            {mode === "dark" ? "Dark" : "Light"}
           </button>
           <NavLink
             to="/settings"

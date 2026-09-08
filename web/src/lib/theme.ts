@@ -1,29 +1,37 @@
 /**
- * Light, dark, or whichever the computer is using.
+ * Light or dark, and nothing else.
  *
  * The class is applied by a script in index.html before first paint, so this
  * only handles changes. Reading the stored value here as well keeps the
- * control honest on a page that was loaded following the system setting.
+ * control honest on a page that was loaded before React ran.
  *
- * **Why "system" is a stored value rather than the absence of one.** It was
- * the absence of one, which made following the system a state you could leave
- * and never return to: the first click on the toggle wrote "light" or "dark",
- * and nothing could ever unset it again. A person who dims their machine in
- * the evening wants the app to come with them, and that was a one-way door.
+ * **There was a third mode, "system", and it is gone.** It cost the toggle its
+ * whole point: a control you press to change the theme should change the
+ * theme, and one press in three did something you could not see -- picking the
+ * setting the app was already showing. The operating system still decides
+ * where a *first* visit starts, which is the part that actually mattered
+ * (nobody who runs their machine dark should meet a white app). It stops being
+ * a state you can be in the moment you express a preference.
  */
 
 const KEY = "dossier.mode";
 
-/** What the user chose. Not what is on screen -- see `resolved`. */
-export type Mode = "light" | "dark" | "system";
+export type Mode = "light" | "dark";
 
-const MODES: Mode[] = ["light", "dark", "system"];
+const MODES: Mode[] = ["light", "dark"];
 
 function systemPrefersDark(): boolean {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
 }
 
-/** The stored choice, defaulting to following the system. */
+/**
+ * The stored choice, or what this computer is set to if there is not one yet.
+ *
+ * Anything unrecognised falls through to the system as well, which is what
+ * quietly retires the "system" value left in the storage of anyone who was
+ * using it: they keep the appearance they had, and their next press writes a
+ * real one.
+ */
 export function currentMode(): Mode {
   try {
     const saved = localStorage.getItem(KEY);
@@ -31,17 +39,11 @@ export function currentMode(): Mode {
   } catch {
     /* private browsing: nothing was ever stored */
   }
-  return "system";
-}
-
-/** What is actually painted right now: "system" resolved against the OS. */
-export function resolved(mode: Mode = currentMode()): "light" | "dark" {
-  if (mode === "system") return systemPrefersDark() ? "dark" : "light";
-  return mode;
+  return systemPrefersDark() ? "dark" : "light";
 }
 
 export function setMode(mode: Mode): Mode {
-  document.documentElement.classList.toggle("dark", resolved(mode) === "dark");
+  document.documentElement.classList.toggle("dark", mode === "dark");
   try {
     localStorage.setItem(KEY, mode);
   } catch {
@@ -50,29 +52,7 @@ export function setMode(mode: Mode): Mode {
   return mode;
 }
 
-/** Light, then dark, then back to following the system. */
+/** The other one. */
 export function cycleMode(): Mode {
-  const order: Mode[] = ["light", "dark", "system"];
-  const next = order[(order.indexOf(currentMode()) + 1) % order.length] ?? "system";
-  return setMode(next);
-}
-
-/**
- * Repaint when the OS changes, but only while following it.
- *
- * Without this, "system" would mean "whatever the system was when this tab
- * opened" -- which is wrong precisely at the moment it matters, when the
- * machine turns dark at sunset and the tab has been open all day.
- */
-export function watchSystem(onChange: (mode: Mode) => void): () => void {
-  const query = window.matchMedia?.("(prefers-color-scheme: dark)");
-  if (!query) return () => {};
-  const react = () => {
-    if (currentMode() === "system") {
-      document.documentElement.classList.toggle("dark", query.matches);
-      onChange("system");
-    }
-  };
-  query.addEventListener("change", react);
-  return () => query.removeEventListener("change", react);
+  return setMode(currentMode() === "dark" ? "light" : "dark");
 }
