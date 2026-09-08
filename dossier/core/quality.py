@@ -40,47 +40,89 @@ from .schema import Profile, format_date, is_month, iter_bullets
 
 Severity = Literal["error", "warning", "note"]
 
-# Phrases that describe duties rather than accomplishments, or that pad without
-# adding information. Matched case-insensitively, as whole words.
-FILLER_PHRASES: tuple[str, ...] = (
-    "responsible for",
-    "involved in",
-    "participated in",
-    "tasked with",
-    "duties included",
-    "contributed to",
-    "utilised",
-    "utilized",
-    "leveraged",
-    "spearheaded",
-    "passionate about",
-    "team player",
-    "hard worker",
-    "detail-oriented",
-    "results-driven",
-    "self-starter",
-    "think outside the box",
-    "wide range of",
-    "various",
-    "a variety of",
-    "several different",
-    "successfully",
-    "effectively",
-    "efficiently",
-    "seamlessly",
-    "state-of-the-art",
-    "cutting-edge",
-    "best practices",
-    "synergy",
-)
+#: What kind of nothing a phrase is doing, because the repair is different
+#: for each and so is how much it costs.
+#:
+#: This was a flat list, and so was the advice: every match produced the same
+#: sentence with the phrase substituted in, at the top severity, whether the
+#: line read "Responsible for various tasks" or "successfully cut nightly
+#: runtime from 42 to 9 minutes". The first of those is an empty line; the
+#: second is a good line with one word too many in it. Handing both the same
+#: verdict is how a review stops being read -- it is the same thing for
+#: everyone because it never looked at the sentence.
+FillerKind = Literal["hedge", "adverb", "vague", "cliche", "inflated"]
+
+#: Ordered worst-first: the AI prompts ban ``FILLER_PHRASES[:18]`` by name.
+FILLER: dict[str, FillerKind] = {
+    # Verbs that place you beside the work instead of inside it. The most
+    # expensive kind, because they are usually the main verb of the sentence,
+    # which makes proximity the whole claim.
+    "responsible for": "hedge",
+    "involved in": "hedge",
+    "participated in": "hedge",
+    "contributed to": "hedge",
+    "tasked with": "hedge",
+    "duties included": "hedge",
+    "exposure to": "hedge",
+    # Self-description with no opposite. Nobody has ever written "not a team
+    # player", which is exactly why it carries no information.
+    "passionate about": "cliche",
+    "team player": "cliche",
+    "hard worker": "cliche",
+    "detail-oriented": "cliche",
+    "results-driven": "cliche",
+    "self-starter": "cliche",
+    "go-getter": "cliche",
+    "think outside the box": "cliche",
+    "best practices": "cliche",
+    "state-of-the-art": "cliche",
+    "cutting-edge": "cliche",
+    "synergy": "cliche",
+    # Quantity words that decline to give the quantity.
+    "various": "vague",
+    "a variety of": "vague",
+    "wide range of": "vague",
+    "several different": "vague",
+    "numerous": "vague",
+    # Your own verdict on your own work, offered in place of the evidence.
+    "successfully": "adverb",
+    "effectively": "adverb",
+    "efficiently": "adverb",
+    "seamlessly": "adverb",
+    "significantly": "adverb",
+    "substantially": "adverb",
+    # A longer word standing where a plain one would do the same job.
+    "utilised": "inflated",
+    "utilized": "inflated",
+    "leveraged": "inflated",
+    "spearheaded": "inflated",
+    "orchestrated": "inflated",
+    "facilitated": "inflated",
+    "in order to": "inflated",
+}
+
+#: What the inflated word is inflated from. Per-phrase, because "use the plain
+#: word" is advice and "you mean 'used'" is an edit.
+PLAINER: dict[str, str] = {
+    "utilised": "used",
+    "utilized": "used",
+    "leveraged": "used",
+    "spearheaded": "led",
+    "orchestrated": "ran",
+    "facilitated": "ran",
+    "in order to": "to",
+}
+
+#: The flat list the AI prompts still want, derived so it cannot drift.
+FILLER_PHRASES: tuple[str, ...] = tuple(FILLER)
 
 # Filler built on a verb, so every tense has to be caught. "Worked on",
 # "working on" and "work on" are the same evasion.
-FILLER_VERB_PATTERNS: tuple[tuple[str, str], ...] = (
-    (r"\bwork(?:ed|ing)?\s+on\b", "worked on"),
-    (r"\bassist(?:ed|ing)?\s+(?:with|in)\b", "assisted with"),
-    (r"\bhelp(?:ed|ing)?\s+(?:with|to|in)\b", "helped with"),
-    (r"\bworked\s+as\s+part\s+of\b", "worked as part of"),
+FILLER_VERB_PATTERNS: tuple[tuple[str, str, FillerKind], ...] = (
+    (r"\bwork(?:ed|ing)?\s+on\b", "worked on", "hedge"),
+    (r"\bassist(?:ed|ing)?\s+(?:with|in)\b", "assisted with", "hedge"),
+    (r"\bhelp(?:ed|ing)?\s+(?:with|to|in)\b", "helped with", "hedge"),
+    (r"\bworked\s+as\s+part\s+of\b", "worked as part of", "hedge"),
 )
 
 # Verbs that are technically past tense but say nothing about what changed.
@@ -233,6 +275,124 @@ def mentions_specific(text: str, vocabulary: Iterable[str] = ()) -> bool:
     return any(word in COMMON_TECH for word in stripped)
 
 
+def _tail(text: str, end: int, limit: int = 6) -> str:
+    """The few words that follow a phrase, so advice can quote the sentence.
+
+    This is the whole difference between "'contributed to' is filler" -- true
+    of everybody who has ever typed it -- and "you were near HPE's global
+    strategy; which part was yours?", which can only be about one line.
+    """
+    rest = text[end:].strip(" ,.;:-")
+    words = rest.split()
+    if not words:
+        return ""
+    return " ".join(words[:limit]) + ("..." if len(words) > limit else "")
+
+
+def find_filler(text: str) -> dict[str, tuple[FillerKind, int, int]]:
+    """Every filler phrase in a line: ``{phrase: (kind, start, end)}``.
+
+    Offsets are into the lowercased text, which is the same length as the
+    original for anything Latin. The one exception -- a character that grows
+    when it is lowercased -- gives up the offsets rather than quoting the
+    wrong words, because advice that misquotes you is worse than advice that
+    does not quote you at all.
+    """
+    lowered = text.lower()
+    usable = len(lowered) == len(text)
+    hits: dict[str, tuple[FillerKind, int, int]] = {}
+
+    for phrase, kind in FILLER.items():
+        match = re.search(rf"\b{re.escape(phrase)}\b", lowered)
+        if match:
+            hits[phrase] = (kind, match.start(), match.end()) if usable else (kind, -1, -1)
+    for pattern, label, kind in FILLER_VERB_PATTERNS:
+        match = re.search(pattern, lowered)
+        if match and label not in hits:
+            hits[label] = (kind, match.start(), match.end()) if usable else (kind, -1, -1)
+    return hits
+
+
+def _filler_message(
+    phrase: str, kind: FillerKind, tail: str, *, leading: bool, has_number: bool
+) -> str:
+    """What to do about this phrase, in this sentence.
+
+    Five different faults were being reported with one sentence. They are not
+    one fault: a hedge is the wrong verb, an adverb is one word too many, a
+    vague quantity is a missing number, a cliche is an unfalsifiable claim,
+    and an inflated word is a plain word wearing a costume. Each has its own
+    repair, and the repair is the only part worth reading.
+    """
+    if kind == "hedge":
+        if leading and tail:
+            return (
+                f'"{phrase}" is the verb of this line, so what it claims is that you were '
+                f'near "{tail}" -- not what you did to it. Open with the verb for your own part'
+            )
+        if tail:
+            return (
+                f'"{phrase} {tail}" -- the reader cannot tell which part of that was yours. '
+                "Name it, and the sentence stops being one anybody could have written"
+            )
+        return f'"{phrase}" puts you beside the work without claiming any of it'
+
+    if kind == "adverb":
+        if has_number:
+            return (
+                f'"{phrase}" is already carried by the number -- delete the word and '
+                "nothing about this line changes"
+            )
+        return (
+            f'"{phrase}" is your own verdict on your own work. Show the result and the '
+            "reader arrives at it without being told"
+        )
+
+    if kind == "vague":
+        subject = f'"{phrase} {tail}"' if tail else f'"{phrase}"'
+        return (
+            f"{subject} -- how many? The number being avoided here is the strongest "
+            "word available to you"
+        )
+
+    if kind == "inflated":
+        plain_word = PLAINER.get(phrase, "")
+        return (
+            f'"{phrase}" is a longer way of writing "{plain_word}" -- the plain word reads '
+            "more confident, not less"
+            if plain_word
+            else f'"{phrase}" is longer than the word it is standing in for'
+        )
+
+    return (
+        f'"{phrase}" has no opposite -- nobody claims the reverse of it, so it tells a '
+        "reader nothing. Cut it, or swap it for the thing you did that proves it"
+    )
+
+
+def _filler_severity(kind: FillerKind, *, leading: bool, carries: bool) -> Severity:
+    """How much this phrase costs, given what the rest of the line is doing.
+
+    Nothing in the writing pass is a "Problem" any more, and that is the
+    point. A Problem is a fault in the document -- no email address on it, a
+    job that ends before it starts, a word a PDF import split in half. Calling
+    a padded adverb by the same word made both mean less, and put a red mark
+    beside every line of a resume whose only sin was the word "successfully".
+
+    What is left is two tiers with a real difference between them:
+
+    * **Warning** -- the sentence does not survive deleting the phrase,
+      because the phrase was the claim. A hedge as the opening verb; anything
+      at all on a line that names nothing and counts nothing.
+    * **Note** -- one word to delete on a line that is otherwise working.
+    """
+    if not carries:
+        return "warning"
+    if kind == "hedge" and leading:
+        return "warning"
+    return "note"
+
+
 @dataclass(frozen=True)
 class Finding:
     """One thing worth changing about one block of text."""
@@ -288,21 +448,25 @@ def check_text(
         return findings
 
     lowered = stripped.lower()
-    seen_filler: set[str] = set()
 
-    for phrase in FILLER_PHRASES:
-        if re.search(rf"\b{re.escape(phrase)}\b", lowered):
-            seen_filler.add(phrase)
-    for pattern, label in FILLER_VERB_PATTERNS:
-        if re.search(pattern, lowered):
-            seen_filler.add(label)
+    # Computed before the filler pass rather than after it: how much a filler
+    # phrase costs depends on what the rest of the line is carrying.
+    has_number = bool(NUMBER_RE.search(stripped))
+    has_specific = mentions_specific(stripped, vocabulary)
+    carries = has_number or has_specific
 
-    for phrase in sorted(seen_filler):
+    # In the order they appear, not alphabetically. These read as notes in the
+    # margin of the sentence, and margins run left to right.
+    for phrase, (fkind, start, end) in sorted(
+        find_filler(stripped).items(), key=lambda item: (item[1][1], item[0])
+    ):
+        leading = start == 0
+        tail = _tail(stripped, end) if end >= 0 else ""
         findings.append(
             Finding(
                 block_id,
-                "error",
-                f'"{phrase}" is filler -- say what changed instead of that you were near it',
+                _filler_severity(fkind, leading=leading, carries=carries),
+                _filler_message(phrase, fkind, tail, leading=leading, has_number=has_number),
             )
         )
 
@@ -315,7 +479,10 @@ def check_text(
         findings.append(
             Finding(
                 block_id,
-                "warning",
+                # A Problem, because it is not an opinion about the writing:
+                # those two halves print exactly as they are stored, and a
+                # reader sees a typo the writer never made.
+                "error",
                 f'"{match.group(0)}" looks like one word split by a PDF import '
                 f'-- probably "{match.group(1)}-{match.group(2)}"',
             )
@@ -340,10 +507,7 @@ def check_text(
                 )
             )
 
-    has_number = bool(NUMBER_RE.search(stripped))
-    has_specific = mentions_specific(stripped, vocabulary)
-
-    if not has_number and not has_specific:
+    if not carries:
         findings.append(
             Finding(
                 block_id,
@@ -441,9 +605,9 @@ def summarise(results: dict[str, list[Finding]]) -> tuple[int, int, int]:
 # The document, as against the writing in it
 # --------------------------------------------------------------------------
 #
-# Everything above reads one line at a time and asks whether it is well
-# written. Useful, and the same advice for everybody: lead with a verb, carry
-# a number, do not say "responsible for". None of it can see that a resume has
+# Everything above reads one line at a time. It knows what that line is doing
+# wrong and it can quote it back, but its whole field of view is one sentence:
+# it cannot see that a resume has
 # no email address on it, or that a job ends before it starts, or that the
 # same bullet was pasted twice -- which are the faults that actually cost
 # somebody an interview, and which are specific to their document.
@@ -455,6 +619,19 @@ def summarise(results: dict[str, list[Finding]]) -> tuple[int, int, int]:
 #: Past this many, a reader has stopped. Not a style rule -- a claim about
 #: attention, and the reason the last bullets of a long entry are wasted.
 CROWDED_ENTRY = 8
+
+#: A verb that opens this many bullets is monotony even when it is a good
+#: verb, and a higher bar than a weak one has to clear.
+SAME_OPENER = 4
+
+#: The same phrase in this many separate lines is a habit rather than a slip.
+#:
+#: The per-line pass will already have said something beside each of them, and
+#: six copies of the same note is precisely the complaint that "the warnings
+#: are the same for everyone". One sentence at the top -- you write this word
+#: everywhere -- is a different and more useful observation, and it is one a
+#: line-by-line reader structurally cannot make.
+HABIT = 3
 
 
 def check_document(profile: Profile) -> list[Finding]:
@@ -515,6 +692,57 @@ def check_document(profile: Profile) -> list[Finding]:
             add("warning", section.title(), f'the same line appears twice: "{block.text.strip()[:60]}…"')
         else:
             seen[key] = owner
+
+    # ---- a word you reach for too often ----------------------------
+    #
+    # The per-line pass has already said something beside each of these, and
+    # the same sentence six times is exactly the complaint that "the warnings
+    # are the same for everyone". Rolled up here it becomes a different
+    # observation -- you write this word everywhere -- which is one a
+    # line-by-line reader structurally cannot make.
+    habit: dict[str, int] = {}
+    openers: dict[str, int] = {}
+    for section, _owner, block in iter_bullets(profile):
+        text = plain(block.text).strip()
+        for phrase in find_filler(text):
+            habit[phrase] = habit.get(phrase, 0) + 1
+        if section != "summary" and text:
+            first = re.split(r"\W+", text.lower(), maxsplit=1)[0]
+            if first:
+                openers[first] = openers.get(first, 0) + 1
+
+    for phrase, count in sorted(habit.items(), key=lambda kv: (-kv[1], kv[0]))[:3]:
+        if count < HABIT:
+            break
+        add(
+            "warning",
+            "Writing",
+            f'"{phrase}" is in {count} of your lines -- a habit rather than a slip. '
+            "One pass with the find box lifts the whole document",
+        )
+
+    # The same opening verb, over and over.
+    #
+    # Weak verbs are taken first and strong ones second -- not by count. On a
+    # real CV "Led" opened ten bullets and "Supported" five, and ranking by
+    # frequency alone spent the whole card on the good verb while the weak one
+    # went unmentioned. What is worth saying is not what recurs most; it is
+    # what recurs and is also wrong.
+    ranked = sorted(openers.items(), key=lambda kv: (-kv[1], kv[0]))
+    for word, count in [w for w in ranked if w[0] in WEAK_OPENERS and w[1] >= HABIT][:2]:
+        add(
+            "warning",
+            "Writing",
+            f'{count} bullets open with "{word}" -- a verb that names an activity '
+            "rather than a result. Repeated, they make several jobs read as one",
+        )
+    for word, count in [w for w in ranked if w[0] not in WEAK_OPENERS and w[1] >= SAME_OPENER][:1]:
+        add(
+            "note",
+            "Writing",
+            f'{count} bullets open with "{word}". Even a good verb flattens the page '
+            "when it is the only one on it",
+        )
 
     # ---- a heading with nothing under it ---------------------------
     for custom in profile.sections:

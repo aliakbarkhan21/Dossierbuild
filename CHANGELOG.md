@@ -50,6 +50,37 @@ wrong for a while, it says that too.
   under it, an entry so long the last bullets are read by nobody. Each names
   its place, and every one of them is silent on a resume that does not have
   the problem.
+- **Every filler phrase got the same sentence, at the top severity.** Two
+  different lines, two red "Problem" marks, and under each of them the same
+  words with the phrase swapped in: ``"contributed to" is filler``,
+  ``"successfully" is filler``. It was one fault when it is five, and it never
+  looked at the sentence it was talking about. Filler is now typed -- a
+  **hedge** is the wrong verb, an **adverb** is one word too many, a **vague**
+  quantity is a missing number, a **cliche** is a claim with no opposite, an
+  **inflated** word is a plain word in a costume -- and each is told its own
+  repair, quoting the line: *"contributed to" is the verb of this line, so
+  what it claims is that you were near "HPE's global strategy for cloud,
+  telecommunications..." -- not what you did to it.* Severity is read off the
+  rest of the sentence rather than fixed: a hedge that is the main verb, or
+  anything at all on a line that counts nothing and names nothing, is a
+  warning; one deletable word on a line already carrying a number is a note.
+- **"Problem" now means the document is broken.** It used to hold a missing
+  email address, a job ending before it starts, and the word "successfully" on
+  an otherwise good line -- a tier holding all three means nothing. Nothing in
+  the writing pass is a Problem any more. A word a PDF import split in half
+  became one, because that is not an opinion: those two halves print exactly
+  as they are stored.
+- **A habit is now said once instead of five times.** "Supported" opened five
+  bullets of one real CV and "managed" four, each collecting its own identical
+  warning down the page -- which is the complaint itself. Counted across the
+  document, it becomes a fact no single line could report: *5 bullets open
+  with "supported" -- repeated, they make several jobs read as one.* The same
+  for a filler phrase in three or more lines, and for a good verb opening four
+  or more, because monotony costs a page whether or not the verb is strong.
+  Weak verbs are reported before frequent ones: on that CV "Led" opened ten
+  bullets, and ranking by count alone spent the card on the good verb.
+- **The Review icon was a stethoscope**, which is a doctor listening to a
+  body. It is a document being read closely, and now looks like one.
 - **A summary was being judged as a bullet.** At 1,017 characters it was told
   that "over about 200 this will wrap badly and push the resume past one
   page" -- a bullet's rule read out over a paragraph, and wrong in both

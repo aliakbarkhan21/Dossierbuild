@@ -271,7 +271,12 @@ def _() -> None:
 @check("the quality linter catches duty language and passes concrete bullets")
 def _() -> None:
     bad = check_text("Responsible for working on various backend tasks", "b1")
-    assert any(f.severity == "error" for f in bad), "filler phrases should be errors"
+    # A warning, not an error. "Problem" is reserved for a fault in the
+    # document -- no email address, an impossible date, a word a PDF split in
+    # half -- because a tier that holds both of those and the word
+    # "successfully" is a tier that means nothing.
+    assert any(f.severity == "warning" for f in bad), "filler phrases should be flagged"
+    assert any("responsible for" in f.message for f in bad), bad
     good = check_text(
         "Cut nightly ETL runtime from 42 to 9 minutes by batching Postgres writes", "b2"
     )
@@ -288,7 +293,7 @@ def _() -> None:
         "Helped with onboarding",
     ):
         found = check_text(phrase, "b")
-        assert any(f.severity == "error" for f in found), f"{phrase!r} was not flagged"
+        assert any(f.severity in ("error", "warning") for f in found), f"{phrase!r} was not flagged"
 
 
 @check("the linter uses your own declared skills as its vocabulary")

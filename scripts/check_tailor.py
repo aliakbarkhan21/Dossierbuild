@@ -407,7 +407,10 @@ def test_draft_is_linted() -> None:
         is_summary=False,
     )
     joined = " ".join(draft.findings)
-    assert "filler" in joined, draft.findings
+    # Named, not categorised. The linter used to answer every filler phrase
+    # with the word "filler"; it now quotes the phrase and says what to do
+    # with it, and that is what a drafted line should come back carrying.
+    assert '"responsible for"' in joined, draft.findings
     assert "trailing full stop" in joined, draft.findings
 
 
