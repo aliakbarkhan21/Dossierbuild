@@ -63,6 +63,7 @@ def test_the_fields_each_version_added_are_present() -> None:
     assert profile.achievements == []  # v3
     assert profile.experience[0].bullets[0].tags == []  # v4
     assert profile.summary.tags == []  # v4
+    assert profile.sections == []  # v5
 
 
 def test_v4_writes_tags_onto_every_block_rather_than_leaving_it_to_defaults() -> None:
@@ -77,7 +78,10 @@ def test_v4_writes_tags_onto_every_block_rather_than_leaving_it_to_defaults() ->
 
     assert raw["summary"]["tags"] == []
     assert raw["experience"][0]["bullets"][0]["tags"] == []
-    assert raw["schema_version"] == 4
+    # The chain's end, not the number this migration writes. Asserting "4"
+    # here made the test fail the day a fifth version was added, which is the
+    # one day the migration chain most needs a passing test.
+    assert raw["schema_version"] == SCHEMA_VERSION
 
 
 def test_v4_tags_the_skill_groups_too() -> None:
@@ -119,3 +123,20 @@ def test_a_profile_from_the_future_is_refused_rather_than_guessed_at() -> None:
 def test_migrating_a_current_profile_is_a_no_op() -> None:
     current = Profile.empty().model_dump()
     assert migrate(dict(current))["schema_version"] == SCHEMA_VERSION
+
+
+def test_v5_adds_custom_sections_without_moving_anything_into_them() -> None:
+    """A v4 profile gains the list empty, and keeps every entry where it was.
+
+    The temptation is to look at an old profile, spot something that reads
+    like a custom section and move it. Everything already in a v4 file was put
+    where it is by a person, or by an import that person reviewed -- so this
+    migration adds a place to put things and touches nothing.
+    """
+    raw = v1()
+    raw["awards"] = [{"id": "awd_1", "title": "Dean's List"}]
+    migrated = migrate(raw)
+
+    assert migrated["sections"] == []
+    assert [a["title"] for a in migrated["awards"]] == ["Dean's List"]
+    assert len(migrated["experience"]) == 1

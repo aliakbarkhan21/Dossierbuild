@@ -36,6 +36,7 @@ from ..core.schema import (
     Award,
     Basics,
     Certification,
+    CustomSection,
     Education,
     EmploymentType,
     Experience,
@@ -147,6 +148,21 @@ class RawLink(BaseModel):
     url: str = ""
 
 
+class RawSection(BaseModel):
+    """A section of the resume that fits none of the eight the app knows.
+
+    Deliberately the last thing the schema offers and the last rule in the
+    prompt. A model handed a free-form escape hatch will use it -- experience
+    under an unusual heading would land here rather than in `experience`,
+    where the dates, the employer and the duplicate check all live. So the
+    rule that governs it is a rule about *not* using it.
+    """
+
+    title: str = Field(default="", description="The heading, exactly as written")
+    text: str = Field(default="", description="Any prose under it, verbatim")
+    bullets: list[str] = Field(default_factory=list)
+
+
 class RawHeadings(BaseModel):
     """The resume's own wording for each section it has.
 
@@ -185,6 +201,7 @@ class RawResume(BaseModel):
     certifications: list[RawCertification] = Field(default_factory=list)
     awards: list[RawAward] = Field(default_factory=list)
     achievements: list[RawAchievement] = Field(default_factory=list)
+    sections: list[RawSection] = Field(default_factory=list)
 
 
 SYSTEM_INSTRUCTION = """\
@@ -235,6 +252,18 @@ Rules, in order of importance:
    told it is "Skills". Match the section by what it contains, not by its
    name: a heading you have never seen before still belongs to whichever of
    the eight its content fits.
+10. Only when a heading's content fits none of the eight, put it in
+    `sections` with its heading and its words as written. This is a last
+    resort and most resumes need none: check every one of the eight first,
+    and remember that a heading naming a skill area is `skills`, a heading
+    listing employers is `experience`, and a heading listing prizes is
+    `awards` -- however it is worded. Use `sections` for a genuinely
+    different kind of content: "Selected Publications", "Board and Advisory
+    Roles", "Sector Coverage", "Languages Spoken", "Speaking Engagements",
+    "Patents", "References". Put prose in `text` and a bulleted list in
+    `bullets`; a section with both keeps both. Never put a section here as
+    well as in one of the eight -- that prints the same facts twice on the
+    page.
 """
 
 
@@ -427,6 +456,14 @@ def to_profile(raw: RawResume) -> Profile:
         Achievement(title=a.title, context=a.context, date=_date(a.date), note=a.note)
         for a in raw.achievements
         if a.title
+    ]
+
+    # A heading with nothing under it is a heading the extractor mis-read, not
+    # a section: kept, it would print an empty band on the page.
+    profile.sections = [
+        CustomSection(title=s.title.strip(), text=s.text.strip(), bullets=_blocks(s.bullets))
+        for s in raw.sections
+        if s.title.strip() and (s.text.strip() or any(b.strip() for b in s.bullets))
     ]
 
     return profile

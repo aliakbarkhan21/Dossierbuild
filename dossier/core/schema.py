@@ -25,7 +25,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstr
 
 from .ids import new_id
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 def normalise_tag(value: str) -> str:
@@ -251,6 +251,43 @@ class Achievement(DBModel):
     note: str = ""
 
 
+class CustomSection(DBModel):
+    """A section of the resume that none of the eight built-in ones is.
+
+    Every other model here is a *kind* of thing the app understands -- a job,
+    a degree, a prize -- and understanding it is what lets the app sort, date
+    and lay it out. This one is the opposite: it is the section the app does
+    not understand, kept anyway.
+
+    It exists because the eight are a good description of most resumes and a
+    complete description of none. A senior CV carries "Governance, Security
+    and Risk Leadership"; a researcher carries "Selected Publications"; a
+    consultant carries "Sector Coverage". Before this, an import read those,
+    found no field to put them in, and dropped them -- silently, which is the
+    worst way to lose something. The writer saw a shorter resume and no reason
+    for it.
+
+    So the deal is narrow and honest: the app keeps the heading and the words
+    exactly as written, prints them in the order you choose, and claims
+    nothing else. No dates to sort by, no organisation to match against a
+    posting, no duplicate detection worth the name -- all of which are
+    services the eight buy with their structure and this one does not.
+
+    ``text`` and ``bullets`` are not alternatives and either may be empty. A
+    prose paragraph, a list of lines, or a paragraph followed by a list are
+    all things real resumes do under one heading, and refusing the third would
+    mean splitting a section the writer wrote as one.
+    """
+
+    id: str = Field(default_factory=lambda: new_id("cus"))
+    title: str = ""
+    """The heading, in the writer's own words. Unlike every other section's,
+    this one has no default to fall back on -- it is the only name it has."""
+
+    text: str = ""
+    bullets: list[TextBlock] = Field(default_factory=list)
+
+
 # --------------------------------------------------------------------------
 # The profile
 # --------------------------------------------------------------------------
@@ -267,6 +304,7 @@ class Profile(DBModel):
     certifications: list[Certification] = Field(default_factory=list)
     awards: list[Award] = Field(default_factory=list)
     achievements: list[Achievement] = Field(default_factory=list)
+    sections: list[CustomSection] = Field(default_factory=list)
 
     @classmethod
     def empty(cls) -> "Profile":
@@ -284,6 +322,7 @@ class Profile(DBModel):
             or self.certifications
             or self.awards
             or self.achievements
+            or self.sections
         )
 
 
@@ -308,6 +347,11 @@ LIST_SECTIONS: tuple[str, ...] = (
     "certifications",
     "awards",
     "achievements",
+    # Last on purpose. Everything above is a kind of thing; this is the
+    # catch-all, and code that walks the list -- id hygiene, the merge plan,
+    # the "what is filled in" counts -- should reach the understood sections
+    # before the ones held verbatim.
+    "sections",
 )
 
 BULLET_SECTIONS: tuple[str, ...] = ("experience", "projects", "education")
@@ -333,6 +377,13 @@ def iter_bullets(profile: Profile) -> Iterator[tuple[str, str, TextBlock]]:
         for entry in getattr(profile, section):
             for block in entry.bullets:
                 yield (section, entry.id, block)
+    # Custom sections are held verbatim, but their bullets are still prose the
+    # writer wrote: the quality linter should read them, the tailor should be
+    # able to rewrite them, and leaving them out would make a section quietly
+    # exempt from the standard the rest of the resume is held to.
+    for custom in profile.sections:
+        for block in custom.bullets:
+            yield ("sections", custom.id, block)
 
 
 MONTH_NAMES = (
@@ -389,6 +440,8 @@ def entry_label(entry: object) -> str:
         return entry.title or "Untitled honor"
     if isinstance(entry, Achievement):
         return entry.title or "Untitled achievement"
+    if isinstance(entry, CustomSection):
+        return entry.title or "Untitled section"
     return "Entry"
 
 
@@ -412,5 +465,6 @@ ENTRY_MODELS.update(
         "certifications": Certification,
         "awards": Award,
         "achievements": Achievement,
+        "sections": CustomSection,
     }
 )

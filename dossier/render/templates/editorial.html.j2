@@ -147,7 +147,7 @@
   <div class="main">
     {%- for s in r.excluding(SIDE) %}
     <section class="sec sec-{{ s.key }}">
-      <h2>{{ m.icon(s.key) }}{{ s.label }}</h2>
+      {%- if s.label %}<h2>{{ m.icon(s.key) }}{{ s.label }}</h2>{% endif %}
       <div class="sec-body">{{ m.body(s) }}</div>
     </section>
     {%- endfor %}

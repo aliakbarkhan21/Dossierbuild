@@ -35,6 +35,7 @@ import re
 from dataclasses import dataclass
 from typing import Iterable, Literal
 
+from .markup import plain
 from .schema import Profile, iter_bullets
 
 Severity = Literal["error", "warning", "note"]
@@ -236,6 +237,10 @@ def check_text(
     vocabulary: Iterable[str] = (),
 ) -> list[Finding]:
     """Run every check against a single bullet or summary."""
+    # Formatting is not language. A bullet reading "cut runtime <b>68%</b>"
+    # is nine words with a number in it, and counting the tags would fail it
+    # for length and read "b" as a word nobody wrote.
+    text = plain(text)
     findings: list[Finding] = []
     stripped = text.strip()
 

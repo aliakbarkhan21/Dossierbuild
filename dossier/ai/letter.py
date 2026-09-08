@@ -29,6 +29,7 @@ from datetime import date
 
 from pydantic import BaseModel, Field
 
+from ..core.markup import plain
 from ..core.jobspec import MatchReport
 from ..core.quality import FILLER_PHRASES
 from ..core.schema import Profile
@@ -109,7 +110,7 @@ def _dossier(profile: Profile) -> str:
     if profile.basics.location:
         lines.append(f"Based in: {profile.basics.location}")
     if profile.summary.text:
-        lines.append(f"Summary: {profile.summary.text}")
+        lines.append(f"Summary: {plain(profile.summary.text)}")
 
     if profile.experience:
         lines.append("\nEXPERIENCE")

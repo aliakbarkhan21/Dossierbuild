@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from ..core.markup import plain
 from ..core.schema import LIST_SECTIONS, Profile, entry_label, format_range
 from .design import section_label
 
@@ -46,12 +47,28 @@ def plain_text(
         out.append(" | ".join(f"{ln.label}: {ln.url}" for ln in b.links if ln.url))
 
     if profile.summary.text.strip():
-        out += ["", "SUMMARY", "-------", profile.summary.text.strip()]
+        out += ["", "SUMMARY", "-------", plain(profile.summary.text).strip()]
 
     for key in LIST_SECTIONS:
         entries = getattr(profile, key, [])
         if not entries:
             continue
+
+        # A custom section is a heading in its own right, not an entry under
+        # one. Printing these under a shared "SECTIONS" banner would invent a
+        # level of hierarchy the resume does not have, and bury the heading
+        # the writer actually chose one line down.
+        if key == "sections":
+            for custom in entries:
+                title = (custom.title or "Section").upper()
+                out += ["", title, "-" * len(title)]
+                if custom.text.strip():
+                    out.append(plain(custom.text).strip())
+                for block in custom.bullets:
+                    if block.text.strip():
+                        out.append(f"  - {plain(block.text).strip()}")
+            continue
+
         title = section_label(key, labels).upper()
         out += ["", title, "-" * len(title)]
         for entry in entries:
@@ -68,6 +85,9 @@ def plain_text(
                 out.append(f"  {item}")
             for block in getattr(entry, "bullets", []) or []:
                 if block.text.strip():
-                    out.append(f"  - {block.text.strip()}")
+                    # This format is for pasting into a textarea on somebody
+                    # else's form. A `<b>` pasted there is two characters of
+                    # noise, not emphasis.
+                    out.append(f"  - {plain(block.text).strip()}")
 
     return "\n".join(out).strip() + "\n"

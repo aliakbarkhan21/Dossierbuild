@@ -39,6 +39,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from .quality import COMMON_TECH, SPECIFIC_SHAPE_RE, expand_terms
+from .markup import plain
 from .schema import Profile, entry_label
 
 Tier = Literal["required", "preferred", "general"]
@@ -409,7 +410,7 @@ def _entry_texts(profile: Profile) -> list[tuple[str, str, str, str, str]]:
     repeats the phrase.
     """
     rows: list[tuple[str, str, str, str, str]] = []
-    rows.append(("summary", "summary", "Summary", profile.summary.id, profile.summary.text))
+    rows.append(("summary", "summary", "Summary", profile.summary.id, plain(profile.summary.text)))
 
     for section in ("experience", "projects", "education"):
         for entry in getattr(profile, section):
@@ -421,7 +422,7 @@ def _entry_texts(profile: Profile) -> list[tuple[str, str, str, str, str]]:
             extras = " ".join(getattr(entry, "tech", []) or getattr(entry, "coursework", []) or [])
             rows.append((section, entry.id, label, f"{entry.id}:heading", f"{heading} {extras}"))
             for block in entry.bullets:
-                rows.append((section, entry.id, label, block.id, block.text))
+                rows.append((section, entry.id, label, block.id, plain(block.text)))
 
     return rows
 

@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from pydantic import BaseModel, Field
 
 from ..core.quality import FILLER_PHRASES, build_vocabulary, check_text
+from ..core.markup import plain
 from ..core.schema import Profile, iter_bullets
 from .client import generate
 from .tailor import _known_vocabulary, audit
@@ -99,7 +100,7 @@ def _profile_facts(profile: Profile) -> str:
     draws on any fact already in the document, so all of them count as given.
     """
     parts = [profile.basics.headline]
-    parts += [block.text for _section, _owner, block in iter_bullets(profile)]
+    parts += [plain(block.text) for _section, _owner, block in iter_bullets(profile)]
     for entry in profile.experience:
         parts += [entry.role, entry.organisation]
     for project in profile.projects:
@@ -170,7 +171,7 @@ def _entry_facts(profile: Profile, section: str, entry_id: str) -> tuple[str, st
                 lines.append(f"Type: {entry.employment_type}")
             label = f"{entry.role} — {entry.organisation}"
 
-        written = [b.text for b in entry.bullets if b.text.strip()]
+        written = [plain(b.text) for b in entry.bullets if b.text.strip()]
         if written:
             lines.append("")
             lines.append("Bullets already written here. Do not repeat one:")

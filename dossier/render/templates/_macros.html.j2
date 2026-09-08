@@ -83,12 +83,35 @@
   <li>{{ line_body(line) }}</li>
   {%- endfor %}
 </ul>
+{#- A section the schema has no name for. Prose, a list, or a paragraph
+    followed by a list -- all three are things a real resume does under one
+    heading, so all three print under one heading here.
+
+    `bul` rather than `lines`, which is what certifications and honors use.
+    Those are unmarked lines because each is a single named thing; a custom
+    section's list is a list the writer wrote as bullets and expects back as
+    bullets. Both are already in the paginator's ATOMS, so neither can be cut
+    through by a page break. -#}
+{%- elif s.kind == 'free' -%}
+{%- if s.text %}<p class="summary">{{ s.text }}</p>{% endif %}
+{%- if s.lines %}
+<ul class="bul">
+  {%- for line in s.lines %}
+  <li>{{ line_body(line) }}</li>
+  {%- endfor %}
+</ul>
+{%- endif %}
 {%- endif -%}
 {%- endmacro %}
 
+{#
+  A heading only when there is one. Every built-in section has a label and
+  always did; a custom section's is whatever the writer typed, and an empty
+  `<h2>` is a band of blank space above the text with nothing in it.
+#}
 {% macro section(s) -%}
 <section class="sec sec-{{ s.key }}">
-  <h2>{{ s.label }}</h2>
+  {%- if s.label %}<h2>{{ s.label }}</h2>{% endif %}
   {{ body(s) }}
 </section>
 {%- endmacro %}
@@ -114,6 +137,9 @@
   <ul class="lines">
     {%- for line in s.lines %}<li>{{ line_body(line) }}</li>{% endfor %}
   </ul>
+  {%- elif s.kind == 'free' %}
+    {%- if s.text %}<p class="summary">{{ s.text }}</p>{% endif %}
+    {%- if s.lines %}<ul class="bul">{% for line in s.lines %}<li>{{ line_body(line) }}</li>{% endfor %}</ul>{% endif %}
   {%- elif s.kind == 'entries' %}
     {%- for e in s.entries %}
     <div class="side-entry">
@@ -180,8 +206,16 @@
   'achievements': '<path d="M4 19h16"/><path d="M6.5 15.5l3.8-4.4 3 2.8 4.7-5.6"/><path d="M18 8.3h-3.1M18 8.3v3.1"/>'
 } %}
 
+{#
+  A custom section gets a generic mark rather than nothing. In a layout that
+  sets its icons in the heading, one heading without one does not read as
+  restraint -- it reads as a section that failed to load.
+#}
+{% set CUSTOM_ICON = '<path d="M6 4h12v16H6z"/><path d="M9 9h6M9 13h6M9 17h3"/>' %}
+
 {% macro icon(key) -%}
-{%- if key in ICON_PATHS -%}
-<svg class="sec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{{ ICON_PATHS[key] | safe }}</svg>
+{%- set path = ICON_PATHS.get(key) or (CUSTOM_ICON if key.startswith('cus_') else '') -%}
+{%- if path -%}
+<svg class="sec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{{ path | safe }}</svg>
 {%- endif -%}
 {%- endmacro %}

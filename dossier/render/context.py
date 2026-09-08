@@ -14,8 +14,9 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from ..core.markup import rich
 from ..core.schema import Profile, entry_label, format_range
-from .design import Design, normalise_tag, section_label
+from .design import Design, is_custom, normalise_tag, section_label
 from .naming import safe_stem
 from .photo import STORED_PX, photo_data_uri
 
@@ -223,8 +224,13 @@ def wanted(tags: list[str], focus: str) -> bool:
 
 
 def _entry_bullets(entry: object, focus: str = "") -> list[str]:
+    # ``rich`` rather than the raw string: a bullet is one of the four places
+    # the editor offers bold, italic and underline, so it is one of the four
+    # places the renderer has to honour them. Everywhere else stays plain and
+    # escaped exactly as before -- formatting exists where it is offered, and
+    # a tag typed into a field with no toolbar prints as the characters it is.
     return [
-        b.text.strip()
+        rich(b.text.strip())
         for b in getattr(entry, "bullets", [])
         if b.text.strip() and wanted(getattr(b, "tags", []), focus)
     ]
@@ -278,13 +284,46 @@ def _education_entry(item, design: Design) -> Entry:
     )
 
 
+def _custom_section(profile: Profile, design: Design, key: str) -> Section | None:
+    """A section the schema has no name for, printed as it was written.
+
+    The heading comes off the profile rather than out of ``SECTION_LABELS``,
+    because this is the one section whose name is a fact about the document
+    instead of a default somebody might override. The design may still
+    override it -- that is what ``labels`` is for everywhere else, and the
+    Sections list on Resume would be a strange place for one row to behave
+    differently.
+
+    ``kind`` is "free" rather than "text" or "lines": a resume that writes a
+    paragraph and then a list under one heading has written one section, and
+    splitting it in two here to fit an existing kind would print a heading the
+    writer never used.
+    """
+    custom = next((c for c in profile.sections if c.id == key), None)
+    if custom is None:
+        return None
+    text = custom.text.strip()
+    lines = [
+        Line(text=rich(b.text.strip()))
+        for b in custom.bullets
+        if b.text.strip() and wanted(getattr(b, "tags", []), design.focus)
+    ]
+    if not text and not lines:
+        return None
+    label = (design.labels or {}).get(key) or custom.title.strip()
+    return Section(key, label, "free", text=rich(text), lines=lines)
+
+
 def _build_section(profile: Profile, design: Design, key: str) -> Section | None:
     """One section, or ``None`` when there is nothing in it worth a heading."""
+    if is_custom(key):
+        return _custom_section(profile, design, key)
+
     label = section_label(key, design.labels)
 
     if key == "summary":
         text = profile.summary.text.strip()
-        return Section(key, label, "text", text=text) if text else None
+        return Section(key, label, "text", text=rich(text)) if text else None
 
     if key in ("experience", "projects", "education"):
         builder = {
@@ -382,7 +421,7 @@ def build_context(
 ) -> ResumeContext:
     """Everything a template renders, in the order the design asks for."""
     sections: list[Section] = []
-    for key in design.visible_sections():
+    for key in design.visible_sections([c.id for c in profile.sections]):
         section = _build_section(profile, design, key)
         if section is not None:
             sections.append(section)

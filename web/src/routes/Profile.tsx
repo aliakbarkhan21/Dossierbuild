@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { AiSuggest } from "../components/AiSuggest";
+import { RichText } from "../components/RichText";
 import { useShell } from "../App";
 import { TopBar } from "../components/TopBar";
 import { useShallow } from "zustand/react/shallow";
@@ -25,7 +26,7 @@ import { moveWithin, useReorder } from "../lib/reorder";
 import { Tags, tagsInUse } from "../components/Tags";
 import type { ListSection, Profile } from "../lib/types";
 
-type Kind = "text" | "month" | "csv" | "select" | "url";
+type Kind = "text" | "month" | "csv" | "select" | "url" | "prose";
 
 interface FieldSpec {
   key: string;
@@ -174,6 +175,23 @@ const SECTIONS: Record<ListSection, SectionSpec> = {
     bullets: false,
     teaches: "Things you produced: a ranking, a placing, a record. Lead with the number.",
   },
+  sections: {
+    label: "Other sections",
+    singular: "section",
+    blank: () => ({ id: "", title: "", text: "", bullets: [] }),
+    fields: [
+      { key: "title", label: "Heading", placeholder: "Selected Publications" },
+      {
+        key: "text",
+        label: "Paragraph",
+        kind: "prose",
+        placeholder: "Leave empty if this section is a list.",
+      },
+    ],
+    bullets: true,
+    teaches:
+      "Anything the eight above have no name for, kept and printed exactly as you write it — heading and all.",
+  },
 };
 
 const TABS = ["basics", "summary", ...Object.keys(SECTIONS)] as const;
@@ -189,6 +207,7 @@ const TAB_LABELS: Record<Tab, string> = {
   certifications: "Certifications",
   awards: "Honors",
   achievements: "Achievements",
+  sections: "Other",
 };
 
 export function ProfileScreen() {
@@ -782,6 +801,11 @@ function ContactForm({ profile, edit }: { profile: Profile; edit: Edit }) {
   );
 }
 
+/** Words as a reader counts them: the three marks are not language. */
+function words(text: string): number {
+  return text.replace(/<\/?[biu]>/gi, "").trim().split(/\s+/).filter(Boolean).length;
+}
+
 function SummaryForm({ profile, edit }: { profile: Profile; edit: Edit }) {
   const text = profile.summary.text;
   return (
@@ -799,14 +823,17 @@ function SummaryForm({ profile, edit }: { profile: Profile; edit: Edit }) {
           onInsert={(text) => edit((d) => void (d.summary.text = text))}
         />
       </div>
-      <textarea
-        data-block-id={profile.summary.id}
-        className="field mt-4 min-h-32 resize-y leading-relaxed transition-shadow duration-300"
+      <RichText
+        blockId={profile.summary.id}
+        ariaLabel="Summary"
+        className="mt-4 min-h-32 leading-relaxed transition-shadow duration-300"
         value={text}
-        onChange={(event) => edit((d) => void (d.summary.text = event.target.value))}
+        onChange={(next) => edit((d) => void (d.summary.text = next))}
         placeholder="Computer Science and AI undergraduate who ships working tools…"
       />
-      <p className="mt-1 text-xs text-faint">{text.trim().split(/\s+/).filter(Boolean).length} words</p>
+      {/* Counted on the words, not the characters stored. A bolded number is
+          one word however many tags are wrapped around it. */}
+      <p className="mt-1 text-xs text-faint">{words(text)} words</p>
     </section>
   );
 }
@@ -997,6 +1024,18 @@ function EntryList({
                   </Field>
                 );
               }
+              if (field.kind === "prose") {
+                return (
+                  <Field key={field.key} label={field.label} half={field.half}>
+                    <RichText
+                      value={String(value ?? "")}
+                      placeholder={field.placeholder}
+                      className="min-h-20"
+                      onChange={(next) => mutate(index, field.key, next)}
+                    />
+                  </Field>
+                );
+              }
               return (
                 <Field key={field.key} label={field.label} half={field.half}>
                   <TextInput
@@ -1048,7 +1087,9 @@ function entryTitle(section: ListSection, entry: Record<string, unknown>): strin
       ? [entry.name, entry.tagline]
       : section === "education"
         ? [entry.credential, entry.institution]
-        : [entry.role, entry.organisation];
+        : section === "sections"
+          ? [entry.title]
+          : [entry.role, entry.organisation];
   return parts.filter(Boolean).join(" — ");
 }
 
@@ -1113,7 +1154,7 @@ function Bullets({
             ].join(" ")}
           >
             {/* The dot was decoration. It is the handle now -- the row needs
-                somewhere to grab that is not the textarea, and a bullet
+                somewhere to grab that is not the writing area, and a bullet
                 already has a mark at its head. */}
             <span
               onPointerDown={(event) => startDrag(index, event)}
@@ -1125,17 +1166,15 @@ function Bullets({
               <GripVertical size={13} aria-hidden />
             </span>
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <textarea
-                data-block-id={bullet.id}
-                className="field min-h-16 resize-y transition-shadow duration-300"
+              <RichText
+                blockId={bullet.id}
+                ariaLabel={`Bullet ${index + 1}`}
+                className="min-h-16 transition-shadow duration-300"
                 value={bullet.text}
                 placeholder="Cut nightly ETL runtime from 42 minutes to 9 by batching Postgres writes"
-                onChange={(event) => {
-                  const next = bullets.map((b, i) =>
-                    i === index ? { ...b, text: event.target.value } : b,
-                  );
-                  onChange(next);
-                }}
+                onChange={(next) =>
+                  onChange(bullets.map((b, i) => (i === index ? { ...b, text: next } : b)))
+                }
               />
               <Tags
                 tags={bullet.tags ?? []}

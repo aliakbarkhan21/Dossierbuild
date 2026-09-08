@@ -101,12 +101,31 @@ def _v3_to_v4(raw: dict[str, Any]) -> dict[str, Any]:
     return raw
 
 
+def _v4_to_v5(raw: dict[str, Any]) -> dict[str, Any]:
+    """Sections the eight built-in ones have no name for.
+
+    A resume heading that maps onto none of experience, projects, education,
+    skills, certifications, honors or achievements used to be read and then
+    dropped: the importer had nowhere to put it, so "Governance, Security and
+    Risk Leadership" simply did not arrive. ``sections`` is where it goes now,
+    heading and words kept as written.
+
+    Nothing moves into it. An existing profile gains an empty list, because
+    everything already in it was sorted into a real section by a person or by
+    an import that person reviewed, and second-guessing that afterwards would
+    reclassify a record nobody asked us to touch.
+    """
+    raw.setdefault("sections", [])
+    raw["schema_version"] = 5
+    return raw
+
+
 def _every_text_block(raw: dict[str, Any]) -> Iterator[dict[str, Any]]:
     """Every rewritable block in a raw dict: the summary and every bullet."""
     summary = raw.get("summary")
     if isinstance(summary, dict):
         yield summary
-    for section in ("experience", "projects", "education"):
+    for section in ("experience", "projects", "education", "sections"):
         for entry in raw.get(section) or []:
             if not isinstance(entry, dict):
                 continue
@@ -119,6 +138,7 @@ MIGRATIONS: dict[int, Callable[[dict[str, Any]], dict[str, Any]]] = {
     1: _v1_to_v2,
     2: _v2_to_v3,
     3: _v3_to_v4,
+    4: _v4_to_v5,
 }
 
 
@@ -147,23 +167,40 @@ def migrate(raw: dict[str, Any]) -> dict[str, Any]:
 
 
 def dedupe_ids(profile: Profile) -> list[str]:
-    """Give a fresh id to anything sharing one, returning the ids reassigned.
+    """Give a fresh id to anything sharing one or missing one.
 
     Ids are supposed to be unique across the document, which matters because
-    the tailoring step in phase 3 addresses bullets by id alone. Duplicates can
-    creep in from hand-editing, copy-pasting an entry, or an AI import that
-    echoes an id twice. Repairing on load is cheap insurance.
+    the tailoring step addresses bullets by id alone. Duplicates can creep in
+    from hand-editing, copy-pasting an entry, or an AI import that echoes an
+    id twice.
+
+    **Blank counts as missing.** The editor sends ``id: ""`` for a row the
+    person has just added, on the understanding that the server mints the real
+    one -- the store even says so where it reads the profile back. It did not:
+    an empty id is not a duplicate of anything, so a single new entry kept it
+    forever. That was invisible for years because nothing addressed an entry
+    by its id.
+
+    A custom section made it visible immediately, because there the id *is*
+    the key the design orders, hides and renames by. A section with no id
+    could not be moved, hidden or renamed, and the row for it sat permanently
+    in its own rename box -- ``editing === key`` is true for every row when
+    both sides are "".
     """
     seen: set[str] = set()
     reassigned: list[str] = []
 
     def claim(obj: Any, prefix: str) -> None:
-        if obj.id in seen:
+        if not obj.id or obj.id in seen:
             old = obj.id
             obj.id = new_id(prefix)
             reassigned.append(old)
         seen.add(obj.id)
 
+    # The summary keeps its well-known id rather than being minted a new one:
+    # saved versions and accepted rewrites reference it by name.
+    if not profile.summary.id:
+        profile.summary.id = "sum_main"
     claim(profile.summary, "blt")
     for link in profile.basics.links:
         claim(link, "lnk")
@@ -175,6 +212,7 @@ def dedupe_ids(profile: Profile) -> list[str]:
         "certifications": "crt",
         "awards": "awd",
         "achievements": "ach",
+        "sections": "cus",
     }
     for section in LIST_SECTIONS:
         for entry in getattr(profile, section):

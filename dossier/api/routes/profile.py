@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from ...core.quality import Finding, build_vocabulary, check_text, summarise
 from ...core.schema import LIST_SECTIONS, Profile, iter_bullets
 from ...core import cvs
-from ...core.storage import default_profile_path, load_profile, save_profile
+from ...core.storage import dedupe_ids, default_profile_path, load_profile, save_profile
 from ...core.sample import sample_profile
 from ...render import photo
 
@@ -62,6 +62,11 @@ def write_profile(incoming: Profile) -> SaveResult:
     malformed profile never reaches the disk. ``save_profile`` writes
     atomically and leaves a timestamped backup behind.
     """
+    # Ids first, then the write. The editor sends `id: ""` for a row somebody
+    # has just added and reads the profile back expecting real ones; without
+    # this the blank goes to disk, and for a custom section the id is the key
+    # the design orders and renames by.
+    dedupe_ids(incoming)
     path = save_profile(incoming)
     # A CV still carrying the name we gave it ("CV 2") takes the name of the
     # person in it the first time there is one, so the switcher is a list of

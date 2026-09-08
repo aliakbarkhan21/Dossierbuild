@@ -113,6 +113,21 @@ export interface Achievement {
   note: string;
 }
 
+/**
+ * A section the eight built-in ones have no name for.
+ *
+ * `title` is the only name it has — there is no default behind it, which is
+ * why the heading is profile data here and a design override everywhere else.
+ * `text` and `bullets` are not alternatives: a resume that writes a paragraph
+ * and then a list under one heading has written one section.
+ */
+export interface CustomSection {
+  id: string;
+  title: string;
+  text: string;
+  bullets: TextBlock[];
+}
+
 export interface Profile {
   schema_version: number;
   basics: Basics;
@@ -124,6 +139,7 @@ export interface Profile {
   certifications: Certification[];
   awards: Award[];
   achievements: Achievement[];
+  sections: CustomSection[];
 }
 
 /** The list sections, in editor order. Keys match the profile's own fields. */
@@ -135,6 +151,7 @@ export const LIST_SECTIONS = [
   "certifications",
   "awards",
   "achievements",
+  "sections",
 ] as const;
 export type ListSection = (typeof LIST_SECTIONS)[number];
 

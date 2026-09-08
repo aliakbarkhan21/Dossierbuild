@@ -20,6 +20,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from ..core.markup import plain
 from ..core.schema import LIST_SECTIONS, Profile, SkillGroup, entry_label, format_date, format_range
 
 
@@ -89,8 +90,14 @@ class MergePlan:
 
 
 def _norm(text: str) -> str:
-    """Lowercase, strip punctuation and collapse spaces, for comparison only."""
-    return re.sub(r"[^a-z0-9]+", " ", (text or "").lower()).strip()
+    """Lowercase, strip punctuation and collapse spaces, for comparison only.
+
+    Formatting comes out first. Without that, ``<b>`` reduces to the word "b"
+    and a line somebody has emboldened since importing it stops matching the
+    line it came from -- so re-importing the same resume would offer it again
+    as new.
+    """
+    return re.sub(r"[^a-z0-9]+", " ", plain(text or "").lower()).strip()
 
 
 def _identity(section: str, entry: Any) -> str:
@@ -113,6 +120,12 @@ def _identity(section: str, entry: Any) -> str:
         return f"{_norm(entry.title)}|{_norm(entry.awarded_by)}"
     if section == "achievements":
         return f"{_norm(entry.title)}|{_norm(entry.context)}"
+    if section == "sections":
+        # The heading alone. Two imports of the same CV should not stack two
+        # copies of "Executive Qualifications", and the body is the part most
+        # likely to have been edited since -- which is exactly what the rest
+        # of this function deliberately ignores.
+        return _norm(entry.title)
     return _norm(str(entry))
 
 
@@ -124,6 +137,16 @@ DASHBOARD_DATES = "numeric"
 
 def _detail(section: str, entry: Any) -> str:
     """A one-line preview for the review UI."""
+    if section == "sections":
+        # The words themselves. Nothing else about a custom section is worth
+        # previewing -- it has no dates and no issuer -- and the whole question
+        # a reviewer is answering here is "is this really on my CV".
+        head = " ".join(entry.text.split())
+        if not head and entry.bullets:
+            head = " ".join(entry.bullets[0].text.split())
+        count = len(entry.bullets)
+        tail = f" (+{count} bullets)" if count else ""
+        return (head[:110] + ("…" if len(head) > 110 else "")) + tail or "no detail"
     if section == "skills":
         items = ", ".join(entry.items[:8])
         more = f" (+{len(entry.items) - 8} more)" if len(entry.items) > 8 else ""

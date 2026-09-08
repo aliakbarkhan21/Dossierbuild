@@ -38,6 +38,7 @@ from dataclasses import dataclass, field
 
 from pydantic import BaseModel, Field
 
+from ..core.markup import plain
 from ..core.jobspec import EXTRA_LEXICON, JobSpec, MatchReport
 from ..core.quality import (
     COMMON_TECH,
@@ -304,7 +305,7 @@ def _bullet_rows(profile: Profile, report: MatchReport, only: set[str] | None) -
                         "section": section,
                         "entry_id": entry.id,
                         "entry": entry_label(entry),
-                        "text": block.text,
+                        "text": plain(block.text),
                         "rank": rank.get(entry.id, 999),
                     }
                 )
@@ -344,7 +345,7 @@ def build_prompt(profile: Profile, report: MatchReport, rows: list[dict]) -> str
     if profile.summary.text.strip():
         lines += [
             "CURRENT SUMMARY (rewrite it for this job, same facts only):",
-            profile.summary.text.strip(),
+            plain(profile.summary.text).strip(),
             "",
         ]
 

@@ -1271,7 +1271,13 @@ function DesignPanel({
         onClick={() =>
           onChange({
             ...DEFAULT_DESIGN,
-            order: options.sections.map((s) => s.key),
+            // The built-in order, with the writer's own sections after it. A
+            // reset is a reset of the *design*; deleting a section from the
+            // resume is a different act and belongs in the Profile editor.
+            order: [
+              ...options.sections.map((s) => s.key),
+              ...profile.sections.map((s) => s.id),
+            ],
           })
         }
       >
@@ -1613,8 +1619,39 @@ function SectionOrder({
   profile: Profile;
   onChange: (patch: Partial<Design>) => void;
 }) {
+  /**
+   * The rows to show: the design's order, then any section the design has
+   * never heard of.
+   *
+   * A custom section is created in the Profile editor and has no position
+   * until something gives it one. Leaving it out of this list would leave it
+   * out of the only screen that can move or hide it — while it printed on the
+   * resume regardless, which is the confusing half. So it appears at the end
+   * and the first drag writes it into the order for good. Mirrors
+   * `Design.visible_sections`, which does exactly this for the render.
+   */
+  const order = [
+    ...design.order,
+    ...profile.sections.map((s) => s.id).filter((id) => !design.order.includes(id)),
+  ];
+
+  /** A section's name: the design's override, the writer's heading, or ours. */
+  const nameOf = (key: string) =>
+    design.labels?.[key] ||
+    profile.sections.find((s) => s.id === key)?.title ||
+    options.sections.find((s) => s.key === key)?.name ||
+    "Untitled section";
+
+  /** The fallback a rename compares against, to know it is not an override. */
+  const defaultOf = (key: string) =>
+    profile.sections.find((s) => s.id === key)?.title ||
+    options.sections.find((s) => s.key === key)?.name ||
+    key;
+
   const has = (key: string) => {
     if (key === "summary") return Boolean(profile.summary.text.trim());
+    const custom = profile.sections.find((s) => s.id === key);
+    if (custom) return Boolean(custom.text.trim() || custom.bullets.some((b) => b.text.trim()));
     const value = (profile as unknown as Record<string, unknown[]>)[key];
     return Array.isArray(value) && value.length > 0;
   };
@@ -1622,15 +1659,15 @@ function SectionOrder({
   // Both paths end here, so a drag and a press on the arrow are the same
   // edit as far as the design, the preview and the undo stack are concerned.
   const moveTo = (from: number, to: number) => {
-    const order = [...design.order];
-    const target = Math.max(0, Math.min(order.length - 1, to));
+    const next = [...order];
+    const target = Math.max(0, Math.min(next.length - 1, to));
     if (from < 0 || from === target) return;
-    moveWithin(order, from, target);
-    onChange({ order });
+    moveWithin(next, from, target);
+    onChange({ order: next });
   };
 
   const move = (key: string, delta: number) =>
-    moveTo(design.order.indexOf(key), design.order.indexOf(key) + delta);
+    moveTo(order.indexOf(key), order.indexOf(key) + delta);
 
   // Which heading is being renamed, if any.
   const [editing, setEditing] = useState("");
@@ -1677,7 +1714,10 @@ function SectionOrder({
     const hidden = design.hidden.includes(key)
       ? design.hidden.filter((k) => k !== key)
       : [...design.hidden, key];
-    onChange({ hidden });
+    // The order goes with it. Hiding a custom section that had no position
+    // yet would otherwise leave it hidden and unplaced, and showing it again
+    // would send it to the bottom of the list rather than back where it was.
+    onChange({ hidden, order });
   };
 
   return (
@@ -1689,9 +1729,9 @@ function SectionOrder({
         ref={listRef}
         className="flex flex-col divide-y divide-line rounded-md border border-line"
       >
-        {design.order.map((key, index) => {
-          const fallback = options.sections.find((s) => s.key === key)?.name ?? key;
-          const label = design.labels?.[key] || fallback;
+        {order.map((key, index) => {
+          const fallback = defaultOf(key);
+          const label = nameOf(key);
           const shown = !design.hidden.includes(key);
           const lifted = dragging === index;
           return (
@@ -1778,7 +1818,7 @@ function SectionOrder({
                 <button
                   type="button"
                   className="btn btn-quiet px-1 py-0.5"
-                  disabled={index === design.order.length - 1}
+                  disabled={index === order.length - 1}
                   onClick={() => move(key, 1)}
                   aria-label={`Move ${label} down`}
                 >

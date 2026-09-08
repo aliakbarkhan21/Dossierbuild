@@ -52,13 +52,21 @@ export function ImportScreen() {
    * Existing overrides win -- if you have already renamed a heading yourself,
    * an import does not get to change it back.
    */
-  function adoptHeadings() {
+  function adoptHeadings(merged: Profile) {
     const found = Object.entries(headings).filter(([, value]) => value.trim());
     if (!found.length || !design) return;
     const labels = { ...(design.labels ?? {}) };
+    // A heading a custom section already owns is not adopted twice. The model
+    // can report "Executive Qualifications" as the name of a built-in section
+    // *and* bring it back as a section of its own, and the visible result of
+    // taking both would be the same words on two rows of the Sections list —
+    // one of them over nothing.
+    const claimed = new Set(
+      merged.sections.map((section) => section.title.trim().toLowerCase()),
+    );
     let added = 0;
     for (const [key, value] of found) {
-      if (labels[key]) continue;
+      if (labels[key] || claimed.has(value.trim().toLowerCase())) continue;
       labels[key] = value.trim();
       added++;
     }
@@ -104,7 +112,7 @@ export function ImportScreen() {
     );
     if (!result) return;
     reloadProfile(result.profile, "Imported into the profile");
-    adoptHeadings();
+    adoptHeadings(result.profile);
     toast.success(
       result.changes.length ? result.changes.join(". ") : "Nothing was selected.",
       "Not saved yet — press Save changes when it looks right.",
@@ -191,7 +199,11 @@ export function ImportScreen() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium">{entry.label}</span>
                     <span className="text-2xs uppercase tracking-wide text-faint">
-                      {entry.section}
+                      {/* "sections" is the schema's word for it, and it is
+                          the one row where the schema's word says nothing:
+                          the reviewer needs to know this heading is being
+                          kept because the app has no name for it. */}
+                      {entry.section === "sections" ? "its own heading" : entry.section}
                     </span>
                     {entry.is_duplicate && (
                       <span className="text-2xs uppercase tracking-wide text-fair">

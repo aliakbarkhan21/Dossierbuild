@@ -29,7 +29,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -368,6 +368,20 @@ PAIRINGS: dict[str, Pairing] = {
         body='"Open Sans", "Segoe UI", Helvetica, Arial, sans-serif',
         google="family=Lora:wght@400;600;700&family=Open+Sans:wght@400;600;700",
     ),
+    "times": Pairing(
+        key="times",
+        name="Times New Roman",
+        blurb="The Word default, set properly. What a conservative reader expects.",
+        heading='"Times New Roman", Tinos, "Liberation Serif", Times, serif',
+        body='"Times New Roman", Tinos, "Liberation Serif", Times, serif',
+        # Tinos is metrically identical to Times New Roman and is the fallback
+        # that matters: the face itself ships with Windows, macOS and Word, so
+        # a person printing here already has it, while the Linux box running
+        # the checks does not. Loading Tinos means the PDF built in CI has the
+        # same line breaks as the one built on a laptop, rather than
+        # substituting something a millimetre wider and repaginating.
+        google="family=Tinos:ital,wght@0,400;0,700;1,400;1,700",
+    ),
     "condensed": Pairing(
         key="condensed",
         name="Condensed",
@@ -401,6 +415,19 @@ SECTION_KEYS: tuple[str, ...] = tuple(key for key, _label in RESUME_SECTIONS)
 SECTION_LABELS: dict[str, str] = dict(RESUME_SECTIONS)
 
 
+#: How a custom section's key is spelled. It is the section's own id, which
+#: is minted with this prefix -- so ``order``, ``hidden`` and ``labels`` can
+#: carry one without this module needing to know the profile it came from.
+#: That independence is the point: the design is loaded, validated and cached
+#: without a profile in hand, and a validator that dropped every key it could
+#: not verify would delete a section's position every time the file was read.
+CUSTOM_PREFIX = "cus_"
+
+
+def is_custom(key: str) -> bool:
+    return key.startswith(CUSTOM_PREFIX)
+
+
 def section_label(key: str, labels: Mapping[str, str] | None = None) -> str:
     """What to print above a section: the writer's word, or ours.
 
@@ -408,7 +435,13 @@ def section_label(key: str, labels: Mapping[str, str] | None = None) -> str:
     export can use it without taking a design it has no other use for.
     """
     override = (labels or {}).get(key)
-    return override or SECTION_LABELS.get(key, key.title())
+    if override:
+        return override
+    # A custom section has no default to fall back on -- its heading is the
+    # only name it has, and it lives on the profile. Callers that have the
+    # profile pass the title in as the fallback; the rest get "" rather than
+    # "Cus 3f2a", which is an id printed on a resume.
+    return SECTION_LABELS.get(key, "" if is_custom(key) else key.title())
 
 
 # --------------------------------------------------------------------------
@@ -667,7 +700,7 @@ class Design(BaseModel):
         A section added to the schema in a later version therefore appears at
         the end of an old saved design instead of silently disappearing.
         """
-        deduped = list(dict.fromkeys(k for k in v if k in SECTION_KEYS))
+        deduped = list(dict.fromkeys(k for k in v if k in SECTION_KEYS or is_custom(k)))
         return deduped + [k for k in SECTION_KEYS if k not in deduped]
 
     @field_validator("labels")
@@ -678,10 +711,13 @@ class Design(BaseModel):
         # to the default is not stored: it is not an override.
         out: dict[str, str] = {}
         for key, label in (v or {}).items():
-            if key not in SECTION_KEYS:
+            if key not in SECTION_KEYS and not is_custom(key):
                 continue
             text = " ".join(str(label).split())[:40]
-            if text and text != SECTION_LABELS.get(key):
+            # A custom section's default is its own title, which is not
+            # visible from here, so its override is always kept and
+            # ``build_context`` drops it if the two agree.
+            if text and (is_custom(key) or text != SECTION_LABELS.get(key)):
                 out[key] = text
         return out
 
@@ -695,7 +731,7 @@ class Design(BaseModel):
     @field_validator("hidden")
     @classmethod
     def _hidden(cls, v: list[str]) -> list[str]:
-        return [k for k in dict.fromkeys(v) if k in SECTION_KEYS]
+        return [k for k in dict.fromkeys(v) if k in SECTION_KEYS or is_custom(k)]
 
     # -- derived values the templates read ---------------------------------
 
@@ -737,8 +773,20 @@ class Design(BaseModel):
     def with_look(self, look: "Look") -> "Design":
         return self.model_copy(update=dict(look.values))
 
-    def visible_sections(self) -> list[str]:
-        return [key for key in self.order if key not in self.hidden]
+    def visible_sections(self, extra: "Sequence[str]" = ()) -> list[str]:
+        """The order to print, with anything the order has not heard of last.
+
+        ``extra`` is the profile's custom section keys. A section added since
+        this design was last written is not in ``order`` yet, and the reason
+        it goes at the end rather than nowhere is the rule ``_order`` already
+        follows for a newly added built-in: an unplaced section is a section
+        with no position, not a section to throw away. The first drag writes
+        it into the order for good.
+        """
+        placed = [key for key in self.order if key not in self.hidden]
+        return placed + [
+            key for key in extra if key not in self.order and key not in self.hidden
+        ]
 
     def with_moved(self, key: str, delta: int) -> "Design":
         """A copy with one section moved up or down the order."""
