@@ -32,12 +32,12 @@
 {%- endmacro %}
 
 {% macro entry(e) -%}
-<div class="entry">
+<div class="entry"{% if e.path %} data-move="{{ e.path }}"{% endif %}>
   <div class="entry-head">
     <div class="entry-line">
       <div>
-        <span class="entry-title">{{ e.title }}</span>
-        {%- if e.subtitle %}{% if e.title %}<span class="entry-sep">,</span> {% endif %}<span class="entry-sub">{{ e.subtitle }}</span>{% endif %}
+        <span class="entry-title"{% if e.edit.title %} data-edit="{{ e.edit.title }}"{% endif %}>{{ e.title }}</span>
+        {%- if e.subtitle %}{% if e.title %}<span class="entry-sep">,</span> {% endif %}<span class="entry-sub"{% if e.edit.subtitle %} data-edit="{{ e.edit.subtitle }}"{% endif %}>{{ e.subtitle }}</span>{% endif %}
         {%- if e.note %} <span class="entry-note">({{ e.note }})</span>{% endif %}
       </div>
       {#- The right of the title line is the dates. A project with no dates
@@ -50,7 +50,7 @@
     {%- set second_url = e.url and e.dates %}
     {%- if e.place or e.detail or second_url %}
     <div class="entry-line entry-second">
-      <div class="entry-note">{{ e.place }}{% if e.place and e.detail %} · {% endif %}{{ e.detail }}</div>
+      <div class="entry-note">{% if e.place %}<span{% if e.edit.place %} data-edit="{{ e.edit.place }}"{% endif %}>{{ e.place }}</span>{% endif %}{% if e.place and e.detail %} · {% endif %}{% if e.detail %}<span{% if e.edit.detail %} data-edit="{{ e.edit.detail }}"{% endif %}>{{ e.detail }}</span>{% endif %}</div>
       {%- if second_url %}<div class="entry-link"><a href="{{ e.url }}">{{ e.url_text }}</a></div>{% endif %}
     </div>
     {%- endif %}
@@ -58,7 +58,7 @@
   {%- if e.bullets %}
   <ul class="bul">
     {%- for b in e.bullets %}
-    <li>{{ b }}</li>
+    <li{% if not b.text %} class="ghost"{% endif %}{% if b.path %} data-edit="{{ b.path }}" data-move="{{ b.path }}"{% endif %}>{{ b.text }}</li>
     {%- endfor %}
   </ul>
   {%- endif %}
@@ -70,7 +70,7 @@
 
 {% macro body(s) -%}
 {%- if s.kind == 'text' -%}
-<p class="summary">{{ s.text }}</p>
+<p class="summary"{% if s.edit %} data-edit="{{ s.edit }}"{% endif %}>{{ s.text }}</p>
 {%- elif s.kind == 'entries' -%}
 {%- for e in s.entries %}{{ entry(e) }}{% endfor -%}
 {%- elif s.kind == 'groups' -%}
@@ -80,7 +80,7 @@
 {%- elif s.kind == 'lines' -%}
 <ul class="lines">
   {%- for line in s.lines %}
-  <li>{{ line_body(line) }}</li>
+  <li{% if line.path %} data-move="{{ line.path }}"{% endif %}{% if line.edit %} data-edit="{{ line.edit }}"{% endif %}>{{ line_body(line) }}</li>
   {%- endfor %}
 </ul>
 {#- A section the schema has no name for. Prose, a list, or a paragraph
@@ -93,11 +93,11 @@
     bullets. Both are already in the paginator's ATOMS, so neither can be cut
     through by a page break. -#}
 {%- elif s.kind == 'free' -%}
-{%- if s.text %}<p class="summary">{{ s.text }}</p>{% endif %}
+{%- if s.text %}<p class="summary"{% if s.edit %} data-edit="{{ s.edit }}"{% endif %}>{{ s.text }}</p>{% endif %}
 {%- if s.lines %}
 <ul class="bul">
   {%- for line in s.lines %}
-  <li>{{ line_body(line) }}</li>
+  <li{% if not line.text %} class="ghost"{% endif %}{% if line.path %} data-edit="{{ line.edit }}" data-move="{{ line.path }}"{% endif %}>{{ line_body(line) }}</li>
   {%- endfor %}
 </ul>
 {%- endif %}
@@ -148,7 +148,7 @@
       {%- if e.dates %}<div class="side-meta">{{ e.dates }}</div>{% endif %}
       {%- if e.note or e.detail %}<div class="side-meta">{{ e.note }}{% if e.note and e.detail %} · {% endif %}{{ e.detail }}</div>{% endif %}
       {%- if e.bullets %}
-      <ul class="bul">{% for b in e.bullets %}<li>{{ b }}</li>{% endfor %}</ul>
+      <ul class="bul">{% for b in e.bullets %}<li{% if b.path %} data-edit="{{ b.path }}" data-move="{{ b.path }}"{% endif %}>{{ b.text }}</li>{% endfor %}</ul>
       {%- endif %}
     </div>
     {%- endfor %}

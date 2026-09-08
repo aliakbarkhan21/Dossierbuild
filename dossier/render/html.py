@@ -123,7 +123,11 @@ def render_html(
     ``zoom`` of 0 means "fit the width available", anything else is a
     literal scale.
     """
-    resume = context if context is not None else build_context(profile, design)
+    resume = (
+        context
+        if context is not None
+        else build_context(profile, design, blanks=preview)
+    )
     template = _env().get_template(design.template_spec.file)
     return template.render(
         r=resume,

@@ -12,6 +12,7 @@ import {
   Download,
   PanelLeftClose,
   PanelLeftOpen,
+  PenLine,
   FileCode2,
   FileType2,
   GripVertical,
@@ -37,6 +38,7 @@ import { tagsInUse } from "../components/Tags";
 import { Wireframe } from "../components/Wireframe";
 import { Segmented } from "../components/Segmented";
 import { Switch } from "../components/Switch";
+import { applyPageChange, applyPageCommand } from "../lib/pageEdit";
 import { moveWithin, useReorder } from "../lib/reorder";
 
 import { useStore } from "../lib/store";
@@ -186,6 +188,29 @@ export function ResumeScreen() {
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
   const [fullscreen, setFullscreen] = useState(false);
+  /**
+   * Whether the page itself is editable.
+   *
+   * Off by default and deliberately a mode rather than always-on. The preview
+   * is the thing this app is judged on -- "what you see is what prints" -- and
+   * a page whose every paragraph has a caret in it is a page you cannot read
+   * without editing it by accident.
+   */
+  const [onPage, setOnPage] = useState(false);
+  // Read by the message listener, which is registered once and would
+  // otherwise close over the mode as it was on mount.
+  const onPageRef = useRef(onPage);
+  onPageRef.current = onPage;
+  /**
+   * True while a field inside the frame has the caret.
+   *
+   * The preview re-renders on every change to the profile, and a re-render
+   * replaces the document -- taking the caret, the selection and whatever was
+   * half-typed with it. So while somebody is typing in there the render is
+   * held, and the frame says when that stops.
+   */
+  const typingInFrame = useRef(false);
+  const [held, setHeld] = useState(false);
   const [filter, setFilter] = useState("All");
   const [preview, setPreview] = useState("");
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
@@ -223,7 +248,50 @@ export function ResumeScreen() {
   useEffect(() => {
     function onMessage(event: MessageEvent) {
       if (event.source !== previewFrame.current?.contentWindow) return;
-      const scale = (event.data as { dossierFit?: unknown } | null)?.dossierFit;
+
+      // Editing on the page. Everything the frame reports goes through
+      // `store.edit`, which is the same call the Profile screen makes -- so an
+      // edit made here lands in the undo stack, in autosave and in the
+      // writing standard exactly like one typed into a form.
+      const message = event.data as {
+        dossierReady?: boolean;
+        dossierChange?: { path?: string; value?: string };
+        dossierCommand?: { op?: string; path?: string };
+        dossierEditing?: boolean;
+        dossierFit?: unknown;
+      } | null;
+
+      // A freshly rendered document asking what mode it should be in.
+      if (message?.dossierReady) {
+        previewFrame.current?.contentWindow?.postMessage({ dossierEdit: onPageRef.current }, "*");
+        return;
+      }
+      if (typeof message?.dossierEditing === "boolean") {
+        typingInFrame.current = message.dossierEditing;
+        setHeld(message.dossierEditing);
+        return;
+      }
+      const change = message?.dossierChange;
+      if (change?.path !== undefined) {
+        const { path, value } = change;
+        editRef.current((draft) => {
+          const label = applyPageChange(draft, path, value ?? "");
+          if (!label) return;
+        }, "Edited on the page");
+        return;
+      }
+      const command = message?.dossierCommand;
+      if (command?.op && command.path) {
+        const { op, path } = command;
+        let label = "";
+        editRef.current((draft) => {
+          label = applyPageCommand(draft, op, path);
+        }, `Edited on the page`);
+        if (label) toast.success(label, "Undo with Ctrl+Z, like any other edit.");
+        return;
+      }
+
+      const scale = message?.dossierFit;
       if (typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0) return;
       // Only while the fit is automatic. Under a manual zoom the frame is
       // reporting back the scale it was just given, and letting that set the
@@ -252,6 +320,19 @@ export function ResumeScreen() {
     previewFrame.current?.contentWindow?.postMessage({ dossierMargin: marginMm }, "*");
   }, [marginMm]);
 
+  // Sent on every render of the document as well as on every flip of the
+  // switch: the frame is replaced whenever the profile changes, and a fresh
+  // document starts with editing off and no memory of having been told
+  // otherwise.
+  useEffect(() => {
+    previewFrame.current?.contentWindow?.postMessage({ dossierEdit: onPage }, "*");
+  }, [onPage, preview]);
+
+  // `edit` through a ref, because the message listener is registered once and
+  // would otherwise close over the store as it was on mount.
+  const editRef = useRef(edit);
+  editRef.current = edit;
+
   /**
    * Whether this screen may start building the eight template thumbnails.
    *
@@ -277,6 +358,11 @@ export function ResumeScreen() {
 
   useEffect(() => {
     if (!profile || !design) return;
+    // Held while somebody is typing on the page. Replacing the document under
+    // a live caret is the one way this feature could lose a keystroke, and
+    // the change is already in the store -- so the render is not skipped,
+    // only deferred to the blur that follows.
+    if (typingInFrame.current) return;
     const ticket = ++inFlight.current;
     api
       .preview({ profile, design, zoom })
@@ -288,7 +374,7 @@ export function ResumeScreen() {
         if (error instanceof ApiError) toast.error(error.message, error.fix);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewKey]);
+  }, [previewKey, held]);
 
   useEffect(() => {
     if (!profile || !design || !options || !settled) return;
@@ -595,6 +681,23 @@ export function ResumeScreen() {
               </button>
             </div>
 
+            {/* A mode, not a permanent state. The preview is what this app
+                is judged on -- what you see is what prints -- and a page with
+                a caret in every paragraph is a page you cannot read without
+                editing it by accident. */}
+            <button
+              type="button"
+              className={onPage ? "btn btn-primary" : "btn"}
+              onClick={() => setOnPage((was) => !was)}
+              title={
+                onPage
+                  ? "Stop editing on the page"
+                  : "Type straight onto the resume, and move or remove a line from the margin"
+              }
+            >
+              <PenLine size={14} />
+              {onPage ? "Editing" : "Edit page"}
+            </button>
             <button type="button" className="btn" onClick={checkFit}>
               Check fit
             </button>

@@ -353,6 +353,77 @@ ul.bul li::before {
 .lines li { margin-top: 3pt; break-inside: avoid; }
 .lines li:first-child { margin-top: 0; }
 
+{% if preview %}
+/* ------------------------------------------------------------------ *
+ * Editing on the page itself.
+ *
+ * All of it lives behind `{% raw %}{% if preview %}{% endraw %}`, so the document Chromium
+ * prints contains none of these rules and none of the script below. That is
+ * the invariant the whole feature is judged against: the PDF must not change
+ * by a pixel because the page became editable.
+ *
+ * Nothing here affects layout. The outline is drawn with `box-shadow`, which
+ * does not take space; the rail is `position: fixed` and therefore out of
+ * flow. Both matter, because the paginator measures this document to decide
+ * where the page breaks fall, and a feature that nudged the text would move
+ * the breaks and make the preview a lie.
+ * ------------------------------------------------------------------ */
+/* A line with nothing in it yet.
+ *
+ * Pressing "+" on the page has to leave something to type into, and there is
+ * nothing to draw. Zero height rather than hidden, so that the paginator --
+ * which measures this document to decide where the pages break -- counts it
+ * as nothing at all. Turn editing on and it opens up; turn it off and the
+ * page is again exactly what the printer produces, which is the claim the
+ * whole preview rests on.
+ */
+.ghost { height: 0; min-height: 0; margin: 0 !important; overflow: hidden; }
+.ghost::before { display: none !important; }
+body.editing .ghost {
+  height: auto;
+  min-height: 1.15em;
+  margin-top: 2.5pt !important;
+  outline: 1px dashed rgba(60, 120, 220, .45);
+  border-radius: 2px;
+}
+body.editing .ghost::before { display: block !important; }
+
+body.editing [data-edit] {
+  box-shadow: 0 0 0 1px rgba(60, 120, 220, .25);
+  border-radius: 2px;
+}
+body.editing [data-edit]:hover { box-shadow: 0 0 0 1px rgba(60, 120, 220, .5); }
+body.editing [data-edit]:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(60, 120, 220, .85);
+}
+.rail {
+  position: fixed;
+  z-index: 40;
+  display: none;
+  gap: 2px;
+  padding: 2px;
+  background: #fff;
+  border: 1px solid #d9dbe0;
+  border-radius: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .14);
+}
+.rail.on { display: flex; }
+.rail button {
+  width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font: 600 12px/1 -apple-system, "Segoe UI", system-ui, sans-serif;
+  color: #3d4350;
+  background: transparent;
+  border: 0; border-radius: 3px;
+  cursor: pointer;
+  padding: 0;
+}
+.rail button:hover { background: #eef1f6; color: #10131a; }
+.rail button.warn:hover { background: #fdecec; color: #b3261e; }
+.rail button[disabled] { opacity: .3; cursor: default; }
+{% endif %}
+
 {% block extra_css %}{% endblock %}
 
 {# After the template's own block, so an equal-scoring rule falls this way.
@@ -361,6 +432,17 @@ ul.bul li::before {
 </style>
 </head>
 <body class="{{ 'preview' if preview else 'print' }} tpl-{{ template_key }} lay-{{ layout_key }}">
+{% if preview %}
+{#- The rail is one element reused by every block, moved to whatever the
+    pointer is over. Forty of them, one per bullet, would be forty elements
+    the paginator has to walk past. -#}
+<div class="rail" id="rail" aria-hidden="true">
+  <button type="button" data-op="up" title="Move up">&#8593;</button>
+  <button type="button" data-op="down" title="Move down">&#8595;</button>
+  <button type="button" data-op="add" title="Add a line below">+</button>
+  <button type="button" data-op="delete" class="warn" title="Remove">&#10005;</button>
+</div>
+{% endif %}
 {% if preview and fitbar %}
 <div class="fitbar"><div id="fit-left"></div><div id="fit-right"></div></div>
 {% endif %}
@@ -700,6 +782,8 @@ ul.bul li::before {
     // the sheet reflows under the finger. The debounced re-render still
     // arrives behind it and is what the print is taken from; this is the
     // same document with the same numbers, reached sooner.
+    if (typeof data.dossierEdit === 'boolean') { enableEditing(data.dossierEdit); }
+
     var mm = data.dossierMargin;
     if (typeof mm === 'number' && mm > 0 && mm < 60) {
       PAD_MM = mm;
@@ -741,6 +825,158 @@ ul.bul li::before {
     var link = event.target && event.target.closest && event.target.closest('a[href]');
     if (link && link.target !== '_blank') { link.target = '_blank'; }
   }, true);
+
+  /* ------------------------------------------------------------------ *
+   * Editing on the page itself.
+   *
+   * The frame is sandboxed into an opaque origin, so the app cannot reach in
+   * here and this cannot reach out. Everything crosses as a message, which is
+   * also what keeps the data model honest: nothing is edited here. What
+   * happens here is that a person types, and this says so; the profile is
+   * changed by the store on the other side, through the same `edit` call the
+   * Profile screen uses, so an in-place edit lands in the undo stack, in
+   * autosave and in the writing standard exactly like a typed one.
+   * ------------------------------------------------------------------ */
+  var rail = document.getElementById('rail');
+  var railFor = null;      // the block the rail is currently attached to
+  var editing = false;
+
+  /** Only the three marks survive, and they come back balanced by construction. */
+  function marksOf(node) {
+    if (node.nodeType === 3) { return node.nodeValue || ''; }
+    if (node.nodeType !== 1) { return ''; }
+    if (node.tagName === 'BR') { return '\n'; }
+    var inner = '';
+    for (var i = 0; i < node.childNodes.length; i++) {
+      inner += marksOf(node.childNodes[i]);
+    }
+    var tag = { B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u' }[node.tagName];
+    if (tag) { return inner.replace(/^\s+|\s+$/g, '') ? '<' + tag + '>' + inner + '</' + tag + '>' : inner; }
+    if (/^(DIV|P|LI|TR)$/.test(node.tagName) && inner) { return '\n' + inner; }
+    return inner;
+  }
+
+  function valueOf(el) {
+    var out = '';
+    for (var i = 0; i < el.childNodes.length; i++) { out += marksOf(el.childNodes[i]); }
+    return out.replace(/^\n+/, '').replace(/\s*\n+\s*/g, ' ');
+  }
+
+  function send(payload) {
+    if (!window.parent || window.parent === window) { return; }
+    try { window.parent.postMessage(payload, '*'); } catch (e) { /* not our problem */ }
+  }
+
+  var pending = 0;
+  function changed(el) {
+    clearTimeout(pending);
+    pending = setTimeout(function () {
+      send({ dossierChange: { path: el.getAttribute('data-edit'), value: valueOf(el) } });
+    }, 350);
+  }
+
+  function placeRail(block) {
+    railFor = block;
+    if (!block) { rail.className = 'rail'; return; }
+    var box = block.getBoundingClientRect();
+    // Left of the block where there is room, otherwise tucked just inside it.
+    var width = 92;
+    var left = box.left - width - 6;
+    if (left < 4) { left = box.left + 4; }
+    rail.style.left = Math.round(left) + 'px';
+    rail.style.top = Math.round(Math.max(4, box.top)) + 'px';
+    rail.className = 'rail on';
+    // "+" adds a line, which only means something where lines live.
+    var isLine = block.tagName === 'LI';
+    rail.querySelector('[data-op="add"]').style.display = isLine ? '' : 'none';
+  }
+
+  function enableEditing(on) {
+    editing = on;
+    document.body.className = document.body.className.replace(/ ?editing/, '') + (on ? ' editing' : '');
+    var fields = document.querySelectorAll('[data-edit]');
+    for (var i = 0; i < fields.length; i++) {
+      if (on) { fields[i].setAttribute('contenteditable', 'true'); }
+      else { fields[i].removeAttribute('contenteditable'); }
+    }
+    if (!on) { placeRail(null); }
+  }
+
+  document.addEventListener('mousemove', function (event) {
+    if (!editing) { return; }
+    var target = event.target;
+    if (rail.contains(target)) { return; }
+    var block = target && target.closest && target.closest('[data-move]');
+    if (block !== railFor) { placeRail(block); }
+  });
+
+  document.addEventListener('scroll', function () { if (editing) { placeRail(null); } }, true);
+
+  rail.addEventListener('mousedown', function (event) {
+    // The rail must not take the selection off the field behind it.
+    event.preventDefault();
+  });
+  rail.addEventListener('click', function (event) {
+    var button = event.target.closest && event.target.closest('button');
+    if (!button || !railFor) { return; }
+    send({ dossierCommand: { op: button.getAttribute('data-op'), path: railFor.getAttribute('data-move') } });
+    placeRail(null);
+  });
+
+  document.addEventListener('input', function (event) {
+    var field = event.target.closest && event.target.closest('[data-edit]');
+    if (editing && field) { changed(field); }
+  });
+
+  document.addEventListener('focusin', function (event) {
+    var field = event.target.closest && event.target.closest('[data-edit]');
+    // While a field here has the caret, the host must not swap the document
+    // out from under it -- a re-render on every keystroke would take the
+    // caret with it. This is what tells it to hold.
+    if (editing && field) { send({ dossierEditing: true }); }
+  });
+  document.addEventListener('focusout', function (event) {
+    var field = event.target.closest && event.target.closest('[data-edit]');
+    if (editing && field) {
+      clearTimeout(pending);
+      send({ dossierChange: { path: field.getAttribute('data-edit'), value: valueOf(field) } });
+      send({ dossierEditing: false });
+    }
+  });
+
+  // Paste arrives plain, for the reason it does in the editor: text copied
+  // out of Word brings its own fonts and colours, and a resume has one type
+  // scale set on the Resume screen.
+  document.addEventListener('paste', function (event) {
+    var field = event.target.closest && event.target.closest('[data-edit]');
+    if (!editing || !field) { return; }
+    event.preventDefault();
+    var text = (event.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, text.replace(/\s+/g, ' '));
+  });
+
+  document.addEventListener('keydown', function (event) {
+    var field = event.target.closest && event.target.closest('[data-edit]');
+    if (!editing || !field) { return; }
+    var mark = { b: 'bold', i: 'italic', u: 'underline' }[event.key.toLowerCase()];
+    if ((event.metaKey || event.ctrlKey) && mark) {
+      event.preventDefault();
+      document.execCommand('styleWithCSS', false, 'false');
+      document.execCommand(mark);
+      changed(field);
+      return;
+    }
+    // A resume line is a line. Enter would open a second paragraph inside a
+    // block the printed stylesheet has no rule for.
+    if (event.key === 'Enter') { event.preventDefault(); field.blur(); }
+    if (event.key === 'Escape') { field.blur(); }
+  });
+
+  // The document is replaced on every change to the profile, and a fresh one
+  // starts with editing off and no memory of having been told otherwise. The
+  // host cannot reliably message it before its listener exists, so the new
+  // document asks -- which removes the race rather than narrowing it.
+  send({ dossierReady: true });
 
   if (document.fonts && document.fonts.ready) { document.fonts.ready.then(measure); }
   window.addEventListener('load', measure);

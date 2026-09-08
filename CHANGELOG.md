@@ -10,6 +10,83 @@ wrong for a while, it says that too.
 
 ### Added
 
+- **Sections the app has no name for.** A heading matching none of the eight
+  built-in sections used to be read by the importer and then dropped --
+  silently, so the writer got a shorter resume and no reason for it.
+  ``Profile.sections`` holds them now (schema v5), heading and words as
+  written. They order, hide and rename beside the built-in eight and print in
+  all thirty-two template-and-layout combinations. A real import of a senior
+  CV placed "Executive Qualifications", "Governance, Security and Risk
+  Leadership" and "Selected Speaking Engagements" correctly, each with the
+  right shape.
+- **Bold, italic and underline**, on every field that becomes words on the
+  page. A stored line is still plain text: only ``<b>``, ``<i>``, ``<u>`` and
+  their closers mean anything, which is what lets every profile written before
+  this keep meaning exactly what it meant. Email, phone and links are left
+  plain because an ``href`` built out of marked-up text is a link that goes
+  nowhere; dates and the employment dropdown are structured values rather than
+  writing. Everything that reads a line as *language* -- the writing standard,
+  the posting matcher, the duplicate check, the plain-text export, every
+  prompt, the CV's name in the sidebar, the download filename -- reads it
+  stripped.
+- **Editing on the page itself.** Type straight onto the resume, and move,
+  remove or add a line from a rail in the margin. The printed document is
+  unaffected by design: everything the feature adds lives behind
+  ``{% if preview %}``, the outline is a ``box-shadow`` and the rail is
+  ``position: fixed``, so neither takes space and the page breaks stay where
+  the printer puts them. Proved across all thirty-two designs: three blank
+  lines inserted into a profile change no printed document at all. An edit
+  made here goes through the same ``store.edit`` the Profile screen uses, so
+  it lands in the undo stack, in autosave and in the writing standard exactly
+  like a typed one.
+- **Times New Roman**, with Tinos behind it -- metrically identical, so a PDF
+  built in CI breaks its lines in the same places as one built on a laptop.
+- **Dates may be words.** "Summer 2024", "Expected 2026", "Ongoing",
+  "2019 - Present". A field that refuses those makes people misstate their own
+  history to satisfy a regex. Schema v6. Anything the app can still read is
+  still normalised and still follows the design's date-format switch.
+
+### Fixed
+
+- **"Certifications" printed twice.** A CV that says "Education and
+  Certifications" writes one heading over two sections the app keeps apart.
+  The first fix let the first section claim the words and the second fall back
+  to its default, which put "CERTIFICATIONS ... EDUCATION AND CERTIFICATIONS"
+  on one page. An empty heading is now a real setting meaning "print no
+  heading", the import applies it to the covered section and moves it directly
+  beneath the one that named it.
+- **"large- scale" and "Conc urrently" on the printed page.** A hyphen at the
+  end of a PDF line is a compound the layout wrapped; the newline after it
+  reached the model as ``large-
+scale`` and came back as ``large- scale``.
+  Extraction rejoins it before the model sees it, keeping the hyphen -- Word
+  does not hyphenate by default, so on a resume that hyphen is nearly always
+  one the writer typed. Line breaks that are not inside a word are untouched:
+  they are the main signal separating one bullet from the next. For text
+  already stored, the writing standard now flags it.
+- **A field wrapped in a ``<label>`` could not be clicked into.** Clicking a
+  label runs its activation behaviour, which hands focus to its labelable
+  descendant; a ``contenteditable`` is not one, so the focus the click had
+  just given it was dropped again. The box looked dead unless you held the
+  mouse down and dragged.
+- **A new entry was saved with no id.** The editor sends ``id: ""`` for a row
+  somebody has just added and reads the profile back expecting a real one --
+  the store said so in a comment and nothing did it. An empty id is not a
+  duplicate of anything, so the repair pass walked straight past it. Invisible
+  for years and immediately fatal for a custom section, whose id is the key
+  its position and heading are filed under.
+- **Skills under a heading the app did not recognise went missing.** A senior
+  CV rarely says "Skills"; it says "Core Expertise". The section was read and
+  dropped with nothing to say so. Named in the prompt, with the nine other
+  spellings it also answers to.
+- **An import could not tell you what it had done to a heading.** The
+  extraction reports the resume's own section names, and the design adopts
+  them on accept -- so a CV that says "Executive Profile" gets that back
+  rather than being told it is "Summary". A heading you have set yourself is
+  never overwritten.
+
+### Added (1.1.0 cycle)
+
 - **More than one CV.** A switcher and a "new CV" button in the sidebar, and a
   way to delete one. Each CV is a profile file of exactly the format
   ``storage`` already reads, so every migration and the atomic write apply
