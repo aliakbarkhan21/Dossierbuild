@@ -236,8 +236,23 @@ export interface Finding {
   icon: string;
 }
 
+/**
+ * A fault in the document rather than in one line of it.
+ *
+ * No email address, a job that ends before it starts, the same bullet pasted
+ * twice. These belong to an entry or to the resume as a whole, so they carry
+ * a place ("Experience, entry 2") instead of a block id.
+ */
+export interface DocumentFinding {
+  severity: "error" | "warning" | "note";
+  message: string;
+  icon: string;
+  where: string;
+}
+
 export interface QualityReport {
   findings: Finding[];
+  document: DocumentFinding[];
   entries: number;
   bullets: number;
   words: number;

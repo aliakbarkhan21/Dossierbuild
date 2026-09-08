@@ -85,7 +85,7 @@ export function CommandPalette({
         run: () => navigate("/letter"),
       },
       { id: "go-import", group: "Go to", label: "Import", run: () => navigate("/import") },
-      { id: "go-health", group: "Go to", label: "Health check", run: () => navigate("/health") },
+      { id: "go-health", group: "Go to", label: "Review", run: () => navigate("/health") },
       { id: "save", group: "Do", label: "Save profile", hint: "Ctrl+S", run: () => void save() },
       {
         id: "theme",

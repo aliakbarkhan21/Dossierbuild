@@ -5,7 +5,13 @@ from __future__ import annotations
 from fastapi import APIRouter, File, UploadFile
 from pydantic import BaseModel
 
-from ...core.quality import Finding, build_vocabulary, check_text, summarise
+from ...core.quality import (
+    Finding,
+    build_vocabulary,
+    check_document,
+    check_text,
+    summarise,
+)
 from ...core.markup import plain
 from ...core.schema import LIST_SECTIONS, Profile, iter_bullets
 from ...core import cvs
@@ -29,6 +35,14 @@ class FindingOut(BaseModel):
     icon: str
 
 
+class DocumentFindingOut(BaseModel):
+    severity: str
+    message: str
+    icon: str
+    #: "Experience, entry 2" -- the place, since there is no block id.
+    where: str
+
+
 class QualityReport(BaseModel):
     """What the writing standard makes of the profile as it stands.
 
@@ -39,6 +53,10 @@ class QualityReport(BaseModel):
     """
 
     findings: list[FindingOut]
+    #: Faults in the document rather than in one line of it -- no email
+    #: address, a job that ends before it starts, the same bullet pasted
+    #: twice. These have no block to point at, so they travel separately.
+    document: list[DocumentFindingOut]
     entries: int
     bullets: int
     words: int
@@ -107,7 +125,17 @@ def quality(profile: Profile | None = None) -> QualityReport:
                 for f in found
             ]
 
+    document = check_document(stored)
     errors, warnings, notes = summarise(grouped)
+    # Counted with the rest: a resume nobody can reply to is not a clean one
+    # because every sentence in it scans well.
+    for finding in document:
+        if finding.severity == "error":
+            errors += 1
+        elif finding.severity == "warning":
+            warnings += 1
+        else:
+            notes += 1
     flagged = {
         bid
         for bid, items in grouped.items()
@@ -117,6 +145,12 @@ def quality(profile: Profile | None = None) -> QualityReport:
 
     return QualityReport(
         findings=findings,
+        document=[
+            DocumentFindingOut(
+                severity=f.severity, message=f.message, icon=f.icon, where=f.where
+            )
+            for f in document
+        ],
         entries=sum(len(getattr(stored, s)) for s in LIST_SECTIONS),
         bullets=blocks,
         words=words,

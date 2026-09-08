@@ -36,7 +36,7 @@ from dataclasses import dataclass
 from typing import Iterable, Literal
 
 from .markup import plain
-from .schema import Profile, iter_bullets
+from .schema import Profile, format_date, is_month, iter_bullets
 
 Severity = Literal["error", "warning", "note"]
 
@@ -160,8 +160,25 @@ COMMON_TECH: frozenset[str] = frozenset(
     }
 )
 
-MAX_CHARS = 200
-MIN_CHARS = 25
+#: How long a line of each kind may run before it is worth saying something.
+#:
+#: One number for all of them was the bug: a summary is a paragraph and was
+#: being told, at 1,017 characters, that "over about 200 this will wrap badly
+#: and push the resume past one page" -- advice written for a bullet, applied
+#: to prose, and wrong in both directions. A summary that short would be two
+#: lines; a bullet that long is a paragraph pretending to be a bullet.
+#:
+#: ``(minimum, maximum)``. A minimum of 0 means the kind has no floor worth
+#: enforcing -- a one-line section of prose is a legitimate thing to write.
+LENGTH: dict[str, tuple[int, int]] = {
+    "bullet": (25, 200),
+    "summary": (120, 700),
+    "prose": (0, 1200),
+}
+
+#: Kept for the callers and tests that named them before there were kinds.
+MAX_CHARS = LENGTH["bullet"][1]
+MIN_CHARS = LENGTH["bullet"][0]
 
 
 def expand_terms(items: Iterable[str]) -> set[str]:
@@ -223,6 +240,13 @@ class Finding:
     block_id: str
     severity: Severity
     message: str
+    where: str = ""
+    """Which part of the document, for a finding that is not about one line.
+
+    "Experience, entry 2" rather than a block id, because the thing being
+    reported -- an end date before its start, a heading with nothing under it
+    -- belongs to an entry rather than to a sentence inside one.
+    """
 
     @property
     def icon(self) -> str:
@@ -234,9 +258,25 @@ def check_text(
     block_id: str = "",
     *,
     is_summary: bool = False,
+    kind: str = "",
     vocabulary: Iterable[str] = (),
 ) -> list[Finding]:
-    """Run every check against a single bullet or summary."""
+    """Run every check against one piece of writing, judged as its own kind.
+
+    ``kind`` is "bullet", "summary" or "prose". It decides how long the line
+    may run, whether a full stop at the end is worth a note, and whether the
+    opening word is expected to be a verb -- because those rules disagree
+    between a bullet and a paragraph, and applying a bullet's to a paragraph
+    produced advice that was not merely unhelpful but wrong.
+
+    ``is_summary`` is the old spelling of ``kind="summary"`` and still works:
+    every caller that passed it meant exactly that.
+    """
+    kind = kind or ("summary" if is_summary else "bullet")
+    is_summary = kind == "summary"
+    #: Bullets are a form with rules -- lead with a verb, carry a number, no
+    #: closing full stop. Prose is prose.
+    is_bullet = kind == "bullet"
     # Formatting is not language. A bullet reading "cut runtime <b>68%</b>"
     # is nine words with a number in it, and counting the tags would fail it
     # for length and read "b" as a word nobody wrote.
@@ -281,7 +321,7 @@ def check_text(
             )
         )
 
-    if not is_summary:
+    if is_bullet:
         first_word = re.split(r"\W+", lowered, maxsplit=1)[0]
         if first_word in WEAK_OPENERS:
             findings.append(
@@ -312,7 +352,7 @@ def check_text(
                 "This could describe almost anyone",
             )
         )
-    elif not has_number and not is_summary:
+    elif not has_number and is_bullet:
         findings.append(
             Finding(
                 block_id,
@@ -322,21 +362,37 @@ def check_text(
             )
         )
 
-    if len(stripped) > MAX_CHARS:
+    floor, ceiling = LENGTH.get(kind, LENGTH["bullet"])
+    if len(stripped) > ceiling:
+        over = len(stripped) - ceiling
         findings.append(
             Finding(
                 block_id,
                 "warning",
-                f"{len(stripped)} characters -- over about {MAX_CHARS} this will wrap badly "
-                "and push the resume past one page",
+                f"{len(stripped)} characters"
+                + (
+                    f" -- about {over} more than a bullet carries before it wraps to "
+                    "three lines and starts costing the page"
+                    if is_bullet
+                    else f" -- long for a {kind}; the last {over} are the ones nobody reaches"
+                ),
             )
         )
-    elif len(stripped) < MIN_CHARS and not is_summary:
+    elif floor and len(stripped) < floor:
         findings.append(
-            Finding(block_id, "note", "very short -- likely missing the outcome or the method")
+            Finding(
+                block_id,
+                "note",
+                "very short -- likely missing the outcome or the method"
+                if is_bullet
+                else "shorter than most readers expect here",
+            )
         )
 
-    if stripped.endswith("."):
+    # Only bullets. A paragraph ending in a full stop is a paragraph; the note
+    # used to fire on the summary and say "bullets read cleaner without",
+    # which announced its own mistake.
+    if is_bullet and stripped.endswith("."):
         findings.append(Finding(block_id, "note", "trailing full stop; bullets read cleaner without"))
 
     return findings
@@ -379,3 +435,93 @@ def summarise(results: dict[str, list[Finding]]) -> tuple[int, int, int]:
             else:
                 notes += 1
     return errors, warnings, notes
+
+
+# --------------------------------------------------------------------------
+# The document, as against the writing in it
+# --------------------------------------------------------------------------
+#
+# Everything above reads one line at a time and asks whether it is well
+# written. Useful, and the same advice for everybody: lead with a verb, carry
+# a number, do not say "responsible for". None of it can see that a resume has
+# no email address on it, or that a job ends before it starts, or that the
+# same bullet was pasted twice -- which are the faults that actually cost
+# somebody an interview, and which are specific to their document.
+#
+# So these read the profile as a whole. Every one of them is a fact about this
+# CV that a person can act on, and none of them fires on a resume that does not
+# have the problem.
+
+#: Past this many, a reader has stopped. Not a style rule -- a claim about
+#: attention, and the reason the last bullets of a long entry are wasted.
+CROWDED_ENTRY = 8
+
+
+def check_document(profile: Profile) -> list[Finding]:
+    """Faults in the document rather than in a sentence of it."""
+    out: list[Finding] = []
+    basics = profile.basics
+
+    def add(severity: Severity, where: str, message: str) -> None:
+        out.append(Finding("", severity, message, where))
+
+    # ---- can anybody reply? ----------------------------------------
+    if not plain(basics.name).strip():
+        add("error", "Contact", "no name on the resume")
+    if not plain(basics.email).strip():
+        add("error", "Contact", "no email address -- there is no way to answer this")
+    elif "@" not in plain(basics.email):
+        add("error", "Contact", f'"{plain(basics.email)}" is not an email address')
+    if not plain(basics.phone).strip():
+        add("note", "Contact", "no phone number; some employers ring before they write")
+
+    if not plain(profile.summary.text).strip():
+        add(
+            "warning",
+            "Summary",
+            "no summary -- the first thing read is a job title with no claim attached to it",
+        )
+
+    # ---- dates that cannot be true ---------------------------------
+    for section in ("experience", "projects", "education"):
+        for index, entry in enumerate(getattr(profile, section, []) or [], start=1):
+            where = f"{section.title()}, entry {index}"
+            start, end = getattr(entry, "start", None), getattr(entry, "end", None)
+            if is_month(start) and is_month(end) and end < start:
+                add(
+                    "error",
+                    where,
+                    f"ends {format_date(end)} but starts {format_date(start)}",
+                )
+            if not start and not end:
+                add("note", where, "no dates -- a reader cannot place it in your history")
+
+            bullets = [b for b in getattr(entry, "bullets", []) or [] if b.text.strip()]
+            if len(bullets) > CROWDED_ENTRY:
+                add(
+                    "note",
+                    where,
+                    f"{len(bullets)} bullets; past about {CROWDED_ENTRY} the last ones are "
+                    "read by nobody -- cut or promote them",
+                )
+
+    # ---- the same line twice ---------------------------------------
+    seen: dict[str, str] = {}
+    for section, owner, block in iter_bullets(profile):
+        key = re.sub(r"[^a-z0-9]+", " ", plain(block.text).lower()).strip()
+        if len(key) < 20:
+            continue
+        if key in seen:
+            add("warning", section.title(), f'the same line appears twice: "{block.text.strip()[:60]}…"')
+        else:
+            seen[key] = owner
+
+    # ---- a heading with nothing under it ---------------------------
+    for custom in profile.sections:
+        title = plain(custom.title).strip()
+        if not title:
+            add("note", "Other sections", "a section with no heading will print without one")
+        elif not custom.text.strip() and not any(b.text.strip() for b in custom.bullets):
+            add("warning", title, "a heading with nothing under it -- it will not print at all")
+
+    return out

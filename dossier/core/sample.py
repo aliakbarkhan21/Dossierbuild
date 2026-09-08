@@ -16,7 +16,7 @@ rather than a wall of red. If a change here drops the score, the change is
 wrong -- the sample is the worked example.
 
 Two bullets are *deliberately* weak -- the ones about "various tasks" and
-"assisted with" -- so the Health check has something to catch and the feature
+"assisted with" -- so the Review screen has something to catch and the feature
 demonstrates itself. Removing them would make the sample look better and the
 app look pointless.
 

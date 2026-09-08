@@ -30,7 +30,11 @@ function rank(findings: Finding[]): number {
 }
 
 const SEVERITY: Record<Severity, { label: string; Icon: typeof Info; tone: string }> = {
-  error: { label: "Filler", Icon: AlertTriangle, tone: "text-poor" },
+  // "Filler" was accurate while every error was a filler phrase. The
+  // document checks put missing email addresses and impossible dates in
+  // the same tier, and "5 Filler" over a count that includes those says
+  // something untrue.
+  error: { label: "Problem", Icon: AlertTriangle, tone: "text-poor" },
   warning: { label: "Warning", Icon: CircleAlert, tone: "text-fair" },
   note: { label: "Note", Icon: Info, tone: "text-muted" },
 };
@@ -117,8 +121,8 @@ export function HealthScreen() {
   return (
     <>
       <TopBar
-        title="Health check"
-        subtitle="Every bullet, measured against the writing standard. Nothing here blocks a save."
+        title="Review"
+        subtitle="The document, and every line in it. Nothing here blocks a save."
         sidebarHidden={shell.sidebarHidden}
         onShowSidebar={shell.showSidebar}
         onOpenPalette={shell.openPalette}
@@ -171,7 +175,7 @@ export function HealthScreen() {
           </div>
 
           <div className="ml-auto flex gap-5 text-sm">
-            <Count value={quality?.errors ?? 0} label="Filler" tone="text-poor" />
+            <Count value={quality?.errors ?? 0} label="Problems" tone="text-poor" />
             <Count value={quality?.warnings ?? 0} label="Warnings" tone="text-fair" />
             <Count value={quality?.notes ?? 0} label="Notes" tone="text-muted" />
           </div>
@@ -185,6 +189,40 @@ export function HealthScreen() {
               style={{ width: `${score}%` }}
             />
           </div>
+        )}
+
+        {/* The document, before the writing in it.
+            Everything below reads one line at a time and gives everybody the
+            same advice -- lead with a verb, carry a number. None of it can
+            see that a resume has no email address on it, or that a job ends
+            before it starts, or that a bullet was pasted twice. Those are the
+            faults that cost an interview, they are specific to this CV, and
+            they come first because no amount of good writing survives one. */}
+        {(quality?.document?.length ?? 0) > 0 && (
+          <section>
+            <h2 className="mb-2 text-sm font-semibold">
+              {quality!.document.length} thing{quality!.document.length === 1 ? "" : "s"} about the
+              document
+            </h2>
+            <ul className="card flex flex-col divide-y divide-line p-0">
+              {quality!.document.map((finding, index) => {
+                const tone = SEVERITY[finding.severity];
+                return (
+                  <li key={index} className="flex items-start gap-2.5 px-4 py-2.5">
+                    {/* No severity word here. "Filler" is the right label for a
+                        bullet that says "assisted with"; it is a nonsense one
+                        for a missing email address, and the icon already
+                        carries how much it matters. */}
+                    <tone.Icon size={14} className={`mt-0.5 shrink-0 ${tone.tone}`} aria-hidden />
+                    <span className="min-w-0 flex-1 text-sm text-muted">{finding.message}</span>
+                    <span className="shrink-0 text-2xs uppercase tracking-wide text-faint">
+                      {finding.where}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         )}
 
         <section>

@@ -41,6 +41,23 @@ wrong for a while, it says that too.
   like a typed one.
 - **Times New Roman**, with Tinos behind it -- metrically identical, so a PDF
   built in CI breaks its lines in the same places as one built on a laptop.
+- **Health check is now Review, and it reads the document.** Every finding it
+  had was a general rule about writing -- lead with a verb, carry a number,
+  do not say "responsible for" -- so it gave everybody the same advice and
+  could not see that a resume had no email address on it. It checks the
+  document too: no way to reply, no summary, a job that ends before it starts,
+  the same bullet pasted twice, an entry with no dates, a heading with nothing
+  under it, an entry so long the last bullets are read by nobody. Each names
+  its place, and every one of them is silent on a resume that does not have
+  the problem.
+- **A summary was being judged as a bullet.** At 1,017 characters it was told
+  that "over about 200 this will wrap badly and push the resume past one
+  page" -- a bullet's rule read out over a paragraph, and wrong in both
+  directions. And the note "trailing full stop; bullets read cleaner without"
+  fired on that same summary, announcing its own mistake. Bullets, summaries
+  and section prose now have their own lengths, and the rules that are about
+  the bullet form -- the opening verb, the closing full stop, the missing
+  number -- apply to bullets only.
 - **Section headings were smaller than the text under them.** On Minimalist
   they measured 9.98pt against a 10.5pt body -- a heading that reads as a
   caption. The shared bump every template applies went from 2pt to 3pt, and

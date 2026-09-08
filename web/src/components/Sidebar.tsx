@@ -57,7 +57,7 @@ const NAV = [
     hint: "One letter per application, on the same paper as the resume",
   },
   { to: "/import", label: "Import", icon: Download, hint: "Bring in an existing CV" },
-  { to: "/health", label: "Health check", icon: Stethoscope, hint: "How the writing reads" },
+  { to: "/health", label: "Review", icon: Stethoscope, hint: "What is wrong with the document" },
 ];
 
 export function Sidebar({ onCollapse }: { onCollapse: () => void }) {

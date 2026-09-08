@@ -51,7 +51,7 @@ It never blocks a save. It is also what every AI rewrite is run through, so a
 suggestion that trades one kind of filler for another shows up as a score that
 did not move.
 
-![Health check: every bullet against the writing standard, with the line to fix](docs/health.png)
+![Review: the document and every line in it, with the one to fix](docs/health.png)
 
 ---
 
@@ -69,7 +69,7 @@ sheet inside Applications rather than a screen of its own.)
 | **Import** | LinkedIn's data export, a PDF, a DOCX, or pasted text, all landing on the same review screen. |
 | **Cover letter** | One letter per application, drafted from the requirements your profile can evidence and set in the resume's own typeface. |
 | **Interview brief** | On any application at interview stage: what you can evidence, what you cannot, the questions each invites, and a scratchpad. Rules only — no model, no network. |
-| **Health check** | Every bullet measured against the writing standard, with the specific line to fix. |
+| **Review** | The document and every line in it: a job that ends before it starts, a resume with no email on it, the same bullet pasted twice -- and every line measured against the writing standard, with the one to fix. |
 
 **Design, curated rather than open-ended.** Eight templates × four body
 layouts, six accent colours, nine type pairings, six paper sizes, three margin
