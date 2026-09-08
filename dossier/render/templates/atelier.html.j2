@@ -1,0 +1,202 @@
+{% extends "_base.html.j2" %}
+{% import "_macros.html.j2" as m %}
+
+{#
+  Atelier: a centred, widely-tracked name between two rules, and two columns
+  of even weight divided by a hairline.
+
+  Every other template here treats the side column as subordinate -- narrower
+  type, less of it, a supporting cast for the reading matter. This one splits
+  the page closer to a third and two thirds and sets both columns at the same
+  size, so education and skills sit as facts of equal standing rather than as
+  a margin note. That suits a resume whose qualifications are the argument,
+  which is most of them early in a career.
+
+  The signature is the disc behind the first letter of each heading. It is
+  drawn as a pseudo-element behind the text rather than typed, so it never
+  reaches the text layer a parser reads, and it is mixed from the accent so
+  it survives a greyscale printer as a pale grey rather than disappearing.
+
+  **Why the heading needs its own stacking context.** The disc is painted at
+  `z-index: -1`, which without one would put it behind the sheet's own
+  background and make it invisible. Giving the `h2` `position: relative` and
+  `z-index: 0` creates the context, so "behind" means behind the letters and
+  nothing further.
+#}
+
+{% set SIDE = ('education', 'skills', 'certifications', 'awards') %}
+
+{% block extra_css %}
+/* The sheet is opened and closed by a rule, which is what makes the page read
+   as composed rather than as text that began at the top. */
+.frame-top {
+  border-top: 1.1pt solid var(--ink);
+  margin-bottom: 10pt;
+}
+
+.hdr {
+  text-align: center;
+  padding-bottom: 10pt;
+  margin-bottom: 11pt;
+  border-bottom: 1.1pt solid var(--ink);
+}
+.hdr .portrait { margin: 0 auto 7pt; }
+.hdr-name {
+  font-size: calc(var(--fs) * 2.05);
+  font-weight: 400;
+  /* Tracked hard. At this size the letters are the ornament, which is why the
+     template needs no other one along the top. */
+  letter-spacing: .17em;
+  /* The tracking is applied to the right of every letter including the last,
+     so the line sits half a space left of true centre without this. */
+  text-indent: .17em;
+  text-transform: uppercase;
+  line-height: 1.12;
+}
+.hdr-headline {
+  margin-top: 5pt;
+  font-size: calc(var(--fs) * .9);
+  letter-spacing: .3em;
+  text-indent: .3em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.contact { justify-content: center; margin-top: 6pt; }
+.contact-links { justify-content: center; }
+
+.cols {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+.side {
+  flex: 0 0 58mm;
+  width: 58mm;
+  min-width: 0;
+  padding-right: 7mm;
+}
+.main {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-left: 8mm;
+  border-left: .7pt solid var(--rule);
+}
+
+.sec > h2 {
+  position: relative;
+  z-index: 0;
+  font-size: calc(var(--fs) * .96 + var(--sec-bump));
+  font-weight: 700;
+  letter-spacing: .19em;
+  text-transform: uppercase;
+  border: none;
+  padding: 0 0 0 3.5pt;
+  margin-bottom: 7pt;
+}
+.sec > h2::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  top: 50%;
+  width: calc(var(--fs) * 1.5);
+  height: calc(var(--fs) * 1.5);
+  margin-top: calc(var(--fs) * -.75);
+  border-radius: 50%;
+  background: var(--rule-soft);
+}
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  .sec > h2::before { background: color-mix(in srgb, var(--accent) 18%, #fff); }
+}
+
+/* See Boardroom: a tracked heading in a narrow column breaks inside its own
+   word unless told not to. */
+.side .sec > h2 {
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+.side .sec { margin-top: 13pt; }
+.side .sec:first-child { margin-top: 0; }
+.main .sec:first-child { margin-top: 0; }
+
+/* Both columns at the same size: the point of the layout. */
+.side, .main { font-size: var(--fs); }
+
+.side .stack li,
+.side .side-item {
+  position: relative;
+  padding-left: 10pt;
+  margin-top: 3.5pt;
+  break-inside: avoid;
+}
+.side .stack li::before,
+.side .side-item::before {
+  content: "\2022";
+  position: absolute;
+  left: 0;
+  color: var(--muted);
+}
+.side .stack li { word-break: break-word; }
+.side-group { margin-top: 6pt; break-inside: avoid; }
+.side-group:first-child { margin-top: 0; }
+.side-label,
+.side-group-label {
+  margin-bottom: 1pt;
+  font-weight: 700;
+  font-size: calc(var(--fs) * .82);
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.side-group-label { margin-top: 7pt; }
+
+/* An entry in the side column. The qualification leads and the dates follow
+   it in bold -- shared markup decides that order, and it is the right one
+   here anyway: in a column of equal standing the name of the degree is the
+   fact, and the year is what qualifies it. */
+.side-entry { margin-top: 8pt; break-inside: avoid; }
+.side-entry:first-of-type { margin-top: 0; }
+.side .side-meta {
+  font-weight: 700;
+  font-size: calc(var(--fs) * .92);
+  color: var(--ink);
+  letter-spacing: .04em;
+}
+.side .side-title { font-weight: 700; text-transform: uppercase; font-size: calc(var(--fs) * .94); }
+.side .side-sub { color: var(--muted); }
+
+.entry-title { font-weight: 700; }
+.entry-sub { color: var(--muted); }
+.entry-meta { color: var(--muted); }
+.main .entry + .entry { margin-top: 10pt; }
+/* Justified, which is the one place this template borrows a habit from print
+   rather than from resumes. It only works because the reading column is wide
+   enough not to open rivers in it -- and the hyphenation the base sheet
+   already sets is what keeps the last line of a bullet from stretching. */
+.main .summary, .main .bul li { text-align: justify; }
+{% endblock %}
+
+{% block content %}
+<div class="frame-top"></div>
+
+<header class="hdr">
+  {%- if r.photo %}<img class="portrait" style="--pw: 26mm" src="{{ r.photo }}" alt="{{ r.name }}">{% endif %}
+  <h1 class="hdr-name">{{ r.name }}</h1>
+  {%- if r.headline %}<p class="hdr-headline">{{ r.headline }}</p>{% endif %}
+</header>
+
+<div class="cols">
+  <aside class="side">
+    {%- if r.contact %}
+    <section class="sec">
+      <h2>Contact</h2>
+      {{ m.contact_stack(r.contact) }}
+    </section>
+    {%- endif %}
+
+    {%- for s in r.only(SIDE) %}{{ m.side_section(s) }}{% endfor %}
+  </aside>
+
+  <div class="main">{{ m.sections(r.excluding(SIDE)) }}</div>
+</div>
+{% endblock %}

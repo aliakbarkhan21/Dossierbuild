@@ -116,7 +116,12 @@ export function Segmented({
       ref={listRef}
       role="group"
       aria-label={ariaLabel}
-      className={`relative flex rounded-md bg-sunken p-0.5 ${className}`}
+      // `w-fit` unless the slots are sharing the bar out. A block-level flex
+      // container takes the whole line, and with slots sized to their own
+      // text that left "All / ATS-safe / Two columns" sitting in a tray of
+      // empty grey running to the edge of the panel -- the bar looked like a
+      // control with three more choices that had failed to load.
+      className={`relative flex rounded-md bg-sunken p-0.5 ${fill ? "" : "w-fit max-w-full"} ${className}`}
     >
       {box && (
         <span

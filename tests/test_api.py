@@ -199,8 +199,15 @@ def test_design_round_trips_and_repairs_nonsense() -> None:
 
 def test_options_describe_everything_the_frontend_needs() -> None:
     body = client.get("/api/design/options").json()
-    assert len(body["templates"]) == 8
-    assert {t["key"] for t in body["templates"]} >= {"classic", "sidebar", "editorial"}
+    # The count is asserted against the source rather than a literal, because
+    # this test is about the shape of the payload -- adding a template should
+    # not be a test change.
+    from dossier.render.design import TEMPLATES
+
+    assert len(body["templates"]) == len(TEMPLATES) >= 8
+    assert {t["key"] for t in body["templates"]} >= {
+        "classic", "sidebar", "editorial", "boardroom", "atelier"
+    }
     assert any(t["photo"] for t in body["templates"])
     assert all(a["hex"].startswith("#") for a in body["accents"])
     assert len(body["looks"]) >= 5

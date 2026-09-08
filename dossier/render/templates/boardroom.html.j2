@@ -1,0 +1,199 @@
+{% extends "_base.html.j2" %}
+{% import "_macros.html.j2" as m %}
+
+{#
+  Boardroom: the name set large and quiet at the top left, a portrait opposite
+  it, and two columns divided by a hairline.
+
+  The distinguishing move is that nothing is coloured. Every other two-column
+  template in the set carries the accent as a filled rail or a set of dots,
+  which is the right answer for a design-adjacent role and the wrong one for a
+  partner at a consultancy -- there, colour on a page reads as a template
+  somebody bought rather than as a document somebody wrote. The accent appears
+  once, in the hairline between the columns, at a strength you have to look
+  for.
+
+  The hierarchy is carried by size and letter-spacing instead. The name is the
+  largest thing on the page by a long way; headings are small, widely tracked
+  and grey; the body is the only thing set in black. That ordering survives
+  the greyscale printer in a recruiter's office, which a colour-led layout
+  does not.
+
+  The role sits *above* the name rather than under it, which is the one thing
+  here borrowed wholesale from the reference: it turns the top of the page
+  into a label and a name, in that order, so a reader knows what they are
+  looking at before they know who.
+
+  Sections are split by width need, as in Editorial: lists of short nouns go
+  left, anything with sentences in it goes right.
+#}
+
+{% set SIDE = ('skills', 'certifications', 'awards') %}
+
+{% block extra_css %}
+.hdr {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8mm;
+  padding-bottom: 9pt;
+  margin-bottom: 10pt;
+  border-bottom: .7pt solid var(--rule);
+}
+.hdr-role {
+  margin: 0 0 2pt;
+  font-size: calc(var(--fs) * .82);
+  font-weight: 500;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.hdr-name {
+  /* Large enough to be the only thing on the page that is, and set in the
+     heading face at its lightest tracking -- a name is a proper noun, not a
+     label, and tracking it out like the headings would make it read as one. */
+  font-size: calc(var(--fs) * 2.5);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: .015em;
+  text-transform: uppercase;
+}
+.hdr .portrait {
+  flex: none;
+  /* The portrait is an addition here, not the point: no monogram fallback
+     frame, because the header reads perfectly well as a name over a rule. */
+  border-radius: 50%;
+}
+
+.cols {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+.side {
+  flex: 0 0 50mm;
+  width: 50mm;
+  min-width: 0;
+  padding-right: 6mm;
+  font-size: calc(var(--fs) * .92);
+}
+.main {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-left: 7mm;
+  /* The divider. On the reading column rather than the side column so it runs
+     the full height of the taller of the two -- `align-items: stretch` makes
+     both children full height, and putting it on the left column would stop
+     it at whatever the skills list happened to reach. */
+  border-left: .7pt solid color-mix(in srgb, var(--accent) 34%, var(--rule));
+  border-left: .7pt solid var(--rule);
+}
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  .main { border-left-color: color-mix(in srgb, var(--accent) 34%, var(--rule)); }
+}
+
+.sec > h2 {
+  font-size: calc(var(--fs) * .82 + var(--sec-bump));
+  font-weight: 500;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: none;
+  padding: 0;
+  margin-bottom: 6pt;
+}
+/* A tracked heading in a 50mm column will break inside the word if it is
+   allowed to -- CERTIFICATIONS came out as "CERTIFICATIO / NS", which reads
+   as a typo rather than as a wrap. This opts the headings out of the
+   document-wide break-anywhere rule; the longest label the app can produce
+   fits, and one that did not would wrap between words instead. */
+.side .sec > h2 {
+  overflow-wrap: normal;
+  word-break: keep-all;
+  letter-spacing: .18em;
+}
+.side .sec { margin-top: 12pt; }
+.side .sec:first-child { margin-top: 0; }
+.main .sec:first-child { margin-top: 0; }
+
+/* The side column's lists get a marker and a hanging indent rather than a
+   rule between items: at 50mm a hairline every fourteen points turns the
+   column into a ladder, and there is already one running down its right. */
+.side .stack li,
+.side .side-item {
+  position: relative;
+  padding-left: 9pt;
+  margin-top: 3.5pt;
+  break-inside: avoid;
+}
+.side .stack li::before,
+.side .side-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: calc(var(--fs) * var(--lh) / 2 - 1.5pt);
+  width: 3pt;
+  height: 3pt;
+  background: var(--muted);
+}
+.side .stack li { word-break: break-word; }
+.side-group-label {
+  margin-top: 7pt;
+  font-size: calc(var(--fs) * .76);
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.side-group-label + .side-item { margin-top: 2.5pt; }
+
+.entry-title {
+  font-weight: 700;
+  font-size: calc(var(--fs) * .92);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.entry-sub { font-weight: 600; }
+.entry-sep { display: none; }
+.entry-sub::before { content: ""; }
+.entry-meta { color: var(--muted); font-size: calc(var(--fs) * .88); }
+.main .entry + .entry { margin-top: 9pt; }
+.bul li { color: var(--muted); }
+{% endblock %}
+
+{% block content %}
+<header class="hdr">
+  <div>
+    {%- if r.headline %}<p class="hdr-role">{{ r.headline }}</p>{% endif %}
+    <h1 class="hdr-name">{{ r.name }}</h1>
+  </div>
+  {%- if r.photo %}<img class="portrait" style="--pw: 30mm" src="{{ r.photo }}" alt="{{ r.name }}">{% endif %}
+</header>
+
+<div class="cols">
+  <aside class="side">
+    {%- if r.contact %}
+    <section class="sec">
+      <h2>Contact</h2>
+      {{ m.contact_stack(r.contact) }}
+    </section>
+    {%- endif %}
+
+    {%- for s in r.only(SIDE) %}
+    <section class="sec sec-{{ s.key }}">
+      {%- if s.label %}<h2>{{ s.label }}</h2>{% endif %}
+      {%- if s.kind == 'groups' %}
+        {%- for label, items in s.groups %}
+        <div class="side-group-label">{{ label }}</div>
+        {%- for item in items %}<div class="side-item">{{ item }}</div>{% endfor %}
+        {%- endfor %}
+      {%- else %}
+        {%- for line in s.lines %}<div class="side-item">{{ m.line_body(line) }}</div>{% endfor %}
+      {%- endif %}
+    </section>
+    {%- endfor %}
+  </aside>
+
+  <div class="main">{{ m.sections(r.excluding(SIDE)) }}</div>
+</div>
+{% endblock %}

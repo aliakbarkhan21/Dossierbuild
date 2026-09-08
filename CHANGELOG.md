@@ -50,6 +50,35 @@ wrong for a while, it says that too.
   under it, an entry so long the last bullets are read by nobody. Each names
   its place, and every one of them is silent on a resume that does not have
   the problem.
+- **Two more templates**, drawn from layouts a person actually sent me.
+  **Boardroom** sets the name large and quiet over a rule with the role
+  tracked out above it, a portrait opposite, and two columns divided by a
+  hairline -- and carries no colour at all, which is the point: on a
+  consulting or legal CV a coloured rail reads as a template somebody bought
+  rather than a document somebody wrote. **Atelier** centres a widely-tracked
+  name between two rules and splits the page a third to two thirds with both
+  columns at the same size, so education and skills stand as facts rather
+  than as a margin note; each heading sits on a disc drawn behind its first
+  letter, mixed from the accent so it prints as a pale grey rather than
+  vanishing. Ten templates now, and forty template-and-layout combinations.
+- **A pushed block landed half under the page seam, on four templates that
+  had already shipped.** The paginator moves a block that would straddle a
+  page break by adding to its ``margin-top``, and the block it moves --
+  ``.entry-head`` -- is the first child of ``.entry``. Adjacent vertical
+  margins collapse, so that margin escaped to the parent and *won* against
+  the parent's rather than adding to it: every push arrived short by exactly
+  the entry's own margin. Measured across the set, the shortfall matched that
+  margin every time -- 1.1px on Classic, 4.8 on Compact, 6.8 on Sidebar,
+  12.9 where the margin was 10pt -- which put a project title half behind the
+  seam band on page two. One block formatting context on ``.entry`` and one
+  on ``ul.bul``, and all ten templates now land within half a pixel of where
+  they were sent.
+- **The template filter sat in a tray of empty grey.** A segmented bar is a
+  block-level flex container, so it took the full width of the panel while
+  its three slots took only the width of their own words -- which read as a
+  control with more choices that had failed to load. It shrinks to its
+  content now, unless the slots are deliberately sharing the bar out, which
+  is what the type-size stepper wants and a filter does not.
 - **Every filler phrase got the same sentence, at the top severity.** Two
   different lines, two red "Problem" marks, and under each of them the same
   words with the phrase swapped in: ``"contributed to" is filler``,

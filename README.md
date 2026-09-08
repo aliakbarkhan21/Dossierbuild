@@ -16,7 +16,7 @@ with no API key at all.
 brief, and a first run with a worked example in it. See
 [CHANGELOG.md](CHANGELOG.md) for what changed and why.
 
-![The Resume screen: eight templates, and a preview that is the printed document](docs/resume.png)
+![The Resume screen: ten templates, and a preview that is the printed document](docs/resume.png)
 
 ---
 
@@ -71,7 +71,7 @@ sheet inside Applications rather than a screen of its own.)
 | **Interview brief** | On any application at interview stage: what you can evidence, what you cannot, the questions each invites, and a scratchpad. Rules only — no model, no network. |
 | **Review** | The document and every line in it: a job that ends before it starts, a resume with no email on it, the same bullet pasted twice -- and every line measured against the writing standard, with the one to fix. |
 
-**Design, curated rather than open-ended.** Eight templates × four body
+**Design, curated rather than open-ended.** Ten templates × four body
 layouts, six accent colours, nine type pairings, six paper sizes, three margin
 widths, three line spacings, five type sizes, two date formats, and per-resume
 section order and visibility. Six named looks apply four coherent
@@ -204,7 +204,7 @@ dossier/
     html.py          Jinja2. One self-contained document, preview or print.
     pdf.py           Chromium in a subprocess; pypdf reads the result back
     photo.py         the portrait, squared and embedded as a data URI
-    templates/       _base + _macros + eight templates + four body layouts
+    templates/       _base + _macros + ten templates + four body layouts
     letter.py        the same paper and typeface, arranged as a letter
     text.py          the profile as plain text, for forms that take no file
   api/       FastAPI over core, and the server that hosts the frontend
