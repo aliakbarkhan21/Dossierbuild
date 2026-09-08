@@ -13,6 +13,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   PenLine,
+  Plus,
   FileCode2,
   FileType2,
   GripVertical,
@@ -1366,13 +1367,7 @@ function DesignPanel({
         <PortraitControls design={design} profile={profile} onChange={onChange} onProfile={onProfile} />
       )}
 
-      <SectionOrder
-        design={design}
-        options={options}
-        profile={profile}
-        onChange={onChange}
-        onProfile={onProfile}
-      />
+      <SectionOrder design={design} options={options} profile={profile} onChange={onChange} />
 
       <button
         type="button"
@@ -1722,13 +1717,11 @@ function SectionOrder({
   options,
   profile,
   onChange,
-  onProfile,
 }: {
   design: Design;
   options: { sections: { key: string; name: string }[] };
   profile: Profile;
   onChange: (patch: Partial<Design>) => void;
-  onProfile: (mutate: (profile: Profile) => void, label?: string) => void;
 }) {
   /**
    * The rows to show: the design's order, then any section the design has
@@ -1833,57 +1826,35 @@ function SectionOrder({
     return 0;
   };
 
-  // Which row is asking to be sure. One at a time, and cleared by any other
-  // action on the list.
-  const [confirming, setConfirming] = useState("");
-
   /**
-   * Remove a section the writer added, and everything in it.
+   * Take a section off the CV, or put it back.
    *
-   * Only ever a custom section. The built-in eight are fields of the schema
-   * rather than rows of a list -- "delete Experience" would have to mean
-   * "delete every job", which is a different act, belongs in the Profile
-   * editor beside the entries it destroys, and is not what somebody arranging
-   * the order of a page is asking for. Hide already takes one off the printed
-   * page and keeps the material, which is what "remove this section" almost
-   * always means.
+   * The same control on every row, built-in or not, and it does the same
+   * thing to both: this screen decides what the *document* contains, and
+   * nothing here touches the material. Remove Experience and every job is
+   * still in the Profile editor, still counted by the writing standard,
+   * still there when you put the section back or print a second CV that
+   * wants it.
    *
-   * Two presses, because this is the only control on the screen that destroys
-   * anything. It is still undoable -- it goes through the same `edit` as
-   * every other change, so Ctrl+Z brings the section and its lines back.
+   * That is why there is no confirmation. A confirmation is for something
+   * you cannot undo, and this is one press away from being undone by the
+   * same button. Deleting a section's *contents* is a different act and
+   * lives where the contents are.
    */
-  const remove = (key: string) => {
-    const section = profile.sections.find((s) => s.id === key);
-    if (!section) return;
-    setConfirming("");
-    onProfile((draft) => {
-      draft.sections = draft.sections.filter((s) => s.id !== key);
-    }, `Deleted "${section.title || "a section"}"`);
-    // The design keeps a position, a visibility and possibly a heading for a
-    // section that no longer exists. None of it would print, and all of it
-    // would come back to life the moment an import created a section that
-    // happened to reuse the id.
-    const labels = { ...(design.labels ?? {}) };
-    delete labels[key];
-    onChange({
-      order: order.filter((k) => k !== key),
-      hidden: design.hidden.filter((k) => k !== key),
-      labels,
-    });
-    toast.success(
-      `Deleted "${section.title || "a section"}"`,
-      "Undo with Ctrl+Z — the lines in it come back too.",
-    );
-  };
-
   const toggle = (key: string) => {
     const hidden = design.hidden.includes(key)
       ? design.hidden.filter((k) => k !== key)
       : [...design.hidden, key];
-    // The order goes with it. Hiding a custom section that had no position
-    // yet would otherwise leave it hidden and unplaced, and showing it again
-    // would send it to the bottom of the list rather than back where it was.
+    // The order goes with it. Removing a custom section that had no position
+    // yet would otherwise leave it off the page and unplaced, and putting it
+    // back would send it to the bottom rather than where it was.
     onChange({ hidden, order });
+    if (!design.hidden.includes(key)) {
+      toast.info(
+        `"${nameOf(key) || "That section"}" is off this CV`,
+        "Nothing was deleted — it is still in Profile, and Back puts it on the page again.",
+      );
+    }
   };
 
   return (
@@ -2002,47 +1973,30 @@ function SectionOrder({
                 >
                   ↓
                 </button>
-                <button
-                  type="button"
-                  className="btn btn-quiet px-1 py-0.5 text-2xs"
-                  onClick={() => {
-                    setConfirming("");
-                    toggle(key);
-                  }}
-                >
-                  {shown ? "Hide" : "Show"}
-                </button>
-                {/* Only where there is something to delete. A built-in
-                    section is a field of the schema, not a row of a list. */}
-                {profile.sections.some((s) => s.id === key) &&
-                  (confirming === key ? (
-                    <>
-                      <button
-                        type="button"
-                        className="btn btn-quiet px-1 py-0.5 text-2xs text-poor"
-                        onClick={() => remove(key)}
-                      >
-                        Delete
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-quiet px-1 py-0.5 text-2xs"
-                        onClick={() => setConfirming("")}
-                      >
-                        Keep
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn btn-quiet px-1 py-0.5 text-poor"
-                      title={`Delete "${label}" and everything in it`}
-                      aria-label={`Delete ${label}`}
-                      onClick={() => setConfirming(key)}
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  ))}
+                {/* One control, two states. Off the CV, or back on it —
+                    and never anything to the material behind it. */}
+                {shown ? (
+                  <button
+                    type="button"
+                    className="btn btn-quiet px-1 py-0.5 text-poor"
+                    title={`Take "${label}" off this CV. Nothing is deleted — the material stays in Profile.`}
+                    aria-label={`Remove ${label} from the CV`}
+                    onClick={() => toggle(key)}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-quiet px-1 py-0.5 text-2xs"
+                    title={`Put "${label}" back on this CV`}
+                    aria-label={`Put ${label} back on the CV`}
+                    onClick={() => toggle(key)}
+                  >
+                    <Plus size={12} />
+                    Back
+                  </button>
+                )}
               </span>
             </div>
           );
