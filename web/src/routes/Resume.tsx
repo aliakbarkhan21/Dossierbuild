@@ -664,18 +664,29 @@ export function ResumeScreen() {
           style={{ gridColumn: 2 }}
         >
           {/* One control row, not two. With the panel away it gains the
-              controls that lived in it -- the template and the print button --
-              and sticks to the top of the pane; a floating bar *beside* the
-              existing one would put two zoom sliders on the same screen. */}
+              control that lived in it -- the template picker -- and sticks to
+              the top of the pane; a floating bar *beside* the existing one
+              would put two zoom sliders on the same screen.
+
+              **Driven by `folded`, not `collapsed`.** The extras used to
+              arrive on the click, which is 340ms before the width they need:
+              the bar gained two controls while it was still 892px, wrapped
+              from two rows to three, and sprang back as the panel finished
+              leaving. Measured, its height went 81px, then 44, then 54 --
+              twice in the wrong direction. `folded` is the flag that says
+              the column has actually closed, and it is deliberately late on
+              the way out and immediate on the way back, which is exactly the
+              order this needs: the controls appear once there is room and
+              leave before the room goes. */}
           <div
             className={[
               "flex flex-wrap items-center gap-2 transition-[background-color,box-shadow,padding] duration-200 ease-out",
-              collapsed
+              folded
                 ? "card sticky top-0 z-20 px-3 py-2 shadow-raised"
                 : "",
             ].join(" ")}
           >
-            {collapsed && (
+            {folded && (
               <button
                 type="button"
                 className="btn btn-quiet px-1.5 py-1"
@@ -688,7 +699,7 @@ export function ResumeScreen() {
             )}
             <h2 className="text-xl font-semibold">Preview</h2>
 
-            {collapsed && (
+            {folded && (
               <select
                 className="field h-8 w-auto min-w-0 max-w-44 py-1 text-xs"
                 aria-label="Template"
@@ -763,21 +774,9 @@ export function ResumeScreen() {
             <button type="button" className="btn" onClick={checkFit}>
               Check fit
             </button>
-            {collapsed && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={buildPdf}
-                disabled={busy !== null}
-              >
-                {busy === "pdf" ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Download size={14} />
-                )}
-                PDF
-              </button>
-            )}
+            {/* No PDF button here. `Download PDF` sits in the top bar and
+                never leaves, so this one was a second copy of the same
+                action, six inches below the first and differently worded. */}
             <button type="button" className="btn" onClick={downloadHtml} disabled={busy !== null}>
               <FileCode2 size={14} />
               HTML

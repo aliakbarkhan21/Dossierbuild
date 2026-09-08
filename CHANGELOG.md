@@ -50,6 +50,18 @@ wrong for a while, it says that too.
   under it, an entry so long the last bullets are read by nobody. Each names
   its place, and every one of them is silent on a resume that does not have
   the problem.
+- **A second Download PDF.** The preview bar grew one when the design panel
+  was hidden, six inches under the one in the top bar that never leaves, and
+  worded differently. Gone; the top bar's is the only one.
+- **The preview bar sprang when the panel left.** Its extra controls arrived
+  on the click -- 340ms before the width they need -- so the bar gained two
+  controls while it was still 892px wide, wrapped from two rows to three, and
+  snapped back as the panel finished leaving. Sampled frame by frame its
+  height went 81px, then 44, then 54: twice in the wrong direction. It is
+  driven by the flag that says the column has actually closed, which is
+  deliberately late leaving and immediate returning -- exactly the order this
+  wants, so the controls appear once there is room for them and leave before
+  the room goes. Now monotonic in both directions.
 - **Two more templates**, drawn from layouts a person actually sent me.
   **Boardroom** sets the name large and quiet over a rule with the role
   tracked out above it, a portrait opposite, and two columns divided by a
