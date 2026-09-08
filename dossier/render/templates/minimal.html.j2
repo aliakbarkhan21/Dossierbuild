@@ -43,7 +43,18 @@
   font-size: calc(var(--fs) * .76 + var(--sec-bump));
   font-weight: 600;
   letter-spacing: .1em;
+  /* The accent, held back.
+     This heading is a label in a gutter, not a banner, so it was flatly
+     `--muted` -- which meant the accent control changed the contact line and
+     nothing else, and looked broken. Mixed rather than switched: at full
+     strength these labels compete with the entries they introduce, which is
+     the one thing this template exists not to do. With Ink -- the default,
+     and nearly black -- the result is what it always was, so nobody's page
+     moves who never chose a colour.
+     The plain declaration first is the fallback for a renderer without
+     `color-mix`; Chromium, which is what prints here, takes the second. */
   color: var(--muted);
+  color: color-mix(in srgb, var(--accent) 72%, var(--muted));
   margin: 1.5pt 0 0;
   text-align: left;
   /* The gutter is sized for the longest label there is; breaking a word

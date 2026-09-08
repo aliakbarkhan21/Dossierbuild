@@ -4,14 +4,33 @@
   switching template a safe operation rather than a re-proofread.
 #}
 
-{% macro contact(items) -%}
+{#
+  The header's contact line, in two rows.
+
+  Ways to reach you first -- email, phone, where you are -- and profiles
+  underneath. They are different kinds of thing: the first row is what a
+  recruiter copies into an email client, the second is what they click. Run
+  together, a long address pushes "GitHub" onto a second line on its own,
+  which reads as a wrapping accident rather than as a decision.
+
+  Two lists rather than one with a break in it, so the CSS separator between
+  items restarts on the second row instead of opening it with a stranded dot.
+  Both carry `.contact`, so a template that centres or resizes the line gets
+  both for the one rule it already has.
+#}
+{% macro contact_row(items, extra='') -%}
 {%- if items -%}
-<ul class="contact">
+<ul class="contact{% if extra %} {{ extra }}{% endif %}">
   {%- for c in items %}
   <li>{% if c.href %}<a href="{{ c.href }}">{{ c.text }}</a>{% else %}{{ c.text }}{% endif %}</li>
   {%- endfor %}
 </ul>
 {%- endif -%}
+{%- endmacro %}
+
+{% macro contact(items) -%}
+{{ contact_row(items | rejectattr('kind', 'equalto', 'link') | list) }}
+{{- contact_row(items | selectattr('kind', 'equalto', 'link') | list, 'contact-links') }}
 {%- endmacro %}
 
 {#

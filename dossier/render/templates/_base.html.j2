@@ -189,6 +189,10 @@ body { padding-top: 0; }
   transform: translateY(-1.5pt);
 }
 .contact a { color: var(--accent); }
+/* The links, on their own line. Only when there is a row above them to sit
+   under -- a header with nothing but links should not be indented by a gap
+   that separates it from nothing. */
+.contact + .contact-links { margin-top: 2.5pt; }
 
 /* ---- Sections -------------------------------------------------------- */
 

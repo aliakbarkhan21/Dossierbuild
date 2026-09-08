@@ -1183,13 +1183,19 @@ function TemplateCard({
         placeholder={<Wireframe template={template.key} />}
       />
       <div className="p-2.5">
-        {/* `pr-1` on the row, not on the badge: the room wanted is between the
-            badge and the edge of the card, and padding inside the pill would
-            only make the pill wider. */}
-        <div className="flex items-center gap-1.5 pr-1">
-          <span className="font-display text-sm font-semibold">{template.name}</span>
+        {/* Wrapping, not truncating. A card is about 150px wide and
+            "Minimalist" plus "Selected" does not fit on one line of it, so
+            the badge was running off the edge and being cut in half by the
+            card's `overflow-hidden`. Shortening either one to fit would mean
+            hiding the name of the template or the fact that it is the one in
+            use; a second line costs nothing, because the cards in a row
+            already stretch to the tallest. */}
+        <div className="flex flex-wrap items-center gap-1.5 pr-1">
+          <span className="min-w-0 truncate font-display text-sm font-semibold">
+            {template.name}
+          </span>
           {selected && (
-            <span className="rounded bg-accent-soft px-1.5 py-0.5 text-2xs font-semibold text-accent">
+            <span className="shrink-0 rounded bg-accent-soft px-1.5 py-0.5 text-2xs font-semibold text-accent">
               Selected
             </span>
           )}
