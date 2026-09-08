@@ -1898,7 +1898,12 @@ function SectionOrder({
           each row's box out of it to work out what it is over. */}
       <div
         ref={listRef}
-        className="flex flex-col divide-y divide-line rounded-md border border-line"
+        // `divide-line-strong`, not `divide-line`: at #e7e5e1 on an off-white
+        // card the rule between rows is there and invisible, which is the same
+        // as not being there. This is the list you reorder by dragging, so
+        // where one row ends and the next begins is the one thing it has to
+        // show.
+        className="flex flex-col divide-y divide-line-strong rounded-md border border-line"
       >
         {order.map((key, index) => {
           const fallback = defaultOf(key);

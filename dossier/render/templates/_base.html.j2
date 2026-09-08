@@ -401,11 +401,20 @@ body.editing [data-edit]:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(60, 120, 220, .85);
 }
+/* A column, not a row.
+ *
+ * Laid out horizontally it was about 92px wide, and the margin beside a block
+ * is often narrower than that -- so it kept falling back to sitting above the
+ * block, where it covered the line above instead of the line below. The
+ * constraint is horizontal, so the answer is to need less of it: stacked, it
+ * is 26px, which fits in the margin of every template at every zoom the
+ * preview offers. */
 .rail {
   position: fixed;
   z-index: 40;
   display: none;
-  gap: 2px;
+  flex-direction: column;
+  gap: 1px;
   padding: 2px;
   background: #fff;
   border: 1px solid #d9dbe0;
@@ -893,20 +902,24 @@ body.editing [data-edit]:focus {
     // width, because the page is scaled by a transform and a hard-coded
     // number is only right at one zoom.
     rail.className = 'rail on';
-    var width = rail.getBoundingClientRect().width || 92;
-    var height = rail.getBoundingClientRect().height || 24;
-    var left, top = Math.max(4, box.top);
+    var rb = rail.getBoundingClientRect();
+    var width = rb.width || 26;
+    var height = rb.height || 92;
+    var left, top;
 
-    if (box.left - width - 6 >= 4) {
-      left = box.left - width - 6;                       // in the left margin
-    } else if (box.right + 6 + width <= window.innerWidth - 4) {
-      left = box.right + 6;                              // in the right margin
+    if (box.left - width - 5 >= 2) {
+      left = box.left - width - 5;                       // in the left margin
+    } else if (box.right + 5 + width <= window.innerWidth - 2) {
+      left = box.right + 5;                              // in the right margin
     } else {
-      // No margin either side: sit above the block, against its right edge.
-      // That covers the gap above it rather than the line inside it.
-      left = Math.max(4, box.right - width);
-      top = Math.max(4, box.top - height - 3);
+      // Nothing either side, which the stacked rail makes very unlikely.
+      // Overlapping the margin is still better than overlapping the words.
+      left = 2;
     }
+    // Centred on the block where it fits, and never off the top or bottom of
+    // the window -- a control you have to scroll to reach is not a control.
+    top = box.top + box.height / 2 - height / 2;
+    top = Math.max(4, Math.min(top, window.innerHeight - height - 4));
     rail.style.left = Math.round(left) + 'px';
     rail.style.top = Math.round(top) + 'px';
     // "+" adds a line, which only means something where lines live.
