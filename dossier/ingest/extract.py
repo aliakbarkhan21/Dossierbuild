@@ -68,6 +68,17 @@ def _tidy(text: str) -> str:
         text = text.replace(bad, good)
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r" *\n *", "\n", text)
+    # A hyphen at the end of a line is a compound word the layout happened to
+    # wrap, and the newline after it is a fact about the page rather than
+    # about the words. Left in, it reaches the model as "large-\nscale" and
+    # comes back as "large- scale", which then prints on the new resume --
+    # observed on a real import, three times in one CV.
+    #
+    # The hyphen is kept rather than dropped. Dropping it is right for a
+    # typesetter's hyphenation ("initia-tives") and wrong for the compounds a
+    # CV is full of, and Word does not hyphenate by default -- so on a resume
+    # a hyphen before a line break is nearly always a hyphen the writer typed.
+    text = re.sub(r"-\n(?=[A-Za-z])", "-", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 

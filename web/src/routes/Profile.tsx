@@ -79,7 +79,7 @@ const SECTIONS: Record<ListSection, SectionSpec> = {
       { key: "employment_type", label: "Type", kind: "select", options: EMPLOYMENT, half: true },
       { key: "location", label: "Location", placeholder: "Manchester, UK", half: true },
       { key: "start", label: "Start", kind: "month", half: true },
-      { key: "end", label: "End", kind: "month", placeholder: "blank means present", half: true },
+      { key: "end", label: "End", kind: "month", placeholder: "blank, or Present", half: true },
     ],
     bullets: true,
     teaches:
@@ -612,85 +612,95 @@ function displayMonth(stored: string | null): string {
 }
 
 /**
- * A month, stored as "YYYY-MM" or "YYYY".
+ * When something happened, however the writer says it.
  *
  * `<input type="month">` looks tidy and cannot express a year-only date,
  * which the schema deliberately allows: LinkedIn stores plenty of them, and
  * turning "2024" into January 2024 is inventing a fact.
  *
+ * It cannot express "Summer 2024" either, and neither could this field until
+ * now. A resume says "Expected 2026", "Ongoing", "2019 - Present"; a box that
+ * refuses those makes people misstate their own history to satisfy a regex.
+ * So anything is accepted, and anything the app *can* read is still tidied to
+ * one spelling -- "6/2025", "2025-06" and "June 2025" all settle to
+ * "06/2025", which is what keeps the design's date-format switch meaningful
+ * for the dates it can reformat.
+ *
  * The text being typed is held here rather than in the profile. Typing
- * "2025-06" passes through "2025-", which is not a date, and writing that to
- * the profile meant autosave posted it and the server rejected the whole save
- * with a regex for a message. The draft is committed only once it parses, so
- * a half-typed date is now simply a half-typed date.
+ * "2025-06" passes through "2025-", and writing each keystroke to the profile
+ * meant autosave posted a half-typed date. The draft is committed as it goes
+ * now that the schema accepts it, but the box is still left alone while it
+ * has focus so nothing is rewritten mid-keystroke.
  */
+
+/** A near miss: the shape of a month, with a month that does not exist. */
+function looksMistyped(text: string): boolean {
+  const hit = /^(\d{4})-(\d{1,2})$/.exec(text.trim());
+  if (!hit) return false;
+  const month = Number(hit[2]);
+  return month < 1 || month > 12 || hit[2]!.length !== 2;
+}
+
 function MonthInput({
   value,
   onChange,
   placeholder,
+  ariaLabel,
 }: {
   value: string | null;
   onChange: (value: string | null) => void;
   placeholder?: string;
+  ariaLabel?: string;
 }) {
   const [draft, setDraft] = useState(displayMonth(value));
 
+  /** What this text would be stored as: a real date, or the words themselves. */
+  const commit = (text: string): string | null =>
+    normaliseMonth(text) ?? (text.trim() || null);
+
   // Follow the value when it changes underneath: an undo, an import, or the
-  // read-back after a save. Compared on the parsed value so that what is being
-  // typed is not rewritten mid-keystroke.
+  // read-back after a save. Compared on what would be stored, so what is
+  // being typed is not rewritten mid-keystroke.
   useEffect(() => {
-    if (normaliseMonth(draft) !== value) setDraft(displayMonth(value));
+    if (commit(draft) !== value) setDraft(displayMonth(value));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
-  const invalid = draft.trim() !== "" && normaliseMonth(draft) === null;
+  // Not an error any more -- the date saves either way. This is the check the
+  // schema's regex used to do, moved to where it can warn without also
+  // refusing every legitimate thing a person might write.
+  const suspect = looksMistyped(draft);
 
   return (
     <div>
       <input
-        className="field font-mono"
+        className="field"
         value={draft}
-        placeholder={placeholder ?? "06/2025 or 2025"}
-        aria-invalid={invalid}
+        placeholder={placeholder ?? "06/2025, 2025, or Summer 2025"}
+        aria-label={ariaLabel}
         onChange={(event) => {
           const text = event.target.value;
           setDraft(text);
-          if (text.trim() === "") onChange(null);
-          else {
-            const parsed = normaliseMonth(text);
-            if (parsed) onChange(parsed);
-          }
+          onChange(commit(text));
         }}
         onBlur={() => {
           // Tidy up on the way out: "6/2025", "2025-06" and "June 2025" all
           // settle to "06/2025", and a typed day disappears here rather than
-          // quietly at save time. Anything unreadable stays on screen, marked,
-          // rather than being discarded.
+          // quietly at save time. Words are left exactly as written.
           const parsed = normaliseMonth(draft);
           if (parsed) setDraft(displayMonth(parsed));
         }}
-        inputMode="numeric"
       />
-      {invalid && (
-        <p className="mt-1 text-2xs text-poor">Not saved yet. Use 06/2025, or 2025 for a year.</p>
+      {suspect && (
+        <p className="mt-1 text-2xs text-fair">
+          Saved as written. If that was meant to be a month, it needs two digits between 01 and
+          12 — try 06/2025.
+        </p>
       )}
     </div>
   );
 }
 
-/**
- * A comma-separated list, held as text while it is being typed.
- *
- * The obvious version -- render `value.join(", ")`, split on every keystroke --
- * cannot accept a comma. Typing one makes a trailing empty item, `filter`
- * drops it, the list re-renders without it, and the character disappears the
- * instant it is pressed. Same for the space after it, and for any item you try
- * to edit in the middle.
- *
- * So the draft is the input's own state. The parsed list still goes to the
- * profile on every change, because the preview and the save both want it; the
- * text on screen is simply left alone until focus leaves.
- */
 /**
  * A comma-separated list, and the three marks inside it.
  *
@@ -1034,6 +1044,7 @@ function EntryList({
                   <Field key={field.key} label={field.label} half={field.half}>
                     <MonthInput
                       value={(value as string | null) ?? null}
+                      ariaLabel={`${field.label}, ${spec.singular} ${index + 1}`}
                       placeholder={field.placeholder}
                       onChange={(next) => mutate(index, field.key, next)}
                     />

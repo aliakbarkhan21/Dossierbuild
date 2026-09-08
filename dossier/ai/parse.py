@@ -216,7 +216,12 @@ Rules, in order of importance:
 2. Do not rewrite, improve, shorten or expand bullet points. Reproduce each one
    close to verbatim, with only obvious extraction artefacts cleaned up:
    hyphenation split across lines, a stray leading bullet character, a line
-   break in the middle of a sentence.
+   break in the middle of a sentence, and -- most commonly -- a space the PDF
+   extractor inserted inside a word. Text pulled out of a PDF routinely
+   arrives broken that way: "Conc urrently" is "Concurrently", "large- scale"
+   is "large-scale", "decision- making" is "decision-making". Join them back
+   into the word that was written. This is not rewriting: those spaces are
+   not in the resume, they are in the extraction of it.
 3. Dates become "YYYY-MM". "Jun 2025" is "2025-06". If the resume states only
    a year, return just the year ("2024") -- do not invent a month for it.
    "Present", "Current" and "Ongoing" mean the end date is an empty string.
@@ -379,7 +384,12 @@ def _date(value: str) -> str | None:
     value = (value or "").strip()
     if not value:
         return None
-    return parse_date(value)
+    # What the model produced, normalised if it is a date and kept verbatim if
+    # it is words. This used to return None for anything unparseable, so a CV
+    # reading "Summer 2024" imported with no date at all -- the one outcome
+    # worse than an odd-looking one, because nothing on screen said a fact had
+    # been dropped.
+    return parse_date(value) or value[:40]
 
 
 def _blocks(lines: list[str]) -> list[TextBlock]:

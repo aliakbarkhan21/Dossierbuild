@@ -19,6 +19,7 @@ Two rules keep it useful:
 
 from __future__ import annotations
 
+import re
 from typing import Annotated, Iterator, Literal, Optional
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints
@@ -26,7 +27,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstr
 from .ids import new_id
 from .markup import plain
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 
 def normalise_tag(value: str) -> str:
@@ -61,26 +62,41 @@ def _blank_to_none(value: object) -> object:
     return value
 
 
-PartialDate = Annotated[str, StringConstraints(pattern=DATE_PATTERN)]
+PartialDate = Annotated[str, StringConstraints(max_length=40)]
 OptDate = Annotated[Optional[PartialDate], BeforeValidator(_blank_to_none)]
-"""A date at whatever precision is actually known: "2025-06" or "2025".
+"""When something happened, at whatever precision anybody actually has.
 
-Deliberately a validated string rather than ``datetime.date``:
+Deliberately a string rather than ``datetime.date``:
 
   * Resumes work in months, not days -- a date object would force an invented
     day-of-month into the data.
   * JSON has no date type, so dates would need custom encoders on every save.
   * The file stays readable and hand-editable.
 
-**Two precisions, on purpose.** Plenty of real sources only know the year --
-LinkedIn stores education dates that way, and people write "2024" on a resume.
-Coercing those to January would be inventing a fact, and the invented month
-would then be printed on the PDF as though it were real. Storing "2025" keeps
-the uncertainty visible, and ``format_date`` renders it honestly.
+**Three precisions, on purpose.** "2025-06" and "2025" are the structured
+forms, and ``format_date`` renders each at the precision it has -- coercing a
+year to January would invent a month and then print it on the PDF as though
+somebody had stated it.
 
-Both forms still sort correctly as plain strings, and the regex still catches
-real typos such as "2025-13".
+The third is whatever the writer typed. Resumes say "Summer 2024", "Expected
+2026", "Ongoing", "2019 - Present"; a field that refuses those is a field
+that makes people misstate their own history to satisfy a regex. So anything
+short is accepted and printed as written.
+
+What that costs is real and worth naming. A structured date can be reformatted
+-- the design's Feb 2025 / 02/2025 switch only reaches dates the app can
+read -- and the regex used to catch "2025-13" before it reached paper. The
+first is a fair trade: a date written in words is a date the writer has
+already formatted. The second moved to the writing standard, which flags a
+broken month as a finding instead of refusing the keystroke. Blocking the
+field was the wrong place for that check: it stopped the typo and everything
+legitimate along with it.
 """
+
+
+def is_month(value: str | None) -> bool:
+    """Whether a stored date is one the app can read, rather than words."""
+    return bool(value) and re.fullmatch(DATE_PATTERN, value or "") is not None
 
 EmploymentType = Literal[
     "Internship",
@@ -402,12 +418,18 @@ def format_date(value: str | None, *, blank: str = "Present", style: str = "mont
     formats. ``None`` becomes ``blank``, which is "Present" for an end date
     and should be passed as "" for a start date.
 
+    Anything else is words, and words are printed exactly as they were typed.
+    "Summer 2024" has no month to reformat and no reading to improve on; the
+    writer already decided how that date should look.
+
     The style is a presentation choice and arrives from the design, never from
     the profile: the same stored date prints both ways depending on the resume
     it is going onto.
     """
     if not value:
         return blank
+    if not is_month(value):
+        return value
     if len(value) == 4:
         return value
     year, month = value.split("-")
@@ -420,6 +442,13 @@ def format_range(start: str | None, end: str | None, *, style: str = "month") ->
     """Render a date span, e.g. "Jun 2025 - Sep 2025" or "2024 - Present"."""
     if not start and not end:
         return ""
+    # A start written in words with nothing after it is already the whole
+    # span. Somebody who types "2019 - Present" into one box has said what
+    # they mean, and appending our own "- Present" to it prints
+    # "2019 - Present - Present". A structured start with no end still means
+    # ongoing, which is what the empty End box has always meant.
+    if not end and not is_month(start):
+        return (start or "").strip()
     left = format_date(start, blank="", style=style)
     right = format_date(end, blank="Present", style=style)
     return f"{left} - {right}" if left else right

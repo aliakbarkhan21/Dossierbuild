@@ -124,15 +124,34 @@ def _() -> None:
     assert format_range("2025-06", "2025-09") == "Jun 2025 - Sep 2025"
 
 
-@check("an invalid month is still rejected with a clear error")
+@check("a date written in words is kept and printed as written")
 def _() -> None:
-    for bad in ("2025-13", "2025-00", "25-06", "2025-6", "next year"):
-        try:
-            Experience(start=bad)
-        except ValidationError:
-            pass
-        else:
-            raise AssertionError(f"{bad!r} should not have validated")
+    # Resumes say all of these, and a box that refuses them makes people
+    # misstate their own history to satisfy a regex. What the app can read it
+    # still reformats; what it cannot, it prints exactly as typed.
+    for words in ("Summer 2024", "Expected 2026", "Ongoing", "2025-13"):
+        entry = Experience(start=words)
+        assert entry.start == words, f"{words!r} should have been kept"
+        assert format_date(entry.start) == words, f"{words!r} should print as written"
+
+    # A start written in words with no end is already the whole span, so
+    # nothing is appended to it -- "2019 - Present - Present" is what the old
+    # rule would have printed.
+    assert format_range("2019 - Present", None) == "2019 - Present"
+    # A structured start with no end still means ongoing.
+    assert format_range("2019-06", None) == "Jun 2019 - Present"
+
+
+@check("a date nobody could have meant is still refused")
+def _() -> None:
+    # The one bound left. Without it a paste accident becomes a date field
+    # holding a paragraph, which no template has room to print.
+    try:
+        Experience(start="x" * 200)
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError("a 200-character date should not have validated")
 
 
 @check("a blank date string is stored as None, not as an empty string")
@@ -212,19 +231,31 @@ def _() -> None:
             raise AssertionError("malformed JSON should raise ProfileError")
 
 
-@check("a bad month in a saved file is reported in plain English")
+@check("a broken field in a saved file is reported in plain English")
 def _() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "profile.json"
         raw = sample_profile().model_dump(mode="json")
-        raw["experience"][0]["start"] = "2025-13"
+        raw["experience"][0]["employment_type"] = "Summer Analyst"
         path.write_text(json.dumps(raw), encoding="utf-8")
         try:
             load_profile(path)
         except ProfileError as exc:
-            assert "YYYY-MM" in str(exc), f"unhelpful message: {exc}"
+            assert "employment_type" in str(exc), f"does not name the field: {exc}"
+            assert "Internship" in str(exc), f"does not say what is allowed: {exc}"
         else:
-            raise AssertionError("2025-13 should not load")
+            raise AssertionError("an unknown employment type should not load")
+
+
+@check("a word a PDF import split in half is flagged rather than printed quietly")
+def _() -> None:
+    # Observed on a real import: "large-\nscale" reached the model, came back
+    # as "large- scale", and printed that way on the new resume. Extraction
+    # joins it now; this is the net under that, for text already stored.
+    from dossier.core.quality import check_text
+
+    messages = [f.message for f in check_text("Drove large- scale change", "b1")]
+    assert any("large-scale" in m for m in messages), messages
 
 
 @check("an interrupted save cannot truncate the existing file")

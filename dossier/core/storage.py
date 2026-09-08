@@ -120,6 +120,24 @@ def _v4_to_v5(raw: dict[str, Any]) -> dict[str, Any]:
     return raw
 
 
+def _v5_to_v6(raw: dict[str, Any]) -> dict[str, Any]:
+    """Dates may be words.
+
+    Every date was a validated "YYYY-MM" or "YYYY". Resumes say "Summer
+    2024", "Expected 2026" and "Ongoing", and a field that refuses those
+    makes people misstate their own history to satisfy a regex.
+
+    Nothing changes on disk -- a widening needs no rewrite, and every date
+    already stored is still one the app can read and reformat. The step
+    exists because the *shape* changed, and the version number is what tells
+    a future reader which shape a file is in. A file saved by this build may
+    contain a date an earlier build would refuse, and the version is how it
+    finds that out rather than by failing to load one entry.
+    """
+    raw["schema_version"] = 6
+    return raw
+
+
 def _every_text_block(raw: dict[str, Any]) -> Iterator[dict[str, Any]]:
     """Every rewritable block in a raw dict: the summary and every bullet."""
     summary = raw.get("summary")
@@ -139,6 +157,7 @@ MIGRATIONS: dict[int, Callable[[dict[str, Any]], dict[str, Any]]] = {
     2: _v2_to_v3,
     3: _v3_to_v4,
     4: _v4_to_v5,
+    5: _v5_to_v6,
 }
 
 

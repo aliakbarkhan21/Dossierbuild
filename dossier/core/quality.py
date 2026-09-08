@@ -266,6 +266,21 @@ def check_text(
             )
         )
 
+    # A word the PDF extractor broke in half. Precise on purpose: a hyphen
+    # followed by a space and a lowercase letter is not something anybody
+    # types, and it is what "large-\nscale" turns into on its way through an
+    # import. The general case -- a space dropped anywhere inside a word --
+    # needs a dictionary to spot and is left to the writer's own eyes.
+    for match in re.finditer(r"\b([A-Za-z]{2,})- ([a-z]{2,})\b", stripped):
+        findings.append(
+            Finding(
+                block_id,
+                "warning",
+                f'"{match.group(0)}" looks like one word split by a PDF import '
+                f'-- probably "{match.group(1)}-{match.group(2)}"',
+            )
+        )
+
     if not is_summary:
         first_word = re.split(r"\W+", lowered, maxsplit=1)[0]
         if first_word in WEAK_OPENERS:

@@ -306,13 +306,27 @@ def _() -> None:
     assert (entry.start, entry.end) == ("2024", "2027"), (entry.start, entry.end)
 
 
-@check("a date the model mangles becomes None rather than failing the import")
+@check("a date the model states in words is kept rather than dropped")
 def _() -> None:
+    # This used to return None for anything unparseable, so a CV reading
+    # "Summer 2024" imported with no date at all -- worse than an odd-looking
+    # one, because nothing on screen said a fact had been dropped.
     raw = ai_parse.RawResume(
         education=[ai_parse.RawEducation(institution="X", start="2024-09", end="whenever")]
     )
     profile = ai_parse.to_profile(raw)
-    assert profile.education[0].end is None
+    assert profile.education[0].start == "2024-09", "a real date is still normalised"
+    assert profile.education[0].end == "whenever", "words are kept"
+
+
+@check("a hyphen a PDF broke across lines is rejoined before the model sees it")
+def _() -> None:
+    from dossier.ingest.extract import _tidy
+
+    assert _tidy("driving large-\nscale change") == "driving large-scale change"
+    # A line break that is not inside a word is left alone: it is the main
+    # signal separating one bullet from the next.
+    assert _tidy("first line\nsecond line") == "first line\nsecond line"
 
 
 @check("an unrecognised employment type falls back to Other instead of failing")

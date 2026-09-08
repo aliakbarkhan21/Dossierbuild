@@ -74,25 +74,42 @@ def test_profile_round_trips_through_disk() -> None:
 
 def test_a_malformed_profile_is_refused_before_it_reaches_the_disk() -> None:
     broken = sample()
-    broken["experience"][0]["start"] = "2025-13"  # no thirteenth month
+    broken["experience"][0]["employment_type"] = "Summer Analyst"
     response = client.put("/api/profile", json=broken)
     assert response.status_code == 422
 
     body = response.json()
     # Names the place in the words on screen, one-based like the entry
-    # headings, and states the shape wanted rather than quoting the regex.
+    # headings, and states what is wanted rather than quoting the schema.
     assert "Experience" in body["error"]
     assert "entry 1" in body["error"]
-    assert "Start" in body["error"]
-    assert "06/2025" in body["error"]
-    assert "pattern" not in body["error"]
+    assert "Internship" in body["error"]
     assert body["fix"]
 
 
-def test_a_half_typed_date_is_refused_the_same_way() -> None:
-    """The exact shape autosave used to post mid-keystroke."""
+def test_a_date_written_in_words_is_kept() -> None:
+    """"Summer 2024", "Expected 2026", "Ongoing" -- all things resumes say.
+
+    A field that refuses those makes people misstate their own history to
+    satisfy a regex, so the schema takes any short string and prints it as
+    written. What that costs is stated in ``OptDate``: a date in words cannot
+    be reformatted by the design's Feb 2025 / 02/2025 switch, because there is
+    no month in it to reformat.
+    """
+    profile = sample()
+    profile["experience"][0]["start"] = "Summer 2024"
+    profile["experience"][0]["end"] = "Ongoing"
+    assert client.put("/api/profile", json=profile).status_code == 200
+
+    back = client.get("/api/profile").json()
+    assert back["experience"][0]["start"] == "Summer 2024"
+    assert back["experience"][0]["end"] == "Ongoing"
+
+
+def test_a_date_nobody_could_have_meant_is_still_refused() -> None:
+    """The bound is length, which is the only thing left to be sure of."""
     broken = sample()
-    broken["experience"][0]["end"] = "2025-"
+    broken["experience"][0]["end"] = "x" * 200
     response = client.put("/api/profile", json=broken)
     assert response.status_code == 422
     assert "End" in response.json()["error"]
