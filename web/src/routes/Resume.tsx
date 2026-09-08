@@ -1366,7 +1366,13 @@ function DesignPanel({
         <PortraitControls design={design} profile={profile} onChange={onChange} onProfile={onProfile} />
       )}
 
-      <SectionOrder design={design} options={options} profile={profile} onChange={onChange} />
+      <SectionOrder
+        design={design}
+        options={options}
+        profile={profile}
+        onChange={onChange}
+        onProfile={onProfile}
+      />
 
       <button
         type="button"
@@ -1716,11 +1722,13 @@ function SectionOrder({
   options,
   profile,
   onChange,
+  onProfile,
 }: {
   design: Design;
   options: { sections: { key: string; name: string }[] };
   profile: Profile;
   onChange: (patch: Partial<Design>) => void;
+  onProfile: (mutate: (profile: Profile) => void, label?: string) => void;
 }) {
   /**
    * The rows to show: the design's order, then any section the design has
@@ -1823,6 +1831,49 @@ function SectionOrder({
     if (dragging < index && index <= over) return -rowH;
     if (over <= index && index < dragging) return rowH;
     return 0;
+  };
+
+  // Which row is asking to be sure. One at a time, and cleared by any other
+  // action on the list.
+  const [confirming, setConfirming] = useState("");
+
+  /**
+   * Remove a section the writer added, and everything in it.
+   *
+   * Only ever a custom section. The built-in eight are fields of the schema
+   * rather than rows of a list -- "delete Experience" would have to mean
+   * "delete every job", which is a different act, belongs in the Profile
+   * editor beside the entries it destroys, and is not what somebody arranging
+   * the order of a page is asking for. Hide already takes one off the printed
+   * page and keeps the material, which is what "remove this section" almost
+   * always means.
+   *
+   * Two presses, because this is the only control on the screen that destroys
+   * anything. It is still undoable -- it goes through the same `edit` as
+   * every other change, so Ctrl+Z brings the section and its lines back.
+   */
+  const remove = (key: string) => {
+    const section = profile.sections.find((s) => s.id === key);
+    if (!section) return;
+    setConfirming("");
+    onProfile((draft) => {
+      draft.sections = draft.sections.filter((s) => s.id !== key);
+    }, `Deleted "${section.title || "a section"}"`);
+    // The design keeps a position, a visibility and possibly a heading for a
+    // section that no longer exists. None of it would print, and all of it
+    // would come back to life the moment an import created a section that
+    // happened to reuse the id.
+    const labels = { ...(design.labels ?? {}) };
+    delete labels[key];
+    onChange({
+      order: order.filter((k) => k !== key),
+      hidden: design.hidden.filter((k) => k !== key),
+      labels,
+    });
+    toast.success(
+      `Deleted "${section.title || "a section"}"`,
+      "Undo with Ctrl+Z — the lines in it come back too.",
+    );
   };
 
   const toggle = (key: string) => {
@@ -1954,10 +2005,44 @@ function SectionOrder({
                 <button
                   type="button"
                   className="btn btn-quiet px-1 py-0.5 text-2xs"
-                  onClick={() => toggle(key)}
+                  onClick={() => {
+                    setConfirming("");
+                    toggle(key);
+                  }}
                 >
                   {shown ? "Hide" : "Show"}
                 </button>
+                {/* Only where there is something to delete. A built-in
+                    section is a field of the schema, not a row of a list. */}
+                {profile.sections.some((s) => s.id === key) &&
+                  (confirming === key ? (
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-quiet px-1 py-0.5 text-2xs text-poor"
+                        onClick={() => remove(key)}
+                      >
+                        Delete
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-quiet px-1 py-0.5 text-2xs"
+                        onClick={() => setConfirming("")}
+                      >
+                        Keep
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-quiet px-1 py-0.5 text-poor"
+                      title={`Delete "${label}" and everything in it`}
+                      aria-label={`Delete ${label}`}
+                      onClick={() => setConfirming(key)}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  ))}
               </span>
             </div>
           );

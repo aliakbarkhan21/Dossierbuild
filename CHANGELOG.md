@@ -41,6 +41,16 @@ wrong for a while, it says that too.
   like a typed one.
 - **Times New Roman**, with Tinos behind it -- metrically identical, so a PDF
   built in CI breaks its lines in the same places as one built on a laptop.
+- **Deleting a section from the Resume tab.** A trash button on the section
+  list, behind one confirmation, for the sections you added yourself. The
+  built-in eight do not get one: they are fields of the schema rather than
+  rows of a list, so "delete Experience" would have to mean "delete every
+  job" -- a different act, belonging beside the entries it destroys. Hide
+  already takes a section off the printed page and keeps the material, which
+  is what "remove this section" almost always means. The delete clears the
+  section's position, visibility and heading from the design as well, so
+  nothing is left pointing at something that no longer exists, and Ctrl+Z
+  brings all of it back.
 - **Dates may be words.** "Summer 2024", "Expected 2026", "Ongoing",
   "2019 - Present". A field that refuses those makes people misstate their own
   history to satisfy a regex. Schema v6. Anything the app can still read is
