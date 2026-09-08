@@ -115,6 +115,9 @@ const FILTERS = [
  * width should not have to ask for it every time they open the app.
  */
 const PANEL_KEY = "dossier:design-panel";
+/** How wide the design panel is, in pixels. */
+const PANEL_W = 340;
+
 // The same pair the app sidebar uses -- see `SLIDE_MS` in App.tsx. Two
 // panels sliding out of the same corner of the screen at two different
 // speeds read as two different mechanisms.
@@ -506,14 +509,34 @@ export function ResumeScreen() {
       <div
         className="grid flex-1 gap-6 p-6"
         style={{
-          // Stepped, never transitioned. Animating this would re-lay-out
-          // every document on the screen -- the preview and eight template
-          // thumbnails -- on every frame, which is the mistake the sidebar
-          // in App.tsx already made once. The visible motion is the panel's
-          // transform; this just gets out of its way.
-          gridTemplateColumns: folded
-            ? "minmax(0,1fr)"
-            : "minmax(0,340px) minmax(0,1fr)",
+          // The column closes on the same curve, over the same time, as the
+          // panel sliding out of it.
+          //
+          // It used to be stepped, on the reasoning that animating a grid
+          // column re-lays-out the preview and eight template thumbnails on
+          // every frame. That reasoning was never measured, and it is wrong
+          // here: sampled through a collapse it is 17ms a frame either way,
+          // with nothing over 20ms. The preview is a document scaled by a
+          // transform, so its own layout does not recompute when its box
+          // changes width.
+          //
+          // What the step actually cost was the whole motion. The panel slid
+          // for 358ms and then the preview jumped 892px to 1256px in a single
+          // frame -- slide, pause, snap. Two things moving together read as
+          // one thing moving.
+          //
+          // Driven by `collapsed` rather than `folded` so it starts on the
+          // same frame as the transform; `folded` is deliberately late, and
+          // using it here is what put the jump at the end.
+          gridTemplateColumns: collapsed
+            ? "minmax(0,0px) minmax(0,1fr)"
+            : `minmax(0,${PANEL_W}px) minmax(0,1fr)`,
+          // The 24px between the columns is part of the width the preview is
+          // getting back, so it has to travel with it.
+          columnGap: collapsed ? "0px" : undefined,
+          transition:
+            `grid-template-columns ${SLIDE_MS}ms ${SLIDE_EASE}, ` +
+            `column-gap ${SLIDE_MS}ms ${SLIDE_EASE}`,
         }}
       >
         {/* Its own scroll, and it stays put.
@@ -544,8 +567,14 @@ export function ResumeScreen() {
         >
           <div
             inert={collapsed}
-            className="flex min-w-0 flex-col gap-5"
+            className="flex flex-col gap-2"
             style={{
+              // Fixed, so the panel leaves at the width it lives at. The
+              // column it sits in is closing underneath it, and a stack that
+              // simply filled that column would reflow every card on every
+              // frame -- eight thumbnails re-wrapping while they slide away.
+              // The wrapper's `overflow-x: clip` trims what no longer fits.
+              width: PANEL_W,
               // The whole width, so the panel leaves the way it arrived --
               // sideways, past the edge of the screen -- rather than fading on
               // the spot.
@@ -558,10 +587,13 @@ export function ResumeScreen() {
               // the way of anything it contains.
               transform: collapsed ? "translateX(-102%)" : "none",
               opacity: collapsed ? 0 : 1,
-              transition: `transform ${SLIDE_MS}ms ${SLIDE_EASE}, opacity ${Math.round(SLIDE_MS * 0.7)}ms ease-out`,
+              // The fade runs the full duration, not 70% of it. Shorter, it
+              // finished while the column was still closing -- so the last
+              // third of the motion was a gap shutting on nothing.
+              transition: `transform ${SLIDE_MS}ms ${SLIDE_EASE}, opacity ${SLIDE_MS}ms ${SLIDE_EASE}`,
             }}
           >
-            <div className="flex items-center justify-between gap-2">
+            <div className="mb-1 flex items-center justify-between gap-2">
               <h2 className="text-xl font-semibold">Design</h2>
               <button
                 type="button"
@@ -575,6 +607,7 @@ export function ResumeScreen() {
             </div>
 
             <Looks
+              className="mb-2"
               design={design}
               profile={profile}
               options={options}
@@ -623,7 +656,13 @@ export function ResumeScreen() {
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-3">
+        <div
+          className="flex min-w-0 flex-col gap-3"
+          // Placed rather than flowed. The panel's wrapper is `hidden` once
+          // it has finished leaving, and auto-placement would then drop the
+          // preview into the first column -- the one that is now 0px wide.
+          style={{ gridColumn: 2 }}
+        >
           {/* One control row, not two. With the panel away it gains the
               controls that lived in it -- the template and the print button --
               and sticks to the top of the pane; a floating bar *beside* the
@@ -1035,12 +1074,14 @@ export function FullPage({
 }
 
 function Looks({
+  className = "",
   design,
   profile,
   options,
   refreshKey,
   onPick,
 }: {
+  className?: string;
   design: Design;
   profile: Profile;
   options: { looks: LookOption[] };
@@ -1088,7 +1129,7 @@ function Looks({
   }, [look?.key, refreshKey]);
 
   return (
-    <section>
+    <section className={className}>
       <h2 className="mb-2 text-xl font-semibold">Start from a look</h2>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {options.looks.map((option) => {
@@ -1274,6 +1315,9 @@ function Badge({ children, tone }: { children: React.ReactNode; tone?: "good" | 
  */
 const GROUP_KEY = "dossier:design-group";
 
+/** How long a group takes to open or close. */
+const GROUP_MS = 300;
+
 function useGroups(initial: string) {
   const [open, setOpen] = useState(() => {
     try {
@@ -1312,6 +1356,33 @@ function Group({
   children: React.ReactNode;
 }) {
   const open = groups.open === id;
+
+  // Closed *and* finished closing, which is not the same thing. A closed
+  // group keeps its children mounted -- that is what makes reopening the
+  // Template gallery instant instead of rebuilding eight live documents --
+  // but mounted children are still laid out, and five collapsed groups were
+  // adding 124px of invisible content to the panel's scroll area. So once the
+  // animation is over the subtree is skipped outright.
+  //
+  // `content-visibility` rather than `display: none` because it is the one
+  // that keeps the subtree's state: scroll positions, an iframe that has
+  // already loaded, a half-typed name in the Sections list.
+  const [settled, setSettled] = useState(!open);
+  useEffect(() => {
+    if (open) {
+      setSettled(false);
+      return;
+    }
+    const timer = setTimeout(() => setSettled(true), GROUP_MS);
+    return () => clearTimeout(timer);
+  }, [open]);
+
+  // Deliberately derived rather than read from state: on the click that opens
+  // a group this is false in the *same* commit that sets the row to `1fr`, so
+  // the content is laid out and has a height to animate towards. Waiting for
+  // the effect would spend the first frame at zero and the group would snap.
+  const skipped = !open && settled;
+
   return (
     <section className="card overflow-hidden p-0">
       <button
@@ -1325,14 +1396,42 @@ function Group({
           className="shrink-0 text-faint transition-transform duration-200"
           style={{ transform: open ? "rotate(90deg)" : "none" }}
         />
-        <span className="text-sm font-semibold">{title}</span>
+        <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{title}</span>
         {/* The current value, on the closed row. A collapsed panel that says
-            nothing about what is set is a panel you have to open to read. */}
+            nothing about what is set is a panel you have to open to read.
+            It yields rather than wraps: the title is the thing you navigate
+            by, and a row that grows a line costs the panel its last row. */}
         {!open && summary && (
           <span className="ml-auto min-w-0 truncate text-2xs text-muted">{summary}</span>
         )}
       </button>
-      {open && <div className="flex flex-col gap-4 border-t border-line p-4">{children}</div>}
+
+      {/* Opening is a height animation, and heights are the one thing CSS
+          could never transition -- `auto` has no number to interpolate from.
+          A one-row grid does: `0fr` to `1fr` is two numbers, the row is sized
+          from the content either way, and nothing has to be measured in
+          JavaScript or re-measured when the content inside changes.
+
+          The content stays mounted, which is what makes reopening instant --
+          the Template group holds eight live document thumbnails, and
+          unmounting them meant rebuilding all eight on the way back in. It is
+          `inert` while closed so nothing inside it can be tabbed into or read
+          out while it is a zero-height sliver. */}
+      <div
+        className="grid motion-reduce:transition-none"
+        style={{
+          gridTemplateRows: open ? "1fr" : "0fr",
+          transition: `grid-template-rows ${GROUP_MS}ms ${SLIDE_EASE}`,
+        }}
+      >
+        <div
+          className="overflow-hidden"
+          inert={!open}
+          style={{ contentVisibility: skipped ? "hidden" : "visible" }}
+        >
+          <div className="flex flex-col gap-4 border-t border-line p-4">{children}</div>
+        </div>
+      </div>
     </section>
   );
 }
