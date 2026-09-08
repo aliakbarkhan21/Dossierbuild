@@ -41,6 +41,19 @@ wrong for a while, it says that too.
   like a typed one.
 - **Times New Roman**, with Tinos behind it -- metrically identical, so a PDF
   built in CI breaks its lines in the same places as one built on a laptop.
+- **Section headings were smaller than the text under them.** On Minimalist
+  they measured 9.98pt against a 10.5pt body -- a heading that reads as a
+  caption. The shared bump every template applies went from 2pt to 3pt, and
+  Minimalist's own multiplier from .76 to the .102 the rest use: 13.3px to
+  18.3px against a 14px body. Measured across all thirty-two designs
+  afterwards, and none of them wraps a heading onto a second line.
+- **The editing rail covered the text it was next to.** It preferred the left
+  margin and, when there was not room, fell back to just inside the block --
+  which is on top of the first thing you were trying to read. Three positions
+  now, tried in order, none of them over the words: the left margin, the right
+  margin, then above the block against its right edge. The width is measured
+  rather than assumed, because the page is scaled by a transform and a
+  hard-coded number is only right at one zoom.
 - **The design belongs to the CV.** Typeface, template, layout, paper,
   margins, section order -- all of it was one file shared by every CV, on the
   reasoning that the look is a habit of the person rather than a fact about

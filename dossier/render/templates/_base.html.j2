@@ -44,7 +44,7 @@
      substituted: each heading stays in its own proportion and every one of
      them gains the same two points. One place to change it, and nothing to
      keep in step across nine files. */
-  --sec-bump: 2pt;
+  --sec-bump: 3pt;
   --lh: {{ leading }};
   --gap: {{ section_gap }}pt;
 }
@@ -883,13 +883,32 @@ body.editing [data-edit]:focus {
     railFor = block;
     if (!block) { rail.className = 'rail'; return; }
     var box = block.getBoundingClientRect();
-    // Left of the block where there is room, otherwise tucked just inside it.
-    var width = 92;
-    var left = box.left - width - 6;
-    if (left < 4) { left = box.left + 4; }
-    rail.style.left = Math.round(left) + 'px';
-    rail.style.top = Math.round(Math.max(4, box.top)) + 'px';
+
+    // Three places, in order of preference, and none of them is on top of the
+    // words. It used to fall back to `box.left + 4` when the margin was too
+    // narrow -- which is inside the block, over the first thing you were
+    // trying to read. Reported exactly that way.
+    //
+    // Measured rather than assumed: the rail is shown first so it has a real
+    // width, because the page is scaled by a transform and a hard-coded
+    // number is only right at one zoom.
     rail.className = 'rail on';
+    var width = rail.getBoundingClientRect().width || 92;
+    var height = rail.getBoundingClientRect().height || 24;
+    var left, top = Math.max(4, box.top);
+
+    if (box.left - width - 6 >= 4) {
+      left = box.left - width - 6;                       // in the left margin
+    } else if (box.right + 6 + width <= window.innerWidth - 4) {
+      left = box.right + 6;                              // in the right margin
+    } else {
+      // No margin either side: sit above the block, against its right edge.
+      // That covers the gap above it rather than the line inside it.
+      left = Math.max(4, box.right - width);
+      top = Math.max(4, box.top - height - 3);
+    }
+    rail.style.left = Math.round(left) + 'px';
+    rail.style.top = Math.round(top) + 'px';
     // "+" adds a line, which only means something where lines live.
     var isLine = block.tagName === 'LI';
     rail.querySelector('[data-op="add"]').style.display = isLine ? '' : 'none';
