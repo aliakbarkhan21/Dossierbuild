@@ -557,6 +557,12 @@ export function ResumeScreen() {
           hidden={folded}
           className="min-w-0 self-start overflow-x-clip overflow-y-auto overscroll-contain"
           style={{
+            // The gutter is reserved whether or not there is anything to
+            // scroll. Without it the cards are 340px wide with every group
+            // closed and 325px the moment one opens -- the whole panel
+            // twitches narrower as the scrollbar arrives -- and a stack that
+            // ignored the difference simply ran underneath it.
+            scrollbarGutter: "stable",
             position: "sticky",
             // Under the top bar, which is sticky at the top of the same
             // scroller. Measured rather than guessed: `--topbar` is set from
@@ -567,14 +573,8 @@ export function ResumeScreen() {
         >
           <div
             inert={collapsed}
-            className="flex flex-col gap-2"
+            className="flex min-w-0 flex-col gap-2"
             style={{
-              // Fixed, so the panel leaves at the width it lives at. The
-              // column it sits in is closing underneath it, and a stack that
-              // simply filled that column would reflow every card on every
-              // frame -- eight thumbnails re-wrapping while they slide away.
-              // The wrapper's `overflow-x: clip` trims what no longer fits.
-              width: PANEL_W,
               // The whole width, so the panel leaves the way it arrived --
               // sideways, past the edge of the screen -- rather than fading on
               // the spot.
