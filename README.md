@@ -12,9 +12,16 @@ and the two things that would be most tempting to hand a model — reading a job
 posting, and scoring your writing — are done by rules instead, so they work
 with no API key at all.
 
-**Version 1.1** — cover letters, role focus tags, a rules-based interview
-brief, and a first run with a worked example in it. See
+**Version 2.0** — edit the resume on the resume itself, sections the app has
+no name for, bold/italic/underline, per-CV design, ten templates, and a Review
+screen that reads the document rather than one line at a time. See
 [CHANGELOG.md](CHANGELOG.md) for what changed and why.
+
+> **This repository contains no one's resume.** `data/` and `.env` are ignored
+> by git — deny-by-default, not a list of filenames — so a clone starts empty
+> and the first run offers a worked example built from a fictional person.
+> Your profile, portrait, saved versions, API key and database never leave
+> your own machine.
 
 ![The Resume screen: ten templates, and a preview that is the printed document](docs/resume.png)
 

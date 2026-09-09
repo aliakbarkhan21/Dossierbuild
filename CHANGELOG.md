@@ -6,7 +6,7 @@ wrong for a while, it says that too.
 
 ---
 
-## Unreleased
+## 2.0.0 — 2026-09-09
 
 ### Added
 
