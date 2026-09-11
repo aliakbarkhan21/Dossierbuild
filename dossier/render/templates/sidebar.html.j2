@@ -58,10 +58,18 @@
 }
 
 .rail .sec { margin-top: 11pt; }
+/* `overflow-wrap: normal` for the same reason Boardroom and Editorial carry
+   it: the document-wide break-anywhere rule was splitting "CERTIFICATIONS"
+   into "CERTIFICATIO / NS" against the rule under it, which reads as a typo
+   rather than as a wrap. The tracking comes back far enough that the longest
+   built-in label fits across 54mm; a longer custom one wraps between words. */
 .rail .sec > h2 {
   color: #fff;
   font-size: calc(var(--fs) * .88 + var(--sec-bump));
-  letter-spacing: .16em;
+  letter-spacing: .1em;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  text-wrap: balance;
   border-bottom: .8pt solid rgba(255, 255, 255, .45);
   padding-bottom: 2.5pt;
   margin-bottom: 5pt;
@@ -70,14 +78,38 @@
 .rail a { color: #fff; }
 .rail .stack li { color: rgba(255, 255, 255, .92); }
 
-/* Each skill on its own line with a hairline under it: the reference layouts
-   put a progress bar here, which claims a precision nobody can defend -- "SQL
-   at 80%" of what? The rule keeps the rhythm without the false measurement. */
+/* Each skill on its own line with a hairline under it. The rail carries a
+   five-dot meter rather than the progress bar the reference layouts use: a
+   bar 80% along invites the question "80% of what", where five dots state a
+   countable claim the writer chose. */
 .rail .skill-line {
   padding: 2.5pt 0;
   border-bottom: .6pt solid rgba(255, 255, 255, .28);
   break-inside: avoid;
 }
+
+/* The meter is drawn in the accent, and the rail *is* the accent -- so on this
+   one template the filled dots were accent-on-accent and disappeared, leaving
+   only the empty ones visible. A five-out-of-five skill showed nothing at all
+   and a two showed three dots: not a dimmer meter, an inverted one. Both
+   states are redrawn in white here, the empty ones as a translucent ring. */
+.rail .lvl-dot {
+  border-color: rgba(255, 255, 255, .55);
+  background: transparent;
+}
+.rail .lvl-dot.on {
+  border-color: #fff;
+  background: #fff;
+}
+
+/* Certifications share the rail with the skills, and `line_body` sets the
+   name in --ink and the issuer in --muted -- both dark, both near-invisible
+   on the accent. They follow the rail's own foreground instead. */
+.rail .cred,
+.rail .cred-name { color: #fff; }
+.rail .cred { text-decoration-color: rgba(255, 255, 255, .5); }
+.rail .entry-note { color: rgba(255, 255, 255, .82); }
+.rail .entry-sep { color: rgba(255, 255, 255, .6); }
 .rail .skill-group-label {
   margin-top: 6pt;
   font-weight: 700;
@@ -118,7 +150,7 @@
         {%- for label, items in s.groups %}
         <div class="skill-group-label">{{ label }}</div>
         {%- for item in items %}
-        <div class="skill-line">{{ item }}</div>
+        <div class="skill-line"><span>{{ item }}</span>{{ m.level_dots(item.level) }}</div>
         {%- endfor %}
         {%- endfor %}
       {%- else %}

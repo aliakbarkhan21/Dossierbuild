@@ -85,9 +85,18 @@ export interface SkillGroup {
   id: string;
   label: string;
   items: string[];
+  /**
+   * `{item: 1..5}` for the skills that have been rated, keyed by the item's
+   * own text. Optional and usually partial: an unrated skill prints as a
+   * plain name, and a group where nothing is rated prints as a plain list.
+   */
+  levels?: Record<string, number>;
   /** Same rule as a bullet's: empty means the group always prints. */
   tags: string[];
 }
+
+/** How many steps a proficiency meter has. Matches the renderer's own. */
+export const SKILL_LEVELS = 5;
 
 export interface Certification {
   id: string;

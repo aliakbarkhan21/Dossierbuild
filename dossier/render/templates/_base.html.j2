@@ -273,6 +273,26 @@ body { padding-top: 0; }
   font-size: calc(var(--fs) * .9);
 }
 .entry-link { color: var(--accent); font-size: calc(var(--fs) * .9); }
+/* The link now sits inside `.entry-note`, which has already stepped the size
+   down to .9; a second .9 on top of it would print the address at .81 of the
+   body and turn the one piece of an entry somebody may need to type into the
+   smallest thing on the page. */
+.entry-note .entry-link { font-size: inherit; }
+
+/* The divider between a pair -- Role | Organisation, Name | Issuer. Lighter
+   than either side of it and kept off the text layer's critical path: it is
+   punctuation, so it should separate the two fields without competing with
+   them, and it must never be the thing a reader's eye lands on first. */
+.entry-sep {
+  color: var(--muted);
+  font-weight: 400;
+  /* The divider and the space after it are one unit, and that unit must not
+     end a line: the document-wide `overflow-wrap: anywhere` will otherwise
+     break right after the pipe, stranding it against the right edge of a
+     narrow column with its other half on the line below. */
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
 
 ul.bul {
   margin: 3pt 0 0;
@@ -350,6 +370,73 @@ ul.bul li::before {
 }
 .skill-row:first-child { margin-top: 0; }
 .skill-label { font-weight: 700; color: var(--ink); }
+
+/* ---- Proficiency meters ---------------------------------------------- *
+ *
+ * Five dots, the filled ones in the accent and the empty ones drawn as rings
+ * rather than left out. The count is the claim -- "three of five" -- and a row
+ * of three dots with nothing after it cannot be read as anything but "three",
+ * which is a different and much vaguer statement.
+ *
+ * `border` rather than `background` for the empty state so both halves are the
+ * same object at the same size, and neither depends on a fill that a printer
+ * set to draft might drop.
+ *
+ * `print-color-adjust` is the one that matters on paper: Chromium strips
+ * backgrounds when printing unless it is told not to, and without it every
+ * meter prints as five empty rings -- a resume claiming nothing, with no sign
+ * on screen that anything went wrong.
+ */
+.skill-item { white-space: nowrap; }
+.skill-item > .lvl { margin-left: 4pt; }
+.lvl {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.6pt;
+  vertical-align: middle;
+  flex: none;
+  /* The meter is a graphic, not a word: it must never be what a line breaks
+     on, and it must never stretch when its row is a flex container. */
+  white-space: nowrap;
+}
+.lvl-dot {
+  display: inline-block;
+  width: 3.2pt;
+  height: 3.2pt;
+  border-radius: 50%;
+  border: .5pt solid var(--muted);
+  background: transparent;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.lvl-dot.on {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+/* In the one-skill-per-line columns the meter goes to the right edge, so the
+   dots line up into a column of their own and can be compared down the list.
+   Inline after the name they would start at a different x for every skill,
+   which is the one thing that makes a scale useless.
+
+   Scoped to `.side-skill` rather than to `.side-item`, which the same columns
+   also use for certifications: `line_body` emits several inline elements, and
+   making their parent a flex container would turn the name, the divider and
+   the issuer into three flex items that cannot wrap into each other. */
+.side-skill,
+.skill-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5pt;
+}
+.side-skill > span,
+.skill-line > span { min-width: 0; }
+.side-skill > .lvl,
+.skill-line > .lvl {
+  margin-left: 0;
+  align-self: center;
+}
 /* A contact block stacked one item per line, for a column too narrow to
    carry them in a row. ``anywhere`` rather than ``break-word``: a 44mm column
    cannot fit "linkedin.com/in/muhammad-ali-akbar-khan" any other way, and a
@@ -426,8 +513,19 @@ body.editing [data-edit]:focus {
  * block, where it covered the line above instead of the line below. The
  * constraint is horizontal, so the answer is to need less of it: stacked, it
  * is 26px, which fits in the margin of every template at every zoom the
- * preview offers. */
-.rail {
+ * preview offers.
+ *
+ * `edit-rail`, NOT `rail`. This block is emitted into the same document as the
+ * template's own CSS, and Sidebar has used `.rail` for its 54mm accent column
+ * since it was written. Sharing the name meant the first declaration here --
+ * `display: none`, which is how this toolbar waits to be switched on -- landed
+ * on that column too, and Sidebar's template block never sets `display`, so
+ * nothing put it back. The column, the portrait, the name and the whole
+ * contact stack were in the markup and invisible on every preview; the PDF was
+ * fine, because none of this is emitted when printing, which is what made it
+ * look like a template bug rather than a collision. Anything defined at this
+ * level shares a namespace with ten templates: prefix it. */
+.edit-rail {
   position: fixed;
   z-index: 40;
   display: none;
@@ -439,8 +537,8 @@ body.editing [data-edit]:focus {
   border-radius: 5px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, .14);
 }
-.rail.on { display: flex; }
-.rail button {
+.edit-rail.on { display: flex; }
+.edit-rail button {
   width: 20px; height: 20px;
   display: flex; align-items: center; justify-content: center;
   font: 600 12px/1 -apple-system, "Segoe UI", system-ui, sans-serif;
@@ -450,9 +548,9 @@ body.editing [data-edit]:focus {
   cursor: pointer;
   padding: 0;
 }
-.rail button:hover { background: #eef1f6; color: #10131a; }
-.rail button.warn:hover { background: #fdecec; color: #b3261e; }
-.rail button[disabled] { opacity: .3; cursor: default; }
+.edit-rail button:hover { background: #eef1f6; color: #10131a; }
+.edit-rail button.warn:hover { background: #fdecec; color: #b3261e; }
+.edit-rail button[disabled] { opacity: .3; cursor: default; }
 {% endif %}
 
 {% block extra_css %}{% endblock %}
@@ -467,7 +565,7 @@ body.editing [data-edit]:focus {
 {#- The rail is one element reused by every block, moved to whatever the
     pointer is over. Forty of them, one per bullet, would be forty elements
     the paginator has to walk past. -#}
-<div class="rail" id="rail" aria-hidden="true">
+<div class="edit-rail" id="edit-rail" aria-hidden="true">
   <button type="button" data-op="up" title="Move up">&#8593;</button>
   <button type="button" data-op="down" title="Move down">&#8595;</button>
   <button type="button" data-op="add" title="Add a line below">+</button>
@@ -868,7 +966,7 @@ body.editing [data-edit]:focus {
    * Profile screen uses, so an in-place edit lands in the undo stack, in
    * autosave and in the writing standard exactly like a typed one.
    * ------------------------------------------------------------------ */
-  var rail = document.getElementById('rail');
+  var rail = document.getElementById('edit-rail');
   var railFor = null;      // the block the rail is currently attached to
   var editing = false;
 
@@ -908,7 +1006,7 @@ body.editing [data-edit]:focus {
 
   function placeRail(block) {
     railFor = block;
-    if (!block) { rail.className = 'rail'; return; }
+    if (!block) { rail.className = 'edit-rail'; return; }
     var box = block.getBoundingClientRect();
 
     // Three places, in order of preference, and none of them is on top of the
@@ -919,7 +1017,7 @@ body.editing [data-edit]:focus {
     // Measured rather than assumed: the rail is shown first so it has a real
     // width, because the page is scaled by a transform and a hard-coded
     // number is only right at one zoom.
-    rail.className = 'rail on';
+    rail.className = 'edit-rail on';
     var rb = rail.getBoundingClientRect();
     var width = rb.width || 26;
     var height = rb.height || 92;

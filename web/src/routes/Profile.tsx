@@ -25,6 +25,7 @@ import { isBlank, useStore } from "../lib/store";
 import { moveWithin, useReorder } from "../lib/reorder";
 import { Tags, tagsInUse } from "../components/Tags";
 import { plain } from "../lib/markup";
+import { SKILL_LEVELS } from "../lib/types";
 import type { ListSection, Profile } from "../lib/types";
 
 type Kind = "text" | "month" | "csv" | "select" | "url" | "prose";
@@ -129,7 +130,7 @@ const SECTIONS: Record<ListSection, SectionSpec> = {
   skills: {
     label: "Skills",
     singular: "group",
-    blank: () => ({ id: "", label: "", items: [], tags: [] }),
+    blank: () => ({ id: "", label: "", items: [], levels: {}, tags: [] }),
     fields: [
       { key: "label", label: "Group", placeholder: "Languages", half: true },
       { key: "items", label: "Items", kind: "csv", placeholder: "Python, SQL, TypeScript" },
@@ -195,15 +196,46 @@ const SECTIONS: Record<ListSection, SectionSpec> = {
   },
 };
 
-const TABS = ["basics", "summary", ...Object.keys(SECTIONS)] as const;
+/*
+ * Tab order is written out rather than taken from `Object.keys(SECTIONS)`,
+ * because the two orders answer different questions. SECTIONS is keyed in the
+ * order a resume prints; the tabs follow the order someone fills a profile in,
+ * which starts with who you are and what you studied before it asks what you
+ * have done. Education leads Experience here and nowhere else.
+ */
+const TABS = [
+  "basics",
+  "summary",
+  "education",
+  "experience",
+  "projects",
+  "skills",
+  "certifications",
+  "awards",
+  "achievements",
+  "sections",
+] as const satisfies readonly ("basics" | "summary" | ListSection)[];
 type Tab = (typeof TABS)[number];
 
+/*
+ * `satisfies` above stops a tab naming a section that does not exist; this
+ * stops a section existing with no tab to reach it. Adding a key to SECTIONS
+ * without listing it here is a type error, not a page nobody can open.
+ */
+type _EverySectionIsReachable = Exclude<ListSection, Tab> extends never
+  ? true
+  : ["section with no tab:", Exclude<ListSection, Tab>];
+const _tabsCoverSections: _EverySectionIsReachable = true;
+void _tabsCoverSections;
+
+/* Listed in the order the tabs appear, so the two lists can be read against
+   each other; the strip itself is driven by TABS, not by this. */
 const TAB_LABELS: Record<Tab, string> = {
   basics: "Contact",
   summary: "Summary",
+  education: "Education",
   experience: "Experience",
   projects: "Projects",
-  education: "Education",
   skills: "Skills",
   certifications: "Certifications",
   awards: "Honors",
@@ -721,6 +753,84 @@ function MonthInput({
  * rather than a compromise: somebody who emboldens "Python, SQL" wants both
  * of them bold.
  */
+/*
+ * Proficiency, as a row of five dots per skill.
+ *
+ * Rating is optional and stays optional. There is no default level and no way
+ * to rate a whole group at once, because the honest state for a skill nobody
+ * has thought about is "unrated" -- and a control that starts every skill at
+ * three would put a claim on the page that the writer never made.
+ *
+ * Clicking the dot that is already the level clears it, which is the only
+ * gesture that can undo a rating without a second control beside it. That is
+ * not discoverable on its own, so the hint below the list says so in words.
+ *
+ * Keyed by the item's text to match the file format, so the ratings follow
+ * their skills through a reorder. Renaming a skill drops its rating -- the
+ * renderer takes the same view, and a renamed skill is a different claim.
+ */
+function SkillLevels({
+  items,
+  levels,
+  onChange,
+}: {
+  items: string[];
+  levels: Record<string, number>;
+  onChange: (next: Record<string, number>) => void;
+}) {
+  const named = items.map((item) => item.trim()).filter(Boolean);
+  if (named.length === 0) return null;
+
+  const set = (item: string, level: number) => {
+    const next = { ...levels };
+    if (level <= 0 || next[item] === level) delete next[item];
+    else next[item] = level;
+    onChange(next);
+  };
+
+  return (
+    <div className="mt-3 border-t border-line pt-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted">Proficiency</p>
+        <p className="text-xs text-muted">Optional — click a filled dot to clear</p>
+      </div>
+      <ul className="mt-2 flex flex-col gap-1">
+        {named.map((item) => {
+          const level = levels[item] ?? 0;
+          return (
+            <li key={item} className="flex items-center justify-between gap-3">
+              <span className="min-w-0 truncate text-sm">{item}</span>
+              <span
+                className="flex flex-none items-center gap-1"
+                role="radiogroup"
+                aria-label={`Proficiency in ${item}`}
+              >
+                {Array.from({ length: SKILL_LEVELS }, (_, i) => i + 1).map((step) => (
+                  <button
+                    key={step}
+                    type="button"
+                    role="radio"
+                    aria-checked={level === step}
+                    aria-label={`${step} out of ${SKILL_LEVELS}`}
+                    title={`${step} out of ${SKILL_LEVELS}`}
+                    onClick={() => set(item, step)}
+                    className={[
+                      "h-3.5 w-3.5 rounded-full border transition-colors",
+                      step <= level
+                        ? "border-accent bg-accent"
+                        : "border-line bg-transparent hover:border-accent",
+                    ].join(" ")}
+                  />
+                ))}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 function CsvInput({
   value,
   onChange,
@@ -1118,6 +1228,14 @@ function EntryList({
               );
             })}
           </div>
+
+          {section === "skills" && (
+            <SkillLevels
+              items={(entry.items as string[]) ?? []}
+              levels={(entry.levels as Record<string, number>) ?? {}}
+              onChange={(next) => mutate(index, "levels", next, "Rated a skill")}
+            />
+          )}
 
           {spec.bullets && (
             <Bullets

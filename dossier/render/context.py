@@ -95,6 +95,31 @@ class Entry:
 
 
 @dataclass(frozen=True)
+class Skill:
+    """One skill, and how well it is claimed.
+
+    ``__str__`` and ``__html__`` return the name alone, so every template that
+    already writes ``{{ items | join(', ') }}`` keeps printing exactly what it
+    printed before this existed. A template that wants the rating asks for
+    ``item.level``; one that does not never learns there is one.
+
+    ``level`` is 1-5, or 0 for "not rated" -- which is the common case and
+    must stay silent. A default of 0 rather than 3 matters: an unrated skill
+    drawn at the midpoint would be the app inventing a claim on somebody's
+    behalf, on the one document where that is least forgivable.
+    """
+
+    name: str
+    level: int = 0
+
+    def __str__(self) -> str:
+        return str(self.name)
+
+    def __html__(self) -> str:
+        return str(self.name)
+
+
+@dataclass(frozen=True)
 class Line:
     """One entry in a "lines" section: certifications, honors, achievements.
 
@@ -129,7 +154,7 @@ class Section:
     edit: str = ""
     """The address of ``text``, when the section is one editable block."""
     entries: list[Entry] = field(default_factory=list)
-    groups: list[tuple[str, list[str]]] = field(default_factory=list)
+    groups: list[tuple[str, list["Skill"]]] = field(default_factory=list)
     """``(label, items)`` with the items still a list.
 
     Joining them into "Python, SQL" here would be one character shorter in the
@@ -145,12 +170,13 @@ class ResumeContext:
     contact: list[ContactItem]
     sections: list[Section]
     photo: str = ""
-    initials: str = ""
-    """``photo`` is a data URI or "", so a template can simply ask ``if r.photo``.
+    """A data URI, or "" when there is no photograph to print.
 
-    ``initials`` is what a portrait-carrying layout falls back to when there is
-    no photograph: an empty circle is a hole in the page, two letters are a
-    monogram."""
+    Empty covers both cases a template cares about — none uploaded, or one
+    uploaded and switched off — so a template asks ``if r.photo`` and needs to
+    know nothing about the design. There is no monogram behind this any more:
+    no photograph means no portrait, on every template. See the ``portrait``
+    macro."""
 
     def has(self, key: str) -> bool:
         return any(s.key == key for s in self.sections)
@@ -302,6 +328,27 @@ def _entry_bullets(
     ]
 
 
+#: How many steps a proficiency meter has. Five, because the words people
+#: actually use for this -- aware, working, competent, strong, expert -- run
+#: to about five, and because an odd count gives "competent" a middle to sit
+#: in rather than forcing it up or down.
+SKILL_LEVELS = 5
+
+
+def _level(value: object) -> int:
+    """A stored rating, clamped to the meter -- or 0 for "not rated".
+
+    The file is user-editable and survives schema changes, so a level of 9, of
+    -1, or of "expert" all have to land somewhere sane rather than drawing a
+    row of dots off the edge of the column.
+    """
+    if not isinstance(value, int) or isinstance(value, bool):
+        return 0
+    if value <= 0:
+        return 0
+    return min(value, SKILL_LEVELS)
+
+
 def _experience_entry(item, design: Design, *, blanks: bool = False) -> Entry:
     # The employment type only earns its place when it is not the assumed
     # thing: "Software Engineer, Acme (Full-time)" tells a reader nothing,
@@ -433,8 +480,19 @@ def _build_section(
         return Section(key, label, "entries", entries=entries) if entries else None
 
     if key == "skills":
+        # The level is looked up by the item's raw text, before `rich` turns
+        # it into markup -- the profile keys the ratings by what was typed,
+        # and matching against the rendered version would miss every skill
+        # carrying a mark.
         groups = [
-            (rich(g.label.strip() or "Skills"), [rich(i.strip()) for i in g.items if i.strip()])
+            (
+                rich(g.label.strip() or "Skills"),
+                [
+                    Skill(rich(i.strip()), _level(g.levels.get(i.strip())))
+                    for i in g.items
+                    if i.strip()
+                ],
+            )
             for g in profile.skills
             if any(i.strip() for i in g.items) and wanted(g.tags, design.focus)
         ]
@@ -503,16 +561,6 @@ def _build_section(
     return None
 
 
-def initials(name: str) -> str:
-    """"Muhammad Ali Akbar Khan" -> "MK". First and last, never three."""
-    parts = [p for p in re.split(r"[\s\-]+", name.strip()) if p and p[0].isalpha()]
-    if not parts:
-        return ""
-    if len(parts) == 1:
-        return parts[0][0].upper()
-    return (parts[0][0] + parts[-1][0]).upper()
-
-
 def build_context(
     profile: Profile,
     design: Design,
@@ -546,10 +594,6 @@ def build_context(
         contact=build_contact(profile, design),
         sections=sections,
         photo=portrait,
-        # A monogram is two letters read out of a name, so it reads the name
-        # rather than the markup -- otherwise emboldening a first name turns
-        # the initials into "BA".
-        initials=initials(plain(name)) if design.wants_photo else "",
     )
 
 
@@ -584,7 +628,6 @@ def trim(context: ResumeContext, entries: int = 2, bullets: int = 2, groups: int
         contact=context.contact,
         sections=kept,
         photo=context.photo,
-        initials=context.initials,
     )
 
 

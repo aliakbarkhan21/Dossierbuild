@@ -101,10 +101,10 @@ class Template:
     buy back vertical space, and a portrait is the most expensive thing you
     can spend it on.
 
-    Where the portrait is an addition rather than the point of the layout, the
-    template draws it only when a real photograph exists: the monogram
-    fallback belongs to the layouts built around a frame, where an empty frame
-    is a hole in the page.
+    True means "there is a place for one here", not "one will be drawn". No
+    photograph means no portrait, on every template — there is no monogram
+    fallback, so a profile without a picture prints the same layout minus one
+    block rather than initials in a box nobody asked for.
     """
 
 

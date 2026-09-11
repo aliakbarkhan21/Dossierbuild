@@ -226,6 +226,22 @@ class SkillGroup(DBModel):
     id: str = Field(default_factory=lambda: new_id("skg"))
     label: str = ""
     items: list[str] = Field(default_factory=list)
+    levels: dict[str, int] = Field(default_factory=dict)
+    """``{item: 1..5}`` for the skills that have been rated. Optional.
+
+    A side table rather than turning ``items`` into a list of objects, for two
+    reasons. Every stored profile, every import and every AI parse already
+    writes ``items`` as a list of strings, and changing its shape would make
+    all of them a migration. And a level is genuinely optional in a way a name
+    is not -- most people rate a handful of skills and leave the rest alone,
+    and a rating nobody set should take up no room in the file and print
+    nothing on the page.
+
+    Keyed by the item's own text, so reordering a group keeps the ratings
+    attached to the right skills; renaming one drops its rating, which is the
+    honest outcome, since a renamed skill is a different claim.
+    """
+
     tags: list[str] = Field(default_factory=list)
     """Same rule as a bullet's: empty means the group always prints."""
 

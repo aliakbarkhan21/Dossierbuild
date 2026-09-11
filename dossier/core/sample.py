@@ -199,16 +199,28 @@ SAMPLE: dict = {
             "bullets": [],
         }
     ],
+    # The levels are deliberately partial and deliberately not all fives. A
+    # sample that rated every skill 5/5 would teach the opposite of what the
+    # rest of this file teaches, and one that rated nothing would leave the
+    # meters undiscovered. Frontend is left unrated on purpose, so the sample
+    # also shows what a group with no ratings looks like -- a plain list.
     "skills": [
-        {"label": "Languages", "items": ["Python", "SQL", "TypeScript", "Go"], "tags": []},
+        {
+            "label": "Languages",
+            "items": ["Python", "SQL", "TypeScript", "Go"],
+            "levels": {"Python": 5, "SQL": 4, "TypeScript": 3, "Go": 2},
+            "tags": [],
+        },
         {
             "label": "Data",
             "items": ["PostgreSQL", "Airflow", "dbt", "Redis"],
+            "levels": {"PostgreSQL": 5, "Airflow": 4, "dbt": 3, "Redis": 3},
             "tags": ["backend", "data"],
         },
         {
             "label": "Infrastructure",
             "items": ["Docker", "GitHub Actions", "Terraform", "AWS"],
+            "levels": {"Docker": 4, "GitHub Actions": 4, "Terraform": 2, "AWS": 3},
             "tags": ["backend"],
         },
         {"label": "Frontend", "items": ["React", "D3"], "tags": ["frontend"]},

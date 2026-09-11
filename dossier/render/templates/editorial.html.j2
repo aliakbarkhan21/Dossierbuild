@@ -45,12 +45,23 @@
 .main { flex: 1 1 auto; min-width: 0; }
 
 /* The left column's headings are set between rules and centred, which is what
-   keeps a narrow column from reading as an afterthought. */
+   keeps a narrow column from reading as an afterthought.
+
+   The tracking has to be paid for out of 44mm. At .22em "CERTIFICATIONS" was
+   wider than the column and broke inside the word, leaving a single "S" alone
+   on the second line between the rules -- which reads as a typo, not as a
+   wrap. The document-wide `overflow-wrap: anywhere` is what allowed the break
+   mid-word, so the headings opt out of it the way Boardroom's already do, and
+   the tracking comes back far enough that the longest built-in label fits on
+   one line. A longer custom heading now wraps between words instead. */
 .side .sec > h2 {
   text-align: center;
   font-size: calc(var(--fs) * .8 + var(--sec-bump));
-  letter-spacing: .22em;
-  text-indent: .22em;
+  letter-spacing: .12em;
+  text-indent: .12em;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  text-wrap: balance;
   border-top: .6pt solid var(--rule);
   border-bottom: .6pt solid var(--rule);
   padding: 2.5pt 0;
@@ -122,20 +133,19 @@
 </header>
 
 <div class="cols">
+  {#- No "Details" block here. The masthead already prints the email, the
+      phone, the location and the profiles directly under the name, and
+      repeating all four at the top of the left column spent the most valuable
+      40mm on the page saying the same thing twice. The column now opens on
+      Skills. -#}
   <aside class="side">
-    {%- if r.contact %}
-    <section class="sec">
-      <h2>Details</h2>
-      {{ m.contact_stack(r.contact) }}
-    </section>
-    {%- endif %}
     {%- for s in r.only(SIDE) %}
     <section class="sec sec-{{ s.key }}">
       {%- if s.label %}<h2>{{ s.label }}</h2>{% endif %}
       {%- if s.kind == 'groups' %}
         {%- for label, items in s.groups %}
         <div class="side-group-label">{{ label }}</div>
-        {%- for item in items %}<div class="side-item">{{ item }}</div>{% endfor %}
+        {%- for item in items %}<div class="side-item side-skill"><span>{{ item }}</span>{{ m.level_dots(item.level) }}</div>{% endfor %}
         {%- endfor %}
       {%- else %}
         {%- for line in s.lines %}<div class="side-item">{{ m.line_body(line) }}</div>{% endfor %}

@@ -44,7 +44,11 @@
 {% macro line_body(line) -%}
 {%- if line.name -%}
 {%- if line.url %}<a class="cred" href="{{ line.url }}">{{ line.name }}</a>{% else %}<span class="cred-name">{{ line.name }}</span>{% endif %}
-{%- if line.text %} <span class="entry-note">{{ line.text }}</span>{% endif %}
+{#- Name and issuer are a pair, and a pair reads as one when a rule divides
+    it: "AWS Certified Solutions Architect | Amazon Web Services". A space
+    alone left the two running together at the small sizes a side column
+    uses, which is what made a certification look like a sentence. -#}
+{%- if line.text %} <span class="entry-sep">|&nbsp;</span><span class="entry-note">{{ line.text }}</span>{% endif %}
 {%- else -%}
 {{ line.text }}
 {%- endif -%}
@@ -56,21 +60,29 @@
     <div class="entry-line">
       <div>
         <span class="entry-title"{% if e.edit.title %} data-edit="{{ e.edit.title }}"{% endif %}>{{ e.title }}</span>
-        {%- if e.subtitle %}{% if e.title %}<span class="entry-sep">,</span> {% endif %}<span class="entry-sub"{% if e.edit.subtitle %} data-edit="{{ e.edit.subtitle }}"{% endif %}>{{ e.subtitle }}</span>{% endif %}
+        {#- Title and subtitle are a pair -- Role | Organisation, Degree |
+            University, Project | Tagline -- and the same divider sets all of
+            them. It was a comma, which reads as a list rather than as two
+            fields, and which disappeared entirely in the templates that set
+            the title in caps. -#}
+        {%- if e.subtitle %}{% if e.title %} <span class="entry-sep">|&nbsp;</span>{% endif %}<span class="entry-sub"{% if e.edit.subtitle %} data-edit="{{ e.edit.subtitle }}"{% endif %}>{{ e.subtitle }}</span>{% endif %}
         {%- if e.note %} <span class="entry-note">({{ e.note }})</span>{% endif %}
       </div>
-      {#- The right of the title line is the dates. A project with no dates
-          has an empty right margin there and its link stranded on a second
-          line of its own, so the link takes the space instead -- which is
-          also where a reader's eye already goes for an entry's metadata. -#}
-      {%- if e.dates %}<div class="entry-meta">{{ e.dates }}</div>
-      {%- elif e.url %}<div class="entry-meta entry-link"><a href="{{ e.url }}">{{ e.url_text }}</a></div>{% endif %}
+      {#- The right of the title line is the dates, and only the dates. -#}
+      {%- if e.dates %}<div class="entry-meta">{{ e.dates }}</div>{% endif %}
     </div>
-    {%- set second_url = e.url and e.dates %}
-    {%- if e.place or e.detail or second_url %}
+    {#- The link belongs with the entry's own words, not out in the date
+        margin. Right-aligned it sat on a line of its own with empty space to
+        its left, reading as a stray rather than as part of the project; a
+        project with no dates had it jump up to the title line, so the same
+        field landed in two different places depending on a date. It now
+        always follows place and detail on the second line, left-aligned under
+        the title with the bullets, joined by the separator those already
+        use. -#}
+    {%- set meta = e.place or e.detail %}
+    {%- if meta or e.url %}
     <div class="entry-line entry-second">
-      <div class="entry-note">{% if e.place %}<span{% if e.edit.place %} data-edit="{{ e.edit.place }}"{% endif %}>{{ e.place }}</span>{% endif %}{% if e.place and e.detail %} · {% endif %}{% if e.detail %}<span{% if e.edit.detail %} data-edit="{{ e.edit.detail }}"{% endif %}>{{ e.detail }}</span>{% endif %}</div>
-      {%- if second_url %}<div class="entry-link"><a href="{{ e.url }}">{{ e.url_text }}</a></div>{% endif %}
+      <div class="entry-note">{% if e.place %}<span{% if e.edit.place %} data-edit="{{ e.edit.place }}"{% endif %}>{{ e.place }}</span>{% endif %}{% if e.place and e.detail %} · {% endif %}{% if e.detail %}<span{% if e.edit.detail %} data-edit="{{ e.edit.detail }}"{% endif %}>{{ e.detail }}</span>{% endif %}{% if meta and e.url %} · {% endif %}{% if e.url %}<a class="entry-link" href="{{ e.url }}">{{ e.url_text }}</a>{% endif %}</div>
     </div>
     {%- endif %}
   </div>
@@ -87,6 +99,45 @@
 </div>
 {%- endmacro %}
 
+{#
+  A skill's proficiency, as a five-dot scale.
+
+  A dot scale rather than a bar or a slider, for three reasons that all come
+  from this being a printed document. It survives greyscale -- a filled dot is
+  a filled dot on a fax, while a bar that means something by its colour means
+  nothing in black and white. It is countable: "four of five" is a claim a
+  reader can check at a glance, where a bar 70% of the way along invites the
+  question 70% of what. And it degrades honestly at small sizes, because a dot
+  has no length to lose in a 44mm column.
+
+  Drawn with borders rather than a font glyph or an image, so it cannot depend
+  on a network fetch or on a typeface Chromium may substitute at print time --
+  the same argument the section icons make.
+
+  An unrated skill prints nothing at all. Half a column of meters and half a
+  column of bare names would read as broken; a group where nobody rated
+  anything just reads as a list, which is what it is.
+#}
+{% macro level_dots(n) -%}
+{%- if n %}
+<span class="lvl" role="img" aria-label="{{ n }} out of 5">
+  {%- for i in range(1, 6) %}<i class="lvl-dot{% if i <= n %} on{% endif %}"></i>{% endfor -%}
+</span>
+{%- endif -%}
+{%- endmacro %}
+
+{#
+  One skill as it appears in a list: the name, and its meter when it has one.
+  Wrapped so that a line never breaks between a skill and its own rating.
+#}
+{% macro skill_item(item) -%}
+<span class="skill-item">{{ item }}{{ level_dots(item.level if item.level is defined else 0) }}</span>
+{%- endmacro %}
+
+{% macro skill_items(items) -%}
+{%- for item in items %}{{ skill_item(item) }}{% if not loop.last %}<span class="skill-comma">, </span>{% endif %}{% endfor -%}
+{%- endmacro %}
+
 {% macro body(s) -%}
 {%- if s.kind == 'text' -%}
 <p class="summary"{% if s.edit %} data-edit="{{ s.edit }}"{% endif %}>{{ s.text }}</p>
@@ -94,7 +145,7 @@
 {%- for e in s.entries %}{{ entry(e) }}{% endfor -%}
 {%- elif s.kind == 'groups' -%}
 {%- for label, items in s.groups %}
-<div class="skill-row"><div class="skill-label">{{ label }}</div><div class="skill-items">{{ items | join(', ') }}</div></div>
+<div class="skill-row"><div class="skill-label">{{ label }}</div><div class="skill-items">{{ skill_items(items) }}</div></div>
 {%- endfor -%}
 {%- elif s.kind == 'lines' -%}
 <ul class="lines">
@@ -150,7 +201,7 @@
   <p class="summary">{{ s.text }}</p>
   {%- elif s.kind == 'groups' %}
     {%- for label, items in s.groups %}
-    <div class="side-group"><div class="side-label">{{ label }}</div><div>{{ items | join(', ') }}</div></div>
+    <div class="side-group"><div class="side-label">{{ label }}</div><div>{{ skill_items(items) }}</div></div>
     {%- endfor %}
   {%- elif s.kind == 'lines' %}
   <ul class="lines">
@@ -176,15 +227,29 @@
 {%- endmacro %}
 
 {#
-  The portrait. Falls back to a monogram rather than to nothing: in a layout
+  The portrait, or nothing at all.
+
+  It used to fall back to a monogram -- two letters from the name in a framed
+  square -- on the three layouts built around a frame, on the theory that an
+  empty frame is a hole in the page. The theory was wrong about what the frame
+  is for. Nobody who has not uploaded a photograph has asked for a monogram,
+  and initials in a box are not a neutral absence: they are a graphic element
+  with a house style of their own, printed on the one document where every
+  mark is read as a deliberate choice by the person whose name is on it.
+
+  So: a photograph if there is one, and otherwise no element at all -- not an
+  empty frame, not a placeholder. Every template degrades to the same thing,
+  which is the layout minus one block. The three that called this
+  unconditionally (Editorial, Executive, Sidebar) centre or float the portrait
+  with a margin, so removing it closes the gap rather than leaving one.
+
+  The old note, kept because the constraint behind it still holds: in a layout
   built around a round frame, an empty frame reads as a broken image, while
   two letters read as a decision.
 #}
 {% macro portrait(r, size) -%}
 {%- if r.photo -%}
 <img class="portrait" style="--pw: {{ size }}" src="{{ r.photo }}" alt="{{ r.name }}">
-{%- elif r.initials -%}
-<div class="portrait mono" style="--pw: {{ size }}" aria-hidden="true"><span>{{ r.initials }}</span></div>
 {%- endif -%}
 {%- endmacro %}
 

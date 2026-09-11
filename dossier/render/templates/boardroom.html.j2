@@ -92,12 +92,18 @@
   .main { border-left-color: color-mix(in srgb, var(--accent) 34%, var(--rule)); }
 }
 
+/* The headings carry the whole structure of a colourless page: with no rail
+   and no accent, weight is the only thing left to mark where one section ends
+   and the next begins. They were 500 in --muted, which at this size read as a
+   caption rather than as a heading, and the tracking spread them further into
+   the background. Set in the ink at 800, with the tracking pulled back enough
+   that the word still reads as one block. */
 .sec > h2 {
   font-size: calc(var(--fs) * .82 + var(--sec-bump));
-  font-weight: 500;
-  letter-spacing: .24em;
+  font-weight: 800;
+  letter-spacing: .18em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink);
   border: none;
   padding: 0;
   margin-bottom: 6pt;
@@ -110,7 +116,7 @@
 .side .sec > h2 {
   overflow-wrap: normal;
   word-break: keep-all;
-  letter-spacing: .18em;
+  letter-spacing: .14em;
 }
 .side .sec { margin-top: 12pt; }
 .side .sec:first-child { margin-top: 0; }
@@ -154,8 +160,6 @@
   text-transform: uppercase;
 }
 .entry-sub { font-weight: 600; }
-.entry-sep { display: none; }
-.entry-sub::before { content: ""; }
 .entry-meta { color: var(--muted); font-size: calc(var(--fs) * .88); }
 .main .entry + .entry { margin-top: 9pt; }
 .bul li { color: var(--muted); }
@@ -185,7 +189,7 @@
       {%- if s.kind == 'groups' %}
         {%- for label, items in s.groups %}
         <div class="side-group-label">{{ label }}</div>
-        {%- for item in items %}<div class="side-item">{{ item }}</div>{% endfor %}
+        {%- for item in items %}<div class="side-item side-skill"><span>{{ item }}</span>{{ m.level_dots(item.level) }}</div>{% endfor %}
         {%- endfor %}
       {%- else %}
         {%- for line in s.lines %}<div class="side-item">{{ m.line_body(line) }}</div>{% endfor %}
