@@ -6,6 +6,63 @@ wrong for a while, it says that too.
 
 ---
 
+## 2.1.0 — 2026-09-11
+
+### Added
+
+- **A proficiency meter on skills.** Five dots beside a skill name, filled to
+  the level the writer chose, on every template that prints skills. Dots
+  rather than the progress bar the reference layouts use: a bar four-fifths
+  along invites the question "four-fifths of what", where five dots state a
+  countable claim, survive greyscale printing, and stay legible in a 54mm
+  rail. Rating is optional and there is no default -- an unrated skill prints
+  exactly as it did before, a plain name, so every profile written before this
+  looks unchanged. The levels live in a side table on the group keyed by the
+  skill's own text (schema stays compatible in both directions), so reordering
+  a list carries the ratings with it.
+
+### Changed
+
+- **Profile tabs read in the order a CV is written**: Contact, Summary,
+  Education, Experience, then the rest. The list is now checked against the
+  schema at compile time in both directions -- a tab naming a section that
+  does not exist, and a section with no tab to reach it, are both type errors
+  rather than a page nobody can open.
+- **Paired information is separated by a pipe** on every template: Role |
+  Organisation, Degree | University, Project | Tagline, Certification |
+  Issuer. The separator is bound to the text after it, so it cannot be left
+  stranded at the end of a line by a wrap.
+- **Boardroom's section headings are set heavily bold**, in ink rather than
+  grey, with the tracking pulled back far enough that the word reads as one
+  block instead of a row of letters.
+- **Editorial drops the Details block** from the left column and stops
+  breaking "CERTIFICATIONS" mid-word. The document-wide break-anywhere rule
+  was splitting it across the rule under it and leaving an orphaned "S", which
+  reads as a typo rather than as a wrap.
+- **Project links sit under the title with the bullets**, left-aligned on a
+  line of their own. They used to be pushed to the right-hand edge beside
+  empty space, and jumped up onto the title line whenever an entry had no
+  dates.
+
+### Fixed
+
+- **Sidebar's meter was inverted, not dim.** The dots are drawn in the accent
+  and the rail *is* the accent, so filled dots were accent-on-accent and
+  disappeared: a five-out-of-five skill showed nothing at all and a two showed
+  three. Both states are redrawn in white on this template.
+- **Certifications were near-invisible on Sidebar's rail**, set in ink and
+  muted grey on a dark accent because they share their markup with the
+  light-background templates.
+- **The dashboard no longer steps sideways when a Design group opens.** A
+  classic scrollbar is laid out inside the element rather than beside it, so
+  its arrival took 15px away from the content and every column in the app
+  narrowed; closing the group stepped it back. The bar is hidden app-wide now
+  -- this is a fixed, one-viewport application rather than a document -- so
+  there is nothing to make room for and the width never changes. Wheel,
+  trackpad, touch and keyboard scrolling are untouched.
+
+---
+
 ## 2.0.0 — 2026-09-09
 
 ### Added
