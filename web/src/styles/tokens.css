@@ -189,6 +189,34 @@
     overscroll-behavior: none;
   }
 
+  /* No scrollbar chrome anywhere in the app.
+
+     A classic scrollbar is laid out *inside* the element, so it does not
+     appear beside the content -- it takes 15px away from it. Open a group in
+     the Design panel and the pane it lives in grows past the window: a bar
+     arrives, every column in the dashboard narrows by those 15px, and the
+     whole layout steps sideways for the sake of an indicator nobody was
+     reading. Closing the group steps it back.
+
+     Reserving the space instead (`scrollbar-gutter: stable`) keeps the width
+     honest but pays the 15px permanently, on every scroller, whether or not
+     it scrolls. This shell is a fixed, one-viewport application rather than a
+     document, so the better trade is no bar at all: the width never changes
+     because there is nothing to make room for.
+
+     Scrolling itself is untouched -- wheel, trackpad, touch, keyboard and
+     scroll-into-view all behave exactly as before; only the painted bar is
+     gone. `scrollbar-width` is the standard property, the `::-webkit-`
+     pseudo-element the older spelling; between them this covers every
+     browser the app runs in. */
+  * {
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
   body {
     background: var(--c-bg);
     color: var(--c-text);

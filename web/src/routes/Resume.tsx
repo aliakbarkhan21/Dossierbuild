@@ -557,12 +557,12 @@ export function ResumeScreen() {
           hidden={folded}
           className="min-w-0 self-start overflow-x-clip overflow-y-auto overscroll-contain"
           style={{
-            // The gutter is reserved whether or not there is anything to
-            // scroll. Without it the cards are 340px wide with every group
-            // closed and 325px the moment one opens -- the whole panel
-            // twitches narrower as the scrollbar arrives -- and a stack that
-            // ignored the difference simply ran underneath it.
-            scrollbarGutter: "stable",
+            // No `scrollbar-gutter` here any more. It was reserving 15px on
+            // this panel permanently so the cards would not twitch narrower
+            // when a group opened and the bar arrived. The bar is now hidden
+            // app-wide (see the base layer in styles/tokens.css), so there is
+            // nothing to reserve room for and nothing to twitch: the panel
+            // keeps its full width whether it scrolls or not.
             position: "sticky",
             // Under the top bar, which is sticky at the top of the same
             // scroller. Measured rather than guessed: `--topbar` is set from
