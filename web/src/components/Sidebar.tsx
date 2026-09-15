@@ -11,10 +11,12 @@ import {
   Briefcase,
   Check,
   ChevronDown,
+  Copy,
   FilePlus2,
   FileText,
   Download,
   Mail,
+  PencilLine,
   Target,
   Crosshair,
   Moon,
@@ -25,9 +27,11 @@ import {
   Trash2,
   User,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import type { LucideIcon } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
+import { copyName, CV_NAME_MAX } from "../lib/cvName";
 import { MARKER_COLOUR_CLASS, markerStyle, useSlidingMarker } from "../lib/marker";
 import { currentMode, cycleMode, type Mode } from "../lib/theme";
 import { useShallow } from "zustand/react/shallow";
@@ -210,59 +214,124 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
 }
 
 /**
- * Which CV you are working on, and a way to start another.
+ * Which CV you are working on, and everything you can do to it.
  *
  * One profile was the right default and still is -- the design and the focus
  * tags exist so that one set of facts can be aimed at several postings -- but
  * two genuinely different accounts of a life do not belong in one document,
  * and this is where you say so.
  *
+ * **The row is the name and a chevron, and nothing else.** It used to carry
+ * two icon buttons as well, which is how a sidebar 232px wide came to show
+ * "Muhamma…": those buttons took 66 of the 208 pixels the row has, and the
+ * name got what was left. A name you cannot read is a worse problem than a
+ * menu you have to open, so New, Duplicate, Rename and Delete moved into the
+ * panel the name already opened -- where there is room to say in words what
+ * each of them does, which three unlabelled icons never did.
+ *
+ * The trigger renders even when there is only one CV. It is the only way to
+ * reach "New CV" now, so a chevron that appeared only once you already had two
+ * documents would hide the door behind the room.
+ *
  * **It asks nothing before switching, because there is nothing to ask.** The
  * CV being left is a file autosave has already written; switching does not
- * touch it, and coming back is one click. A confirmation dialog here would be
- * asking permission to do something with no consequences.
+ * touch it, and coming back is one click.
  *
- * Hidden entirely while there is only one CV and it is untouched -- a
- * switcher with one entry teaches nothing. The "New CV" button stays.
+ * **Deleting does ask, once.** Not out of ceremony: it is the only action here
+ * that a click cannot put back. It names the CV it is about, because "are you
+ * sure?" over a document you cannot see while being asked is a question nobody
+ * can answer.
  *
- * **Deleting does ask, once.** Not out of ceremony: it is the only action in
- * this row that a click cannot put back. It arms in place and names the CV it
- * is about, because "are you sure?" over a document you cannot see while
- * being asked is a question nobody can answer.
+ * **Duplicating asks for a name first.** A copy that arrived called the same
+ * thing as its original would leave two identical rows in the list, and naming
+ * it afterwards is one more step at the moment you have least appetite for
+ * one. The box opens pre-filled with the suggestion and selected, so typing
+ * over it is the whole interaction.
  */
 const PANEL =
   "absolute left-3 top-full z-30 w-[248px] max-w-[calc(100vw-2rem)] rounded-md " +
   "border border-line bg-surface p-2.5 shadow-raised";
 
+/**
+ * What the panel is showing.
+ *
+ * One value rather than three flags: "the delete confirmation and the rename
+ * box are both open" is a state this control does not have, and three booleans
+ * would spell nine of which five are nonsense.
+ */
+type Panel =
+  | { kind: "closed" }
+  | { kind: "list" }
+  | { kind: "arming" }
+  | { kind: "naming"; purpose: "duplicate" | "rename"; value: string };
+
+/** One action in the panel's footer, said in a word rather than drawn as one. */
+function MenuRow({
+  icon: Icon,
+  label,
+  hint,
+  tone = "text-ink",
+  onClick,
+  disabled,
+}: {
+  icon: LucideIcon;
+  label: string;
+  hint?: string;
+  tone?: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={hint}
+      className={
+        "flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs " +
+        `hover:bg-sunken disabled:opacity-45 ${tone}`
+      }
+    >
+      <Icon size={13} className="shrink-0 text-muted" />
+      {label}
+    </button>
+  );
+}
+
 function CVSwitcher() {
-  const { cvs, activeCv, newCv, switchCv, deleteCv } = useStore(
+  const { cvs, activeCv, newCv, duplicateCv, renameCv, switchCv, deleteCv } = useStore(
     useShallow((s) => ({
       cvs: s.cvs,
       activeCv: s.activeCv,
       newCv: s.newCv,
+      duplicateCv: s.duplicateCv,
+      renameCv: s.renameCv,
       switchCv: s.switchCv,
       deleteCv: s.deleteCv,
     })),
   );
   const [busy, setBusy] = useState(false);
-  // Whether the delete is armed. Below the row rather than over the app: a
-  // modal for one line of confirmation is a bigger interruption than the
-  // thing being confirmed, and it takes you away from what you are deleting.
-  const [arming, setArming] = useState(false);
-  const [open, setOpen] = useState(false);
+  // Everything the panel can be showing, in one value. The confirmation and
+  // the name box live below the row rather than over the app: a modal for one
+  // line of confirmation is a bigger interruption than the thing being
+  // confirmed, and it takes you away from what you are confirming.
+  const [panel, setPanel] = useState<Panel>({ kind: "closed" });
   const rowRef = useRef<HTMLDivElement>(null);
+  const nameId = useId();
+  const shown = panel.kind !== "closed";
 
   useEffect(() => {
-    if (!open && !arming) return;
-    const shut = () => {
-      setOpen(false);
-      setArming(false);
-    };
+    if (!shown) return;
     const away = (event: PointerEvent) => {
-      if (!rowRef.current?.contains(event.target as Node)) shut();
+      if (!rowRef.current?.contains(event.target as Node)) setPanel({ kind: "closed" });
     };
+    // Escape steps back rather than slamming: out of the name box to the list,
+    // out of the list to nothing. Handled here rather than on the input so
+    // there is one rule in one place -- a text input does nothing else with
+    // Escape, so letting it bubble this far costs nothing.
     const key = (event: KeyboardEvent) => {
-      if (event.key === "Escape") shut();
+      if (event.key !== "Escape") return;
+      setPanel((was) => (was.kind === "list" ? { kind: "closed" } : { kind: "list" }));
     };
     document.addEventListener("pointerdown", away);
     document.addEventListener("keydown", key);
@@ -270,7 +339,12 @@ function CVSwitcher() {
       document.removeEventListener("pointerdown", away);
       document.removeEventListener("keydown", key);
     };
-  }, [open, arming]);
+    // `shown`, not `panel`: the name box rewrites `panel.value` on every
+    // keystroke, and depending on the object would tear down and re-attach two
+    // document listeners per character typed. The functional `setPanel` above
+    // is what makes the narrower dependency safe -- neither handler closes
+    // over a `panel` that could go stale.
+  }, [shown]);
 
   async function run(work: () => Promise<void>) {
     setBusy(true);
@@ -285,78 +359,43 @@ function CVSwitcher() {
   const label = active?.name ?? "Your CV";
 
   return (
-    <div ref={rowRef} className="relative flex items-center gap-1.5 px-3 pb-1">
-      {cvs.length > 1 ? (
-        <button
-          type="button"
-          className={[
-            // No border and no reserved arrow gutter: the chevron follows the
-            // last letter instead of being pinned to the right of a box, so a
-            // short name takes a short row and a long one gets every pixel
-            // between the logo above it and the buttons beside it.
-            "-mx-1 flex min-w-0 items-center gap-1 rounded px-1 py-1 text-sm font-medium",
-            "text-ink transition-colors hover:bg-sunken disabled:opacity-45",
-          ].join(" ")}
-          onClick={() => {
-            setArming(false);
-            setOpen((was) => !was);
-          }}
-          disabled={busy}
-          aria-haspopup="listbox"
-          aria-expanded={open}
-          aria-label="Which CV"
-          title={label}
-        >
-          <span className="truncate">{label}</span>
-          <ChevronDown
-            size={14}
-            strokeWidth={2}
-            className={`shrink-0 text-muted transition-transform duration-150 ${open ? "rotate-180" : ""}`}
-          />
-        </button>
-      ) : (
-        <span className="min-w-0 truncate text-sm font-medium text-muted" title={label}>
-          {label}
-        </span>
-      )}
+    <div ref={rowRef} className="relative flex items-center px-3 pb-1">
+      <button
+        type="button"
+        className={[
+          // No border and no reserved arrow gutter: the chevron follows the
+          // last letter instead of being pinned to the right of a box, so a
+          // short name takes a short row and a long one gets every pixel
+          // between the logo above it and the edge of the sidebar.
+          "-mx-1 flex min-w-0 max-w-full items-center gap-1 rounded px-1 py-1 text-sm",
+          "font-medium text-ink transition-colors hover:bg-sunken disabled:opacity-45",
+        ].join(" ")}
+        onClick={() =>
+          setPanel((was) => (was.kind === "closed" ? { kind: "list" } : { kind: "closed" }))
+        }
+        disabled={busy}
+        // "true" rather than "listbox": the panel is a list of CVs *and* a
+        // group of actions, and telling a screen reader it is only the former
+        // would be describing something that is not there.
+        aria-haspopup="true"
+        aria-expanded={shown}
+        aria-label="Which CV"
+        title={label}
+      >
+        <span className="truncate">{label}</span>
+        <ChevronDown
+          size={14}
+          strokeWidth={2}
+          className={`shrink-0 text-muted transition-transform duration-150 ${shown ? "rotate-180" : ""}`}
+        />
+      </button>
 
-      <span className="ml-auto flex shrink-0 items-center gap-1.5">
-        <button
-          type="button"
-          className="btn btn-quiet px-1.5 py-1"
-          onClick={() => void run(newCv)}
-          disabled={busy}
-          title="Start a new CV. This one is saved and stays in the list."
-          aria-label="New CV"
-        >
-          <FilePlus2 size={15} />
-        </button>
-        {/* Only once there is somewhere to land. The last CV cannot go -- the
-            registry refuses it -- and a button that only ever errors is worse
-            than no button, so it is not shown until deleting means something. */}
-        {cvs.length > 1 && (
-          <button
-            type="button"
-            className="btn btn-quiet px-1.5 py-1"
-            onClick={() => {
-              setOpen(false);
-              setArming(true);
-            }}
-            disabled={busy}
-            title="Delete the CV you are on. A copy is kept in data/backups."
-            aria-label="Delete this CV"
-          >
-            <Trash2 size={15} />
-          </button>
-        )}
-      </span>
-
-      {/* Deleting is the one action in this row that a switch cannot undo,
-          so it asks -- and it asks in the panel rather than in the row,
-          because the row is 200px of sidebar and the question is *which CV*.
-          A confirmation that has to truncate the name it is asking about is
-          not a confirmation. */}
-      {arming && active && (
+      {/* Deleting is the one action here that a switch cannot undo, so it
+          asks -- and it asks in the panel rather than in the row, because the
+          row is 208px of sidebar and the question is *which CV*. A
+          confirmation that has to truncate the name it is asking about is not
+          a confirmation. */}
+      {panel.kind === "arming" && active && (
         <div className={PANEL}>
           <p className="text-xs text-ink">
             Delete “<span className="font-medium">{active.name}</span>”?
@@ -369,7 +408,7 @@ function CVSwitcher() {
               type="button"
               className="btn btn-quiet px-2 py-1 text-2xs"
               disabled={busy}
-              onClick={() => setArming(false)}
+              onClick={() => setPanel({ kind: "list" })}
             >
               Keep
             </button>
@@ -380,7 +419,7 @@ function CVSwitcher() {
               onClick={() =>
                 void run(async () => {
                   await deleteCv(active.id);
-                  setArming(false);
+                  setPanel({ kind: "closed" });
                 })
               }
             >
@@ -390,41 +429,136 @@ function CVSwitcher() {
         </div>
       )}
 
-      {/* The list is where there is room to be complete: full names, and
-          "empty" said in words rather than squeezed into the trigger. */}
-      {open && (
-        <ul
-          role="listbox"
-          aria-label="Your CVs"
-          className={`${PANEL} max-h-72 overflow-y-auto p-0 py-1`}
-        >
-          {cvs.map((cv) => {
-            const on = cv.id === activeCv;
-            return (
-              <li key={cv.id}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={on}
-                  className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-xs hover:bg-sunken"
-                  onClick={() => {
-                    setOpen(false);
-                    if (!on) void run(() => switchCv(cv.id));
-                  }}
-                >
-                  <Check
-                    size={13}
-                    className={on ? "shrink-0 text-accent" : "shrink-0 opacity-0"}
-                  />
-                  <span className={`min-w-0 flex-1 truncate ${on ? "font-medium text-ink" : "text-muted"}`}>
-                    {cv.name}
-                  </span>
-                  {cv.blank && <span className="shrink-0 text-2xs text-faint">empty</span>}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+      {/* The panel is where there is room to be complete: full names, "empty"
+          said in words rather than squeezed into the trigger, and the actions
+          labelled instead of drawn. The listbox and the actions are siblings
+          rather than nested, because a button that is not an `option` has no
+          business inside a `role="listbox"`. */}
+      {(panel.kind === "list" || panel.kind === "naming") && (
+        <div className={`${PANEL} p-0`}>
+          <ul role="listbox" aria-label="Your CVs" className="max-h-56 overflow-y-auto py-1">
+            {cvs.map((cv) => {
+              const on = cv.id === activeCv;
+              return (
+                <li key={cv.id}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={on}
+                    // Frozen while a name is being typed: switching document
+                    // out from under a half-finished rename would either apply
+                    // it to the wrong CV or throw it away.
+                    disabled={busy || panel.kind === "naming"}
+                    className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-xs hover:bg-sunken disabled:opacity-45"
+                    onClick={() => {
+                      setPanel({ kind: "closed" });
+                      if (!on) void run(() => switchCv(cv.id));
+                    }}
+                  >
+                    <Check
+                      size={13}
+                      className={on ? "shrink-0 text-accent" : "shrink-0 opacity-0"}
+                    />
+                    <span
+                      className={`min-w-0 flex-1 truncate ${on ? "font-medium text-ink" : "text-muted"}`}
+                    >
+                      {cv.name}
+                    </span>
+                    {cv.blank && <span className="shrink-0 text-2xs text-faint">empty</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+
+          {panel.kind === "list" ? (
+            <div role="group" aria-label="This CV" className="border-t border-line py-1">
+              <MenuRow
+                icon={FilePlus2}
+                label="New CV"
+                hint="Blank. The one you are on is saved and stays in the list."
+                disabled={busy}
+                onClick={() => {
+                  setPanel({ kind: "closed" });
+                  void run(newCv);
+                }}
+              />
+              <MenuRow
+                icon={Copy}
+                label="Duplicate"
+                hint="The same content, design and focus, under a new name."
+                disabled={busy}
+                onClick={() =>
+                  setPanel({
+                    kind: "naming",
+                    purpose: "duplicate",
+                    value: copyName(
+                      label,
+                      cvs.map((cv) => cv.name),
+                    ),
+                  })
+                }
+              />
+              <MenuRow
+                icon={PencilLine}
+                label="Rename"
+                hint="Name this CV yourself. It then stops following the profile's name."
+                disabled={busy}
+                onClick={() => setPanel({ kind: "naming", purpose: "rename", value: label })}
+              />
+              {/* Only once there is somewhere to land. The last CV cannot go --
+                  the registry refuses it -- and a row that only ever errors is
+                  worse than no row, so it is not shown until deleting means
+                  something. */}
+              {cvs.length > 1 && (
+                <MenuRow
+                  icon={Trash2}
+                  label="Delete"
+                  tone="text-poor"
+                  hint="Delete the CV you are on. A copy is kept in data/backups."
+                  disabled={busy}
+                  onClick={() => setPanel({ kind: "arming" })}
+                />
+              )}
+            </div>
+          ) : (
+            <div className="border-t border-line p-2">
+              <label className="block text-2xs text-faint" htmlFor={nameId}>
+                {panel.purpose === "duplicate" ? "Call the copy" : "Rename this CV"}
+              </label>
+              <input
+                id={nameId}
+                // Two attributes rather than an effect: the input mounts only
+                // when naming begins, so `autoFocus` fires exactly once and
+                // the selection is not redone on every keystroke. Selecting is
+                // what makes the suggested name something you type over.
+                autoFocus
+                onFocus={(event) => event.currentTarget.select()}
+                value={panel.value}
+                maxLength={CV_NAME_MAX}
+                disabled={busy}
+                className="mt-1 w-full rounded border border-line bg-sunken px-1.5 py-1 text-xs text-ink"
+                onChange={(event) => setPanel({ ...panel, value: event.target.value })}
+                onKeyDown={(event) => {
+                  // Escape is left to bubble to the document handler above, so
+                  // stepping back out of here obeys the same rule as anywhere
+                  // else in this control. No <form>, so no submit to cancel.
+                  if (event.key !== "Enter") return;
+                  event.preventDefault();
+                  const wanted = panel.value.trim();
+                  if (!wanted) return;
+                  const purpose = panel.purpose;
+                  setPanel({ kind: "closed" });
+                  void run(async () => {
+                    if (purpose === "duplicate") await duplicateCv(wanted);
+                    else await renameCv(activeCv, wanted);
+                  });
+                }}
+              />
+              <p className="mt-1 text-2xs text-faint">Enter to confirm, Escape to cancel.</p>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
