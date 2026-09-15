@@ -9,6 +9,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
+import { Boundary } from "./components/Boundary";
 import { CommandPalette, useCommandPalette } from "./components/CommandPalette";
 import { Sidebar } from "./components/Sidebar";
 import { Toaster } from "./components/Toaster";
@@ -261,19 +262,26 @@ export default function App() {
         )}
         <main className="flex min-w-0 flex-1 flex-col overflow-y-auto">
           {ready ? (
-            <Routes>
-              <Route path="/" element={<Navigate to="/profile" replace />} />
-              <Route path="/profile" element={<ProfileScreen />} />
-              <Route path="/resume" element={<ResumeScreen />} />
-              <Route path="/tailor" element={<TailorScreen />} />
-              <Route path="/applications" element={<ApplicationsScreen />} />
-              <Route path="/letter" element={<LetterScreen />} />
-              <Route path="/import" element={<ImportScreen />} />
-              <Route path="/health" element={<HealthScreen />} />
-              <Route path="/focus" element={<FocusScreen />} />
-              <Route path="/settings" element={<SettingsScreen />} />
-              <Route path="*" element={<Navigate to="/profile" replace />} />
-            </Routes>
+            // Keyed on the path, so moving to another screen clears a caught
+            // error rather than stranding you on the report for a screen you
+            // have already left. Inside `main` and not around the shell: the
+            // sidebar has to survive whatever went wrong, or "go somewhere
+            // else" stops being advice you can follow.
+            <Boundary key={location.pathname} where={location.pathname}>
+              <Routes>
+                <Route path="/" element={<Navigate to="/profile" replace />} />
+                <Route path="/profile" element={<ProfileScreen />} />
+                <Route path="/resume" element={<ResumeScreen />} />
+                <Route path="/tailor" element={<TailorScreen />} />
+                <Route path="/applications" element={<ApplicationsScreen />} />
+                <Route path="/letter" element={<LetterScreen />} />
+                <Route path="/import" element={<ImportScreen />} />
+                <Route path="/health" element={<HealthScreen />} />
+                <Route path="/focus" element={<FocusScreen />} />
+                <Route path="/settings" element={<SettingsScreen />} />
+                <Route path="*" element={<Navigate to="/profile" replace />} />
+              </Routes>
+            </Boundary>
           ) : (
             <BootSkeleton />
           )}

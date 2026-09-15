@@ -6,6 +6,78 @@ wrong for a while, it says that too.
 
 ---
 
+## 2.3.1 — 2026-09-16
+
+### Changed
+
+- **Type size is a slider, 88–115, instead of five buttons.** It was filed
+  under taste, and it is not: whether a resume runs onto a second sheet is
+  measurable, and the percent that settles it is rarely one of five round
+  numbers. Two lines over at 100 meant dropping to 96 and reflowing the whole
+  document, when 98 would have closed it without moving anything else. This is
+  the argument margins already won — "a choice with a measurable right answer
+  is not a matter of taste" — applied to the other control it was always true
+  of. The five old sizes survive as names in the readout (`100% · Normal`,
+  `104% · Roomy`), since a curated look asking for "Normal" says more than one
+  asking for 100. The bounds are where they are for print: 88% is a shade under
+  9pt at the base size, about the floor for body text on paper, and past 115% a
+  short resume stops looking generous and starts looking padded.
+- **The flyout opens on hover as well as on click.** On a short delay in and a
+  longer one out, which is the difference between a menu that follows you and
+  one that flinches: a pointer crossing the list on its way to the nav passes
+  each row in well under the delay and nothing opens, while the gap between a
+  row and its panel is far shorter than the delay out, so reaching for the
+  panel never drops it. Once one is open the next swaps at once — the
+  hesitation is only worth paying the first time. Click still opens it
+  instantly and remains the only path for touch and keyboard.
+- **Each rename now sits beside the thing it renames.** They were the wrong way
+  round: the list of *people* offered to rename a CV, and a person's own panel
+  of *CVs* offered to rename the person. "Rename this person" is in the main
+  menu, next to the rows it changes; naming one of their CVs is inside their
+  panel, next to the CVs.
+
+### Fixed
+
+- **A screen that throws no longer takes the whole app with it.** React
+  unmounts everything when a render throws and nothing catches it, so one bad
+  read in the design panel turned the entire window into an empty dark
+  rectangle — no message, no navigation, nothing to act on, which for an app
+  somebody keeps their CV in reads as "the data is gone". There is a boundary
+  around the routed screen now: it explains what happened, says the CV is
+  untouched, names a stale server as the usual cause, and leaves the sidebar
+  working so you can go elsewhere. It resets when you do.
+- **The type size control survives an older server.** It read fields that a
+  build from before the slider does not send, and threw rather than doing
+  without them — which is what blanked the Resume screen. It falls back to the
+  standard bounds and simply omits the size's name.
+- **A person with one CV no longer leaves somebody else's panel hanging.**
+  Hovering them correctly opens nothing — there is nothing to show — but it was
+  also not letting go of whichever panel was already up, which left a flyout
+  beside a row it no longer belonged to.
+- **"Another CV for this person" is reachable without already having two.** It
+  lived only in a person's flyout, and a person with one CV has no flyout —
+  clicking them switches straight to their only CV rather than opening a panel
+  to announce it. So anybody whose people had one CV each, which is everybody
+  starting out, could not reach the feature the release exists for. It is now
+  in the main menu as well, acting on the CV you are on.
+- **The desktop shortcut no longer hands you a server older than the folder it
+  starts from.** If anything was already listening on port 8000 the launcher
+  adopted it and opened the browser, which is right when that server is the
+  current one and badly wrong otherwise. A running server holds its own Python
+  in memory, while static files are read from disk per request — so a rebuild
+  reached the browser instantly and the API did not, and the app appeared to
+  lose features it had just gained. `/api/health` now reports the version it is
+  running, and the launcher compares it against the source before adopting
+  anything: matching means open the browser as before, differing means stop the
+  old one and start the current one.
+- **A CV list is no longer blank when the frontend is newer than the backend.**
+  For the minute between a rebuild and a restart, the server sends `name` and
+  no `person`, and every CV grouped under `undefined` — one row, nothing
+  written on it, everybody's CVs inside. It falls back to the one-line name, so
+  the worst a version skew now does is show the old grouping.
+
+---
+
 ## 2.3.0 — 2026-09-15
 
 ### Added

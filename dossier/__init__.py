@@ -11,4 +11,4 @@ The interface is not in here. It is a React app under ``web/``, built to
 static files and served by ``api/static.py``.
 """
 
-__version__ = "2.3.0"
+__version__ = "2.3.1"

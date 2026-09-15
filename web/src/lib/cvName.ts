@@ -19,6 +19,20 @@ export interface PersonGroup {
 }
 
 /**
+ * Whose CV this is, surviving a server that has not been restarted.
+ *
+ * A build from before the name was split sends `name` and no `person`, and the
+ * bundle in the browser is replaced by a rebuild while the Python process is
+ * not. For the minute or two that lasts, every CV would group under
+ * `undefined` -- one row, no name on it, everybody's CVs inside. Falling back
+ * to `name` is the same thing `_entries` does on the server for an unmigrated
+ * row, and it degrades to exactly the old behaviour instead of to a blank.
+ */
+export function personOf(cv: Pick<CVSummary, "person"> & { name?: string }): string {
+  return cv.person || cv.name || "Untitled";
+}
+
+/**
  * Group by person, keeping the registry's order on both levels.
  *
  * First-seen order rather than alphabetical: the registry appends, so the
@@ -30,14 +44,16 @@ export interface PersonGroup {
 export function groupByPerson(cvs: CVSummary[]): PersonGroup[] {
   const groups = new Map<string, PersonGroup>();
   for (const cv of cvs) {
-    const existing = groups.get(cv.person);
+    const person = personOf(cv);
+    const existing = groups.get(person);
     if (existing) existing.cvs.push(cv);
-    else groups.set(cv.person, { person: cv.person, cvs: [cv] });
+    else groups.set(person, { person, cvs: [cv] });
   }
   return [...groups.values()];
 }
 
 /** How a CV reads on one line, matching `CV.name` on the server. */
-export function oneLine(cv: Pick<CVSummary, "person" | "label">): string {
-  return cv.label ? `${cv.person} — ${cv.label}` : cv.person;
+export function oneLine(cv: Pick<CVSummary, "person" | "label"> & { name?: string }): string {
+  const person = personOf(cv);
+  return cv.label ? `${person} — ${cv.label}` : person;
 }

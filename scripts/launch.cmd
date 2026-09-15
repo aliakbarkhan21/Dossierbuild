@@ -27,15 +27,41 @@ set "URL=http://127.0.0.1:%PORT%/"
 title Dossierbuild
 cd /d "%~dp0.."
 
-rem If a server is already up, a second one would fail on the port. Just
-rem surface the running app instead.
-powershell -NoProfile -Command "try { $c = New-Object Net.Sockets.TcpClient; $c.Connect('127.0.0.1', %PORT%); $c.Close(); exit 1 } catch { exit 0 }"
+rem If a server is already up, a second one would fail on the port -- so this
+rem used to just open the browser at whatever was there. That is wrong when
+rem "whatever was there" is older than the folder it was started from.
+rem
+rem A server holds its own Python in memory for as long as it runs. Static
+rem files are read from disk per request, so a rebuild reaches the browser
+rem immediately, but the API does not: the shortcut would hand you a new
+rem frontend talking to an old backend, which looks like the app losing
+rem features rather than like a stale process. That is exactly how a CV list
+rem grouped by a field the server had never heard of came out blank.
+rem
+rem So: ask what is running before adopting it. 0 = nothing there, 1 = ours
+rem and current, 2 = stale and now stopped.
+for /f "usebackq delims=" %%v in (`python -c "import dossier; print(dossier.__version__)"`) do set "SRC_VERSION=%%v"
+powershell -NoProfile -Command ^
+  "try { $c = New-Object Net.Sockets.TcpClient; $c.Connect('127.0.0.1', %PORT%); $c.Close() } catch { exit 0 };" ^
+  "$live = ''; try { $live = (Invoke-RestMethod -Uri '%URL%api/health' -TimeoutSec 5).version } catch { };" ^
+  "if ($live -and $live -eq $env:SRC_VERSION) { exit 1 };" ^
+  "Write-Host ''; Write-Host '  A stale Dossierbuild (version' $live ') is still running.';" ^
+  "Write-Host '  Stopping it so version' $env:SRC_VERSION 'can start.'; Write-Host '';" ^
+  "try { Invoke-RestMethod -Method Post -Uri '%URL%api/leaving' -TimeoutSec 3 | Out-Null } catch { };" ^
+  "for ($i = 0; $i -lt 20; $i++) { Start-Sleep -Milliseconds 400;" ^
+  "  try { $c = New-Object Net.Sockets.TcpClient; $c.Connect('127.0.0.1', %PORT%); $c.Close() } catch { exit 2 } };" ^
+  "$owner = (Get-NetTCPConnection -LocalPort %PORT% -State Listen -ErrorAction SilentlyContinue).OwningProcess;" ^
+  "if ($owner) { Stop-Process -Id $owner -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 800 };" ^
+  "exit 2"
+if errorlevel 2 goto :start
 if errorlevel 1 (
     echo Dossierbuild is already running -- opening it in your browser.
     start "" "%URL%"
     if not defined QUIET ping -n 3 127.0.0.1 >nul
     exit /b 0
 )
+
+:start
 
 rem The frontend is served from disk, so a missing build is a blank page with
 rem no explanation. Say so here instead.

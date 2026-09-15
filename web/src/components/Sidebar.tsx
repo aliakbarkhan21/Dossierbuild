@@ -33,7 +33,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
-import { CV_NAME_MAX, groupByPerson, oneLine, type PersonGroup } from "../lib/cvName";
+import { CV_NAME_MAX, groupByPerson, oneLine, personOf, type PersonGroup } from "../lib/cvName";
 import { MARKER_COLOUR_CLASS, markerStyle, useSlidingMarker } from "../lib/marker";
 import { currentMode, cycleMode, type Mode } from "../lib/theme";
 import { useShallow } from "zustand/react/shallow";
@@ -255,12 +255,22 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
  * choose from. So the panel lists whose CVs these are, and one person's CVs
  * open in a second panel beside them.
  *
- * The flyout opens on **click**, and once one is open, moving onto another
- * person swaps it. Not hover-to-open: a menu that opens under a pointer on its
- * way somewhere else needs safe-triangle tracking to be bearable, and it is
- * unreachable by touch and by keyboard either way. Click to commit, hover to
- * browse, which is the rule everywhere else that does this well.
+ * The flyout opens on hover or on click, whichever you reach for. Hover is on
+ * a short delay and closes on a longer one, which is what separates a menu
+ * that follows you from one that flinches: a pointer crossing the list on its
+ * way to the nav below passes each row in well under the open delay and
+ * nothing happens, while the gap between a row and its panel is far shorter
+ * than the close delay, so moving across it never drops the menu you were
+ * reaching for. Once one is open, moving to another person swaps it at once --
+ * the hesitation is only worth paying the first time.
+ *
+ * Click still opens it immediately and is the only path a keyboard or a touch
+ * screen has, so neither depends on a pointer that can hover.
  */
+/** Long enough that passing through a row is not a request to open it. */
+const HOVER_OPEN_MS = 180;
+/** Long enough to cross the gap to the panel, and to overshoot it slightly. */
+const HOVER_SHUT_MS = 260;
 const PANEL =
   "absolute left-3 top-full z-30 w-[248px] max-w-[calc(100vw-2rem)] rounded-md " +
   "border border-line bg-surface p-2.5 shadow-raised";
@@ -388,9 +398,10 @@ function PersonRow({
   anyOpen,
   disabled,
   onOpen,
+  onShut,
   onPick,
   onAdd,
-  onRenamePerson,
+  onRenameCv,
 }: {
   group: PersonGroup;
   activeCv: string;
@@ -398,14 +409,25 @@ function PersonRow({
   anyOpen: boolean;
   disabled?: boolean;
   onOpen: (person: string) => void;
+  onShut: () => void;
   onPick: (cvId: string) => void;
   onAdd: (cvId: string) => void;
-  onRenamePerson: (person: string) => void;
+  onRenameCv: (cvId: string, label: string) => void;
 }) {
   const [anchor, setAnchor] = useState<HTMLLIElement | null>(null);
   const at = useFlyoutPosition(anchor, open);
   const only = group.cvs.length === 1 ? group.cvs[0] : undefined;
   const mine = group.cvs.some((cv) => cv.id === activeCv);
+  // What the footer's two actions address: the one of theirs you are on, or
+  // their first if you are on somebody else's. Named once so "another CV" and
+  // "rename" cannot end up pointing at different documents.
+  const target = group.cvs.find((cv) => cv.id === activeCv) ?? group.cvs[0];
+  const openTimer = useRef<number | undefined>(undefined);
+
+  // A pending open must not survive the row that scheduled it -- a list
+  // re-rendered by a rename or a delete would otherwise open a panel for
+  // somebody the pointer left long ago.
+  useEffect(() => () => window.clearTimeout(openTimer.current), []);
 
   return (
     <li ref={setAnchor} className="relative">
@@ -419,13 +441,30 @@ function PersonRow({
           "flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-xs " +
           `hover:bg-sunken disabled:opacity-45 ${open ? "bg-sunken" : ""}`
         }
-        onClick={() => (only ? onPick(only.id) : onOpen(group.person))}
-        // Hover swaps between people only once a flyout is already up. From
-        // closed it does nothing, so a pointer crossing the list on its way
-        // somewhere else never opens anything.
-        onPointerEnter={() => {
-          if (anyOpen && !open && !only && !disabled) onOpen(group.person);
+        onClick={() => {
+          window.clearTimeout(openTimer.current);
+          if (only) onPick(only.id);
+          else onOpen(group.person);
         }}
+        onPointerEnter={() => {
+          if (only || disabled || open) {
+            // Somebody with one CV has no panel of their own, but arriving on
+            // them is still leaving whoever's panel was up. Letting it stand
+            // would hang a flyout beside a row it no longer belongs to.
+            if (only && !disabled && anyOpen) onShut();
+            return;
+          }
+          window.clearTimeout(openTimer.current);
+          // Instant once a panel is already up: you are reading down the list,
+          // and a delay between each name would feel like the menu lagging.
+          // The hesitation is only worth paying to open the first one.
+          if (anyOpen) {
+            onOpen(group.person);
+            return;
+          }
+          openTimer.current = window.setTimeout(() => onOpen(group.person), HOVER_OPEN_MS);
+        }}
+        onPointerLeave={() => window.clearTimeout(openTimer.current)}
       >
         <Check size={13} className={mine ? "shrink-0 text-accent" : "shrink-0 opacity-0"} />
         <span
@@ -482,6 +521,9 @@ function PersonRow({
               );
             })}
           </ul>
+          {/* Both actions here are about *a CV*, because that is what this
+              panel lists. Renaming the person belongs in the panel that lists
+              people, next to the row it would change. */}
           <div role="group" aria-label={group.person} className="border-t border-line py-1">
             <MenuRow
               icon={Copy}
@@ -491,17 +533,14 @@ function PersonRow({
               // Copy the one of theirs you are actually on where that is one
               // of theirs, so "another CV for them" starts from what you were
               // just looking at rather than from whichever is listed first.
-              onClick={() => {
-                const from = group.cvs.find((cv) => cv.id === activeCv) ?? group.cvs[0];
-                if (from) onAdd(from.id);
-              }}
+              onClick={() => target && onAdd(target.id)}
             />
             <MenuRow
               icon={PencilLine}
-              label="Rename them"
-              hint="Moves every one of their CVs together."
-              disabled={disabled}
-              onClick={() => onRenamePerson(group.person)}
+              label={target?.label ? `Rename “${target.label}”` : "Name this CV"}
+              hint="What to call this one of their CVs."
+              disabled={disabled || !target}
+              onClick={() => target && onRenameCv(target.id, target.label)}
             />
           </div>
         </div>
@@ -566,6 +605,7 @@ function CVSwitcher() {
   const rowRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const nameId = useId();
+  const shutTimer = useRef<number | undefined>(undefined);
   const shown = panel.kind !== "closed";
   const people = groupByPerson(cvs);
   // The list is unmounted while the panel is shut, so the measurement has to
@@ -605,6 +645,24 @@ function CVSwitcher() {
     // over a `panel` that could go stale.
   }, [shown]);
 
+  useEffect(() => () => window.clearTimeout(shutTimer.current), []);
+
+  /**
+   * Let go of the open flyout, but not straight away.
+   *
+   * The flyout is a separate box with a gap between it and the row that owns
+   * it, so leaving that row is the ordinary way of arriving at it. Closing on
+   * the leave itself would shut the menu every time somebody reached for it.
+   * Only the flyout is dropped -- the panel behind it stays until you click
+   * away or press Escape, because that one you opened deliberately.
+   */
+  function letGo() {
+    window.clearTimeout(shutTimer.current);
+    shutTimer.current = window.setTimeout(() => {
+      setPanel((was) => (was.kind === "list" && was.openPerson ? { kind: "list" } : was));
+    }, HOVER_SHUT_MS);
+  }
+
   async function run(work: () => Promise<void>) {
     setBusy(true);
     try {
@@ -615,7 +673,7 @@ function CVSwitcher() {
   }
 
   const active = cvs.find((cv) => cv.id === activeCv);
-  const person = active?.person ?? "Your CV";
+  const person = active ? personOf(active) : "Your CV";
   const label = active?.label ?? "";
   const full = active ? oneLine(active) : person;
 
@@ -705,7 +763,14 @@ function CVSwitcher() {
           rather than nested, because a button that is not an `option` has no
           business inside a `role="listbox"`. */}
       {(panel.kind === "list" || panel.kind === "naming") && (
-        <div className={`${PANEL} p-0`}>
+        <div
+          className={`${PANEL} p-0`}
+          // The flyout is a DOM child of its row even though it is painted
+          // elsewhere, so entering it never counts as leaving this -- which is
+          // what lets one pair of handlers cover the panel and every flyout.
+          onPointerEnter={() => window.clearTimeout(shutTimer.current)}
+          onPointerLeave={letGo}
+        >
           {/* `relative` so the fade below can sit on the list's bottom edge. */}
           <div className="relative">
             <ul
@@ -727,7 +792,11 @@ function CVSwitcher() {
                   // from under a half-finished rename would either apply it to
                   // the wrong CV or throw it away.
                   disabled={busy || panel.kind === "naming"}
-                  onOpen={(person) => setPanel({ kind: "list", openPerson: person })}
+                  onOpen={(person) => {
+                    window.clearTimeout(shutTimer.current);
+                    setPanel({ kind: "list", openPerson: person });
+                  }}
+                  onShut={() => setPanel({ kind: "list" })}
                   onPick={(id) => {
                     setPanel({ kind: "closed" });
                     if (id !== activeCv) void run(() => switchCv(id));
@@ -735,8 +804,13 @@ function CVSwitcher() {
                   onAdd={(cvId) =>
                     setPanel({ kind: "naming", purpose: "duplicate", value: "", subject: cvId })
                   }
-                  onRenamePerson={(name) =>
-                    setPanel({ kind: "naming", purpose: "person", value: name, subject: name })
+                  onRenameCv={(cvId, cvLabel) =>
+                    setPanel({
+                      kind: "naming",
+                      purpose: "rename",
+                      value: cvLabel,
+                      subject: cvId,
+                    })
                   }
                 />
               ))}
@@ -767,18 +841,41 @@ function CVSwitcher() {
                   void run(newCv);
                 }}
               />
+              {/* Also in every person's flyout, and it has to be in both.
+                  Somebody whose people have one CV each never opens a flyout
+                  -- clicking them switches straight to it -- so leaving this
+                  only in there put the whole reason for the feature behind a
+                  panel that, for them, never appears. */}
               <MenuRow
-                icon={PencilLine}
-                label={label ? `Rename “${label}”` : "Name this CV"}
-                hint="What to call this one of their CVs. Their name is renamed from their own row."
+                icon={Copy}
+                label="Another CV for this person"
+                hint="Copies this CV's content, design and focus under a new name."
                 disabled={busy || !active}
                 onClick={() =>
                   active &&
                   setPanel({
                     kind: "naming",
-                    purpose: "rename",
-                    value: label,
+                    purpose: "duplicate",
+                    value: "",
                     subject: active.id,
+                  })
+                }
+              />
+              {/* The person, because this panel lists people. What to call one
+                  of their CVs is asked inside their own flyout, beside the CV
+                  it would rename. */}
+              <MenuRow
+                icon={PencilLine}
+                label="Rename this person"
+                hint="Every CV of theirs moves together."
+                disabled={busy || !active}
+                onClick={() =>
+                  active &&
+                  setPanel({
+                    kind: "naming",
+                    purpose: "person",
+                    value: person,
+                    subject: person,
                   })
                 }
               />

@@ -188,13 +188,31 @@ def test_the_blank_profile_comes_from_the_schema_that_defines_it() -> None:
 
 
 def test_design_round_trips_and_repairs_nonsense() -> None:
+    from dossier.render.design import SCALE_MAX
+
     response = client.put("/api/design", json={"template": "gothic", "accent": "navy", "scale": 400})
     assert response.status_code == 200
     body = response.json()
     assert body["template"] == "classic"  # unknown template repaired
     assert body["accent"] == "navy"
-    assert body["scale"] == 112  # clamped
+    assert body["scale"] == SCALE_MAX  # clamped, against the source not a literal
     assert client.get("/api/design").json()["accent"] == "navy"
+
+
+def test_a_type_size_between_the_named_ones_survives() -> None:
+    """The whole reason it stopped being five buttons.
+
+    Two lines over at 100 used to mean dropping to 96 and reflowing the page.
+    98 closes it without moving anything else, so 98 has to be storable.
+    """
+    from dossier.render.design import SCALE_MAX, SCALE_MIN, SCALE_NAMES
+
+    for wanted in (SCALE_MIN, 98, 101, SCALE_MAX):
+        saved = client.put("/api/design", json={"scale": wanted}).json()
+        assert saved["scale"] == wanted
+        assert client.get("/api/design").json()["scale"] == wanted
+    # And the named sizes are still reachable, since the looks ask for them.
+    assert set(SCALE_NAMES) <= set(range(SCALE_MIN, SCALE_MAX + 1))
 
 
 def test_options_describe_everything_the_frontend_needs() -> None:
@@ -211,7 +229,13 @@ def test_options_describe_everything_the_frontend_needs() -> None:
     assert any(t["photo"] for t in body["templates"])
     assert all(a["hex"].startswith("#") for a in body["accents"])
     assert len(body["looks"]) >= 5
-    assert body["scale"]["steps"][0] < 100
+    # A slider's bounds and the sizes inside it that have a name to show.
+    assert body["scale"]["min"] < 100 < body["scale"]["max"]
+    assert body["scale"]["named"]["100"] == "Normal"
+    assert all(
+        body["scale"]["min"] <= int(pct) <= body["scale"]["max"]
+        for pct in body["scale"]["named"]
+    )
 
 
 # --------------------------------------------------------------------------

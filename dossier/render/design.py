@@ -303,6 +303,30 @@ MARGINS: dict[str, tuple[str, float]] = {
 MARGIN_MIN_MM = 2.0
 MARGIN_MAX_MM = 20.0
 
+# Type size is the *same* argument as margins, and was filed under taste by
+# mistake. Whether a resume runs onto a second sheet is measurable, and the
+# percent that decides it is rarely one of five round numbers -- somebody two
+# lines over at 100 had to drop to 96 and reflow the whole page, when 98 would
+# have done it. "Curated, not open-ended" is about the axes where taste is the
+# whole question: the accent, the pairing. This is not one of them.
+#
+# 88 is the floor because at BASE_PT it is a shade under 9pt, which is about
+# as small as body text can be set and still read on paper; 115 because past
+# it a short resume stops looking generous and starts looking padded.
+SCALE_MIN = 88
+SCALE_MAX = 115
+
+# The five that were the whole control until now. They stay, as names the
+# readout can use and as the values the curated looks set: "Normal" is a more
+# useful thing for a look to ask for than "100".
+SCALE_NAMES: dict[int, str] = {
+    92: "Compact",
+    96: "Snug",
+    100: "Normal",
+    104: "Roomy",
+    108: "Large",
+}
+
 # How a date prints. Two options rather than a format string: "Feb 2025" is
 # the resume convention almost everywhere and is unambiguous to a parser,
 # while "02/2025" is normal in Pakistan and much of Europe. A free-text format
@@ -742,7 +766,7 @@ class Design(BaseModel):
     @field_validator("scale")
     @classmethod
     def _scale(cls, v: int) -> int:
-        return max(90, min(112, int(v)))
+        return max(SCALE_MIN, min(SCALE_MAX, int(v)))
 
     @field_validator("order")
     @classmethod

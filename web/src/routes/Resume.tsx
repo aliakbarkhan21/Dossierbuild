@@ -1453,7 +1453,7 @@ function DesignPanel({
     leading: { key: string; name: string }[];
     date_formats: { key: string; name: string; blurb: string }[];
     sections: { key: string; name: string }[];
-    scale: { steps: number[] };
+    scale: { min: number; max: number; named: Record<number, string> };
     templates: TemplateOption[];
     layouts: Option[];
   };
@@ -1563,7 +1563,8 @@ function DesignPanel({
       />
 
       <ScaleSlider
-        steps={options.scale.steps}
+        range={options.scale}
+        named={options.scale.named}
         value={design.scale}
         onChange={(scale) => onChange({ scale })}
       />
@@ -1738,35 +1739,63 @@ function MarginSlider({
 const PRESET_MM: Record<string, number> = { tight: 12, normal: 16, wide: 21 };
 
 /**
- * The five type sizes.
+ * Type size, continuous, the same shape as Margins above it.
  *
- * On its own row rather than sharing one with line spacing. Five slots in
- * half a 340px panel came to 28.6px each, against labels that need 29, so
- * "92" and "108" printed a hair outside the bar they belong to. Given the
- * whole width each slot is over 60px and the numbers sit where they should.
+ * It was five buttons -- 92, 96, 100, 104, 108 -- and those are five of the
+ * twenty-eight sizes that fit. The trouble is that type size is not a matter
+ * of taste, whatever the panel around it suggests: whether a resume runs onto
+ * a second sheet is measurable, and the percent that settles it is rarely one
+ * of five round numbers. Two lines over at 100 meant dropping to 96 and
+ * reflowing the whole document, when 98 would have closed it without moving
+ * anything else.
+ *
+ * So it is the control margins already had, for the reason margins already
+ * had it. The five sizes survive as names in the readout, which is the part
+ * worth keeping -- "Normal" says something "100" does not -- and a look that
+ * asks for 100 still lands on a size with a name.
  */
 function ScaleSlider({
-  steps,
+  range,
+  named,
   value,
   onChange,
 }: {
-  steps: number[];
+  range: { min?: number; max?: number };
+  named?: Record<number, string>;
   value: number;
   onChange: (value: number) => void;
 }) {
-  // A saved design could name a size this build no longer offers; the
-  // highlight parks on the first step rather than sliding off the end.
-  const known = steps.includes(value) ? value : steps[0]!;
+  // Defaults rather than a crash. A server started before this change sends
+  // the old `{steps, base_pt}` and none of what this reads -- and a panel that
+  // throws takes the whole route down with it, which is how a stale server
+  // turned into a blank page instead of a stale control. The numbers here are
+  // only ever used during the minute between a rebuild and a restart.
+  const min = range.min ?? 88;
+  const max = range.max ?? 115;
+  const name = named?.[value];
 
   return (
     <div>
-      <span className="label">Type size</span>
-      <Segmented
-        fill
-        ariaLabel="Type size"
-        choices={steps.map((step) => ({ key: String(step), label: step }))}
-        value={String(known)}
-        onChange={(key) => onChange(Number(key))}
+      <div className="flex items-baseline justify-between gap-2">
+        <label className="label" htmlFor="type-scale">
+          Type size
+        </label>
+        <span className="font-mono text-2xs tabular-nums text-muted">
+          {value}%{name ? ` · ${name}` : ""}
+        </span>
+      </div>
+      <input
+        id="type-scale"
+        type="range"
+        className="zoom w-full"
+        min={min}
+        max={max}
+        step={1}
+        // A design saved when the bounds were wider parks the handle at the
+        // end while the readout keeps telling the truth, exactly as the margin
+        // slider does; the next touch brings it back into range.
+        value={Math.min(max, Math.max(min, value))}
+        onChange={(event) => onChange(Number(event.target.value))}
       />
     </div>
   );

@@ -118,9 +118,15 @@ def health() -> dict[str, object]:
     from ..core.storage import DATA_DIR, default_profile_path
     from ..render.pdf import chromium_ready
 
+    from .. import __version__
+
     browser_ok, browser_detail = chromium_ready()
     return {
         "ok": True,
+        # The version of the code *running*, which is not always the version in
+        # the folder: a server started before a rebuild keeps serving its own
+        # Python for as long as it stays up. The launcher compares the two.
+        "version": __version__,
         "schema_version": SCHEMA_VERSION,
         "data_dir": str(DATA_DIR),
         # The CV in front of the user, not the legacy single file: on a

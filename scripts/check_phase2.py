@@ -23,6 +23,7 @@ from dossier.render.design import (
     LAYOUTS,
     LOOKS,
     PAIRINGS,
+    SCALE_MAX,
     TEMPLATES,
     Design,
     load_design,
@@ -92,7 +93,7 @@ def _() -> None:
     )
     assert d.template in TEMPLATES, d.template
     assert d.page == "a4" and d.accent == "ink" and d.fonts in PAIRINGS
-    assert d.scale == 112, d.scale
+    assert d.scale == SCALE_MAX, d.scale
     # Deduplicated, unknown keys dropped, missing ones appended.
     assert d.order[0] == "skills" and len(set(d.order)) == len(d.order)
     assert set(d.order) == {"summary", "experience", "projects", "education",

@@ -49,6 +49,16 @@ describe("groupByPerson", () => {
   it("returns nothing for nothing", () => {
     expect(groupByPerson([])).toEqual([]);
   });
+
+  it("falls back to the one-line name when the server has not been restarted", () => {
+    // A build from before the split sends `name` and no `person`. Without the
+    // fallback every CV groups under undefined: one row, no name on it.
+    const stale = [
+      { ...cv("Priya Raman", ""), person: undefined as unknown as string },
+      { ...cv("Sam Okafor", ""), person: undefined as unknown as string },
+    ];
+    expect(groupByPerson(stale).map((g) => g.person)).toEqual(["Priya Raman", "Sam Okafor"]);
+  });
 });
 
 describe("oneLine", () => {

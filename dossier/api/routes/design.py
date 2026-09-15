@@ -50,7 +50,12 @@ class LookOut(Option):
 
 
 class ScaleOut(BaseModel):
-    steps: list[int]
+    """Bounds for the slider, and the sizes that have a name to show."""
+
+    min: int
+    max: int
+    #: Percent to the name the readout says when the handle lands there.
+    named: dict[int, str]
     base_pt: float
 
 
@@ -140,5 +145,7 @@ def options() -> Options:
             for l in dz.LOOKS
         ],
         sections=[Option(key=key, name=label) for key, label in dz.RESUME_SECTIONS],
-        scale=ScaleOut(steps=[92, 96, 100, 104, 108], base_pt=BASE_PT),
+        scale=ScaleOut(
+            min=dz.SCALE_MIN, max=dz.SCALE_MAX, named=dz.SCALE_NAMES, base_pt=BASE_PT
+        ),
     )

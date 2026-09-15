@@ -233,7 +233,8 @@ export interface DesignOptions {
   date_formats: Option[];
   looks: LookOption[];
   sections: Option[];
-  scale: { steps: number[]; base_pt: number };
+  /** Slider bounds, plus the percents that have a name the readout can show. */
+  scale: { min: number; max: number; named: Record<number, string>; base_pt: number };
 }
 
 export type Severity = "error" | "warning" | "note";
