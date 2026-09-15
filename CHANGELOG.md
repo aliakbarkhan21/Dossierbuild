@@ -6,6 +6,46 @@ wrong for a while, it says that too.
 
 ---
 
+## 2.2.0 — 2026-09-15
+
+### Added
+
+- **Duplicate a CV.** Content, design and focus tag copied together, under a
+  name you give it before it exists rather than one you correct afterwards.
+  The case it is for is a work CV and an education CV of one person: those two
+  documents share a degree, three jobs and a typeface, and differ in emphasis,
+  so starting the second from the first is starting from almost all of it. The
+  design comes across because a design whose section order names a custom
+  section is only valid against the profile it was written for — a copy that
+  arrived on the default template would look like the feature had worked right
+  up until it was printed. The copy is never auto-named: a CV still carrying a
+  generated name takes the profile's name at the next save, which would rename
+  both copies to the same person and leave two rows in the switcher reading the
+  same words.
+- **Rename a CV**, from the same box. The endpoint had been there since CVs
+  were added and nothing in the interface had ever called it, so a CV named
+  after the person could only ever be told apart from another by its position
+  in the list.
+
+### Changed
+
+- **The CV row is the name, and the name gets the whole row.** New, Duplicate,
+  Rename and Delete moved out of the 208 pixels the sidebar row has and into
+  the menu the name already opened, where they are words rather than icons.
+  Those two icon buttons were taking 66 of those pixels, which is why
+  "Muhammad Ali Akbar Khan" was reading "Muhamma…" — a name you cannot read is
+  a worse problem than a menu you have to open. The chevron now shows even
+  with one CV, since the menu is the only way to reach "New CV".
+
+### Fixed
+
+- **Duplicating no longer copies the paragraph before the one you just typed.**
+  Autosave waits 1.5s for a pause in typing and the design waits 400ms for a
+  slider to settle, and the copy is made from the files on disk — so anything
+  still sitting in a debounce is now written before the request goes out.
+
+---
+
 ## 2.1.0 — 2026-09-11
 
 ### Added

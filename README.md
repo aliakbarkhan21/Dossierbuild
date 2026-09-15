@@ -91,9 +91,13 @@ still the default, and focus tags are still the right answer to "the same
 facts, aimed at a different job". But a research post and a support role are
 two different accounts of a life, not one document tailored twice — so the
 sidebar switches between CVs, each a profile file of exactly the same format.
-The design, the applications, the saved versions and the letters are shared:
-those are a record of a job search, not of a document. Starting one asks
-nothing, because the one you were on is already written to disk.
+The design and the focus tag belong to the CV; the applications, the saved
+versions and the letters are shared, because those are a record of a job search
+rather than of a document. Starting one asks nothing, because the one you were
+on is already written to disk. And where the two documents share a history —
+the same degree, the same three jobs, aimed once at research and once at
+support — **Duplicate** copies content, design and focus together, so you edit
+the difference instead of retyping the overlap.
 
 **A saved version is the document you actually sent.** Profile and design
 together, because a resume is both: the same words at 92% type with tight
