@@ -87,3 +87,40 @@ def test_a_new_cv_does_not_take_the_previous_one_s_design() -> None:
     assert load_design().fonts != "condensed" or not design_path(second).exists()
     cvs.switch(first)
     assert load_design().fonts == "condensed"
+
+
+def test_a_duplicate_starts_from_the_original_s_design() -> None:
+    """The one case that inverts the rule above.
+
+    A new CV deliberately does not take the previous one's design. A *copy* is
+    the opposite request: it exists to be the same document until you change
+    something, and a copy that came back on the default template would make
+    the user redo the look before they could start on the difference.
+    """
+    first = cvs.active_id()
+    save_design(Design(fonts="condensed", template="modern"))
+
+    copy = cvs.duplicate(first)
+
+    assert design_path(copy.id).exists()
+    assert (load_design().fonts, load_design().template) == ("condensed", "modern")
+
+
+def test_duplicating_a_cv_that_was_never_styled_writes_no_design() -> None:
+    """There is nothing of its own to copy, and both still inherit.
+
+    Writing the resolved defaults out here would freeze a look that is meant
+    to keep following the shared file.
+    """
+    LEGACY_DESIGN_PATH.parent.mkdir(parents=True, exist_ok=True)
+    LEGACY_DESIGN_PATH.write_text(
+        json.dumps(Design(fonts="times", template="gazette").model_dump(mode="json")),
+        encoding="utf-8",
+    )
+    fresh = cvs.create().id
+    assert not design_path(fresh).exists()
+
+    copy = cvs.duplicate(fresh)
+
+    assert not design_path(copy.id).exists()
+    assert (load_design().fonts, load_design().template) == ("times", "gazette")

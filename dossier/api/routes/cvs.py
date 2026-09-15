@@ -1,6 +1,6 @@
 """Which CV the app is looking at.
 
-Thin over ``core.cvs``: the registry decides everything, and these five
+Thin over ``core.cvs``: the registry decides everything, and these six
 handlers only turn its errors into status codes. Nothing here takes a file
 path from a request -- an id names a CV and the registry resolves it.
 """
@@ -75,6 +75,24 @@ def create(body: NameIn | None = None) -> CVList:
     this touches nothing in it. That is why the button asks nothing.
     """
     registry.create(body.name if body else None)
+    return _listing()
+
+
+@router.post("/{cv_id}/duplicate", response_model=CVList, status_code=201)
+def duplicate(cv_id: str, body: NameIn | None = None) -> CVList:
+    """Copy a CV -- content, design and focus -- and make the copy active.
+
+    A copy rather than a new CV: two accounts of one life are easier to start
+    from each other than from nothing. The copy keeps the name it is given and
+    never takes one from a profile saved into it afterwards.
+
+    404 rather than 400, like ``activate``: the only thing that can be wrong
+    here is the id in the path.
+    """
+    try:
+        registry.duplicate(cv_id, body.name if body else "")
+    except registry.CVError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return _listing()
 
 

@@ -563,12 +563,14 @@ export interface InterviewBrief {
   declared_only: string[];
 }
 
-/** One CV in the data directory. The facts are per-CV; the design is not. */
+/** One CV in the data directory. The facts are per-CV, and so is the design. */
 export interface CVSummary {
   id: string;
   name: string;
   created: string;
   updated: string;
+  /** The focus this CV opens with. A default, not a lock. */
+  focus: string;
   blank: boolean;
   /** True while the name is still generated, and so still follows the profile. */
   auto_named: boolean;

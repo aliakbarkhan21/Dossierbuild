@@ -93,6 +93,9 @@ interface State {
   cvs: CVSummary[];
   activeCv: string;
   newCv: () => Promise<void>;
+  /** Copy the CV you are on -- content, design and focus -- and open the copy. */
+  duplicateCv: (name?: string) => Promise<void>;
+  renameCv: (id: string, name: string) => Promise<void>;
   switchCv: (id: string) => Promise<void>;
   deleteCv: (id: string) => Promise<void>;
   syncCvs: () => Promise<void>;
@@ -183,6 +186,25 @@ function scheduleAutosave(get: () => State): void {
     const state = get();
     if (state.dirty && !state.saving) void state.save({ silent: true });
   }, AUTOSAVE_IDLE_MS);
+}
+
+/**
+ * Get everything onto disk before an operation that reads from disk.
+ *
+ * Duplicating a CV copies files, not this store. Autosave waits 1.5s for a
+ * pause in typing and the design waits 400ms for a slider to settle, so a copy
+ * made straight after an edit would otherwise be a copy of the paragraph
+ * before it -- the one case where the debounce that keeps the backup folder
+ * clean would quietly cost someone a sentence.
+ */
+async function flushPending(get: () => State): Promise<void> {
+  if (get().dirty) await get().save({ silent: true });
+  if (designTimer !== undefined) {
+    clearTimeout(designTimer);
+    designTimer = undefined;
+    const design = get().design;
+    if (design) await api.saveDesign(design).catch(() => undefined);
+  }
 }
 
 export const useStore = create<State>()(
@@ -377,6 +399,9 @@ export const useStore = create<State>()(
       });
       clearTimeout(designTimer);
       designTimer = setTimeout(() => {
+        // Cleared as it fires, so `flushPending` can tell a write that is
+        // still waiting from one that has already gone.
+        designTimer = undefined;
         const design = get().design;
         if (design) void api.saveDesign(design).catch(() => undefined);
       }, 400);
@@ -411,6 +436,66 @@ export const useStore = create<State>()(
         const list = await api.newCv();
         await get().adoptCv(list);
         toast.success("New CV started", "The one you were on is saved. Switch back from the sidebar.");
+      } catch (error) {
+        if (error instanceof ApiError) toast.error(error.message, error.fix);
+      }
+    },
+
+    /**
+     * Copy this CV and open the copy -- content, design and focus tag.
+     *
+     * Not a new CV: the case this is for is a work CV and an education CV of
+     * one person, and those share far more than they differ by. The copy is
+     * named on the way in rather than renamed afterwards, because a copy that
+     * arrived called the same thing as its original would leave two identical
+     * rows in the switcher and no way to tell which one you were on.
+     *
+     * The history goes with the switch, exactly as `newCv`: a Ctrl+Z that
+     * could pull one CV's paragraph into another is not a history anyone can
+     * reason about. `adoptCv` does that.
+     */
+    async duplicateCv(name = "") {
+      try {
+        // The server copies files. Anything still sitting in a debounce here
+        // is not in those files yet.
+        await flushPending(get);
+        const list = await api.duplicateCv(get().activeCv, name);
+        await get().adoptCv(list);
+        toast.success(
+          "Copy made",
+          "You are on the copy. The original is untouched and still in the list.",
+        );
+      } catch (error) {
+        if (error instanceof ApiError) toast.error(error.message, error.fix);
+      }
+    },
+
+    /**
+     * A label, and nothing else.
+     *
+     * Deliberately not routed through `adoptCv`: renaming does not change
+     * which document is open, and taking the switch path would refetch a
+     * profile that has not moved and throw away an undo history for the sake
+     * of one word.
+     *
+     * No success toast either. The sidebar label changing in front of you is
+     * the confirmation; a message saying the name you just typed is now the
+     * name would be telling you what you can already see.
+     *
+     * One side effect worth knowing: the registry clears `auto_named`, so a CV
+     * you have named yourself stops taking the profile's name at every save.
+     * That is the point of naming it -- see `syncCvs`.
+     */
+    async renameCv(id, name) {
+      const wanted = name.trim();
+      const current = get().cvs.find((cv) => cv.id === id)?.name;
+      if (!wanted || wanted === current) return;
+      try {
+        const list = await api.renameCv(id, wanted);
+        set((s) => {
+          s.cvs = list.cvs;
+          s.activeCv = list.active;
+        });
       } catch (error) {
         if (error instanceof ApiError) toast.error(error.message, error.fix);
       }

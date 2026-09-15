@@ -142,6 +142,9 @@ export const api = {
   newCv: () => request<CVList>("/api/cvs", "POST", {}),
   switchCv: (id: string) => request<CVList>(`/api/cvs/${id}/active`, "PUT"),
   renameCv: (id: string, name: string) => request<CVList>(`/api/cvs/${id}`, "PUT", { name }),
+  /** Content, design and focus, under a new name, and you land on the copy. */
+  duplicateCv: (id: string, name = "") =>
+    request<CVList>(`/api/cvs/${id}/duplicate`, "POST", { name }),
   deleteCv: (id: string) => request<CVList>(`/api/cvs/${id}`, "DELETE"),
   /** An empty profile of the current shape, from the schema that defines it. */
   blankProfile: () => request<Profile>("/api/profile/blank"),

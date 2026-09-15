@@ -12,12 +12,16 @@ the format ``storage`` already reads and writes, so every migration, every
 validation and the atomic write apply unchanged; the only new thing is which
 file ``load_profile()`` reaches for when nobody names one.
 
-**What is per-CV and what is not.** The facts are. The design is not -- it is
-a house style, and someone who has settled on a typeface wants it on both
-documents; the design panel is where that gets changed, per printing. Neither
-are the applications, the saved versions or the letters: those are a record of
-a job search, not of a document, and a letter filed against an application
-should not vanish because you switched CV to write another one.
+**What is per-CV and what is not.** The facts are, and so is the design: it
+was one file for all of them right up until somebody kept two CVs for two
+different people and setting a typeface on one silently reset the other. So is
+the focus tag a CV opens with. ``duplicate`` copies all three together, because
+a design whose section order refers to a profile's custom sections is only
+valid against the profile it was written for.
+
+Not per-CV: the applications, the saved versions and the letters. Those are a
+record of a job search rather than of a document, and a letter filed against an
+application should not vanish because you switched CV to write another one.
 
 **The previous CV is saved by never being touched.** Autosave has already
 written it before the switch -- there is no unsaved buffer here to flush --
@@ -42,6 +46,11 @@ INDEX_VERSION = 1
 
 #: A name we chose rather than one the user did, and so one we may replace.
 DEFAULT_NAME_PREFIX = "CV "
+
+#: The route caps a name at 80 characters. A name suggested here that overflowed
+#: it would be refused by the very endpoint that asked for it, so suggestions
+#: are built to fit.
+NAME_MAX = 80
 
 
 class CVError(RuntimeError):
@@ -221,6 +230,115 @@ def create(name: str | None = None) -> CV:
     data["active"] = cv_id
     _write_index(data)
     return cv
+
+
+def duplicate(cv_id: str, name: str = "") -> CV:
+    """Copy a CV -- its facts, its design and its focus -- and open the copy.
+
+    This is what "a work CV and an education CV" asks for. Those two documents
+    share a life and differ in emphasis, so starting the second from the first
+    is starting from almost all of it; starting from ``create`` is retyping a
+    history you have already typed once.
+
+    **The copy is never auto-named.** ``adopt_profile_name`` renames any CV
+    still carrying a generated name every time a profile is saved into it, so
+    an auto-named copy would snap back to the person's own name at the next
+    autosave and leave two rows in the switcher reading the same words. Naming
+    it is what makes it a second document rather than a second copy of the
+    first, which is why the flag is cleared here whether or not a name was
+    supplied.
+
+    Ordered so nothing is ever half-made: the profile is on disk, then the
+    design, and only then the single atomic index write that both lists the
+    copy and makes it active. ``create`` cannot be reused for this -- it flips
+    ``active`` in the same write that creates the placeholder, so a failure
+    during the copy would leave you standing on an empty CV wearing the copy's
+    name. An interruption here leaves an unreferenced file in ``data/cvs``,
+    which nobody ever sees.
+    """
+    data = _index()
+    entries = _entries(data)
+    source = next((cv for cv in entries if cv.id == cv_id), None)
+    if source is None:
+        raise CVError("That CV is not in this data directory.")
+
+    new_id = uuid.uuid4().hex[:12]
+    CVS_DIR.mkdir(parents=True, exist_ok=True)
+    src_path = path_for(source.id)
+    dst_path = path_for(new_id)
+    if src_path.exists():
+        # Copied byte for byte, like `_adopt`, and without parsing it first. A
+        # profile too broken to read is still a profile, and the registry is
+        # not the place that decides which documents deserve to be copied.
+        shutil.copy2(src_path, dst_path)
+    else:
+        # A CV whose file somebody removed by hand is an empty CV, and an empty
+        # copy is the honest answer -- more use than an error about a file no
+        # one deleted on purpose.
+        dst_path.write_text('{"schema_version": 4}\n', encoding="utf-8")
+
+    _copy_design(source.id, new_id)
+
+    now = _now()
+    chosen = (name or "").strip()[:NAME_MAX]
+    cv = CV(
+        id=new_id,
+        name=chosen or _copy_name(source.name, {row.name for row in entries}),
+        created=now,
+        updated=now,
+        auto_named=False,
+        focus=source.focus,
+    )
+    data["cvs"] = [*data["cvs"], cv.as_dict()]  # type: ignore[list-item]
+    data["active"] = new_id
+    _write_index(data)
+    return cv
+
+
+def _copy_name(source: str, taken: set[str]) -> str:
+    """"X (copy)", and then "X (copy 2)".
+
+    Two copies of one CV is precisely the case this feature exists for, and a
+    list whose rows read the same words is a list nobody can choose from.
+    """
+    # The *stem* is trimmed to fit, never the finished string. Truncating the
+    # whole candidate would cut off the "(copy 2)" that makes each one
+    # different, and the loop below would then propose the same name for ever.
+    # " (copy 999)" is eleven characters.
+    stem = source[: NAME_MAX - 12].rstrip()
+    candidate = f"{stem} (copy)"
+    number = 2
+    while candidate in taken:
+        candidate = f"{stem} (copy {number})"
+        number += 1
+    return candidate
+
+
+def _copy_design(src_id: str, dst_id: str) -> None:
+    """Carry the look across with the facts.
+
+    Imported inside the function for the reason ``design_path`` gives for doing
+    the same in reverse: that module reaches back into this one for the active
+    id, and a module-level import in either direction makes ``core`` depend on
+    ``render``.
+
+    A source with no design file of its own is inheriting the legacy shared
+    one, and so will the copy -- there is nothing to write, and writing the
+    resolved defaults out would freeze a look that is meant to keep following.
+    """
+    from ..render.design import design_path
+
+    src = design_path(src_id)
+    if not src.exists():
+        return
+    try:
+        dst = design_path(dst_id)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+    except OSError:
+        # A designs directory that will not take a write should cost a typeface
+        # you can set again, not the copy of the CV you asked for.
+        pass
 
 
 def switch(cv_id: str) -> CV:
