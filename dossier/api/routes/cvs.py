@@ -1,6 +1,6 @@
 """Which CV the app is looking at.
 
-Thin over ``core.cvs``: the registry decides everything, and these six
+Thin over ``core.cvs``: the registry decides everything, and these seven
 handlers only turn its errors into status codes. Nothing here takes a file
 path from a request -- an id names a CV and the registry resolves it.
 """
@@ -18,6 +18,11 @@ router = APIRouter(prefix="/api/cvs", tags=["cvs"])
 
 class CVOut(BaseModel):
     id: str
+    #: Whose CV this is. The switcher groups on it.
+    person: str
+    #: Which of that person's CVs. Empty means the one they started with.
+    label: str
+    #: Both halves on one line, for anywhere there is only one line.
     name: str
     created: str
     updated: str
@@ -36,7 +41,16 @@ class CVList(BaseModel):
 
 
 class NameIn(BaseModel):
+    """One name. What it names depends on the route -- a person, or a label."""
+
     name: str = Field(default="", max_length=80)
+
+
+class PersonIn(BaseModel):
+    """Renaming somebody addresses them by name, because a person is not a row."""
+
+    old: str = Field(min_length=1, max_length=80)
+    new: str = Field(min_length=1, max_length=80)
 
 
 def _describe(cv: registry.CV) -> CVOut:
@@ -48,6 +62,8 @@ def _describe(cv: registry.CV) -> CVOut:
         blank = False
     return CVOut(
         id=cv.id,
+        person=cv.person,
+        label=cv.label,
         name=cv.name,
         created=cv.created,
         updated=cv.updated,
@@ -105,8 +121,27 @@ def activate(cv_id: str) -> CVList:
     return _listing()
 
 
+@router.put("/person", response_model=CVList)
+def rename_person(body: PersonIn) -> CVList:
+    """Rename somebody across every CV of theirs.
+
+    Declared above ``/{cv_id}`` so the literal path wins the match -- otherwise
+    "person" arrives here as a CV id and 404s.
+
+    A person rather than an id because the person is what groups the list:
+    renaming it on one CV and not the others would leave somebody's three CVs
+    showing as two entries under two spellings of one name.
+    """
+    try:
+        registry.rename_person(body.old, body.new)
+    except registry.CVError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return _listing()
+
+
 @router.put("/{cv_id}", response_model=CVList)
 def rename(cv_id: str, body: NameIn) -> CVList:
+    """Label one of a person's CVs. An empty name clears it back to their main one."""
     try:
         registry.rename(cv_id, body.name)
     except registry.CVError as exc:

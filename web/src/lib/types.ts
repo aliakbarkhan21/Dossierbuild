@@ -563,9 +563,18 @@ export interface InterviewBrief {
   declared_only: string[];
 }
 
-/** One CV in the data directory. The facts are per-CV, and so is the design. */
+/**
+ * One CV in the data directory. The facts are per-CV, and so is the design.
+ *
+ * Named in two halves: `person` is whose it is and groups the switcher,
+ * `label` is which of theirs it is. `name` is both on one line, for the places
+ * that have one line.
+ */
 export interface CVSummary {
   id: string;
+  person: string;
+  /** "Education". Empty means the one that person started with. */
+  label: string;
   name: string;
   created: string;
   updated: string;

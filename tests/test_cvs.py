@@ -138,44 +138,66 @@ def test_a_duplicate_carries_the_content_the_focus_and_the_look(home) -> None:
     assert (carried.fonts, carried.template) == ("slab", "modern")
 
 
+def test_a_duplicate_stays_under_the_same_person(home) -> None:
+    """The point of splitting the name in two.
+
+    A work CV and an education CV are one person, so they belong in one group
+    and differ only in the half the user typed.
+    """
+    _, first = registry.list_cvs()
+
+    copy = registry.duplicate(first, "Education")
+
+    assert copy.person == "Priya Raman"
+    assert copy.label == "Education"
+    assert copy.name == "Priya Raman — Education"
+
+
 def test_a_duplicate_never_takes_the_profile_s_name(home) -> None:
     """The line the whole feature rests on.
 
-    A work CV and an education CV are the same person, so both profiles carry
-    the same name. If the copy were auto-named, the next autosave would rename
-    it to that name and the switcher would show two rows reading "Priya Raman".
+    Both CVs of one person carry the same profile name, so an auto-named copy
+    would have its person re-taken at the next save -- harmless for the person
+    itself, but it would also mean the user never chose it. Cleared on copy.
     """
     _, first = registry.list_cvs()
-    copy = registry.duplicate(first)
+    copy = registry.duplicate(first, "Education")
     assert copy.auto_named is False
 
-    registry.adopt_profile_name("Priya Raman", copy.id)
+    registry.adopt_profile_name("Someone Else", copy.id)
 
     entries, _ = registry.list_cvs()
     named = next(cv for cv in entries if cv.id == copy.id)
-    assert named.name == "Priya Raman (copy)"
+    assert (named.person, named.label) == ("Priya Raman", "Education")
 
 
-def test_duplicating_twice_gives_two_names_you_can_tell_apart(home) -> None:
+def test_an_unnamed_copy_still_gets_a_label_of_its_own(home) -> None:
+    """A fallback, not the path the interface takes -- it asks for a label."""
     _, first = registry.list_cvs()
-    assert registry.duplicate(first).name == "Priya Raman (copy)"
-    assert registry.duplicate(first).name == "Priya Raman (copy 2)"
+    assert registry.duplicate(first).label == "Copy"
+    assert registry.duplicate(first).label == "Copy 2"
 
-    # And a name already at the route's limit is trimmed at the stem, so the
-    # suffix survives and the suggestion is still something the route accepts.
+    # Counted per person, so somebody else's copies do not push the number up.
+    other = registry.create("Sam Okafor")
+    assert registry.duplicate(other.id).label == "Copy"
+
+
+def test_a_label_at_the_limit_is_trimmed_at_the_stem(home) -> None:
+    """Or the number that makes each candidate different would be cut off."""
+    _, first = registry.list_cvs()
     long = registry.rename(first, "R" * registry.NAME_MAX)
-    suggested = registry.duplicate(long.id).name
+    suggested = registry.duplicate(long.id).label
     assert len(suggested) <= registry.NAME_MAX
-    assert suggested.endswith(" (copy)")
+    assert suggested.endswith(" copy")
 
 
 def test_a_duplicate_leaves_the_original_alone_and_opens_the_copy(home) -> None:
     _, first = registry.list_cvs()
     before = registry.path_for(first).read_bytes()
 
-    copy = registry.duplicate(first, "Education CV")
+    copy = registry.duplicate(first, "Education")
 
-    assert copy.name == "Education CV"
+    assert copy.label == "Education"
     assert registry.active_id() == copy.id
     assert registry.path_for(first).read_bytes() == before
     assert {cv.id for cv in registry.list_cvs()[0]} == {first, copy.id}
@@ -197,14 +219,115 @@ def test_duplicate_over_http_returns_the_list_with_the_copy_active(home) -> None
     client = TestClient(app)
     _, first = registry.list_cvs()
 
-    response = client.post(f"/api/cvs/{first}/duplicate", json={"name": "Work CV"})
+    response = client.post(f"/api/cvs/{first}/duplicate", json={"name": "Work"})
 
     assert response.status_code == 201
     body = response.json()
     assert len(body["cvs"]) == 2
     copy = next(cv for cv in body["cvs"] if cv["id"] != first)
     assert body["active"] == copy["id"]
-    assert copy["name"] == "Work CV"
+    assert (copy["person"], copy["label"]) == ("Priya Raman", "Work")
     assert copy["auto_named"] is False
     # An id that names nothing is a statement about the path, like `activate`.
     assert client.post("/api/cvs/0123456789ab/duplicate").status_code == 404
+
+
+def test_a_v1_index_becomes_a_person_with_no_label(home) -> None:
+    """The whole of the old name field was always a person's name.
+
+    There was nowhere else to put one, so that is where it goes -- and the
+    label starts empty, which reads as "the CV they already had".
+    """
+    registry.INDEX_PATH.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "active": "aaaaaaaaaaaa",
+                "cvs": [
+                    {
+                        "id": "aaaaaaaaaaaa",
+                        "name": "Priya Raman",
+                        "created": "2026-01-01T00:00:00+00:00",
+                        "updated": "2026-01-02T00:00:00+00:00",
+                        "auto_named": False,
+                        "focus": "research",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    entries, active = registry.list_cvs()
+
+    assert active == "aaaaaaaaaaaa"
+    assert (entries[0].person, entries[0].label) == ("Priya Raman", "")
+    # Everything else survives the trip untouched.
+    assert entries[0].focus == "research"
+    assert entries[0].auto_named is False
+    assert entries[0].created == "2026-01-01T00:00:00+00:00"
+
+
+def test_migrating_does_not_rewrite_the_file_on_a_mere_read(home) -> None:
+    """A read is not a change. Rewriting here would meet a rollback badly."""
+    raw = json.dumps({"version": 1, "active": "bbbbbbbbbbbb", "cvs": [
+        {"id": "bbbbbbbbbbbb", "name": "Priya Raman", "created": "", "updated": "",
+         "auto_named": True, "focus": ""}
+    ]})
+    registry.INDEX_PATH.write_text(raw, encoding="utf-8")
+
+    registry.list_cvs()
+
+    assert registry.INDEX_PATH.read_text(encoding="utf-8") == raw
+
+
+def test_renaming_a_person_moves_every_one_of_their_cvs(home) -> None:
+    """The group must not be splittable. That is why this takes a person."""
+    _, first = registry.list_cvs()
+    registry.duplicate(first, "Education")
+    registry.duplicate(first, "Research")
+    other = registry.create("Sam Okafor")
+
+    moved = registry.rename_person("Priya Raman", "Priya Raman-Okafor")
+
+    assert moved == 3
+    entries, _ = registry.list_cvs()
+    theirs = [cv for cv in entries if cv.person == "Priya Raman-Okafor"]
+    assert len(theirs) == 3
+    assert sorted(cv.label for cv in theirs) == ["", "Education", "Research"]
+    # A name typed by hand is not one a save may overwrite.
+    assert all(cv.auto_named is False for cv in theirs)
+    # And nobody else moved.
+    assert next(cv for cv in entries if cv.id == other.id).person == "Sam Okafor"
+
+
+def test_renaming_a_label_leaves_the_person_alone(home) -> None:
+    _, first = registry.list_cvs()
+    renamed = registry.rename(first, "Professional")
+    assert (renamed.person, renamed.label) == ("Priya Raman", "Professional")
+
+    # And clearing it is allowed: down to one CV, the word distinguishes nothing.
+    assert registry.rename(first, "  ").label == ""
+
+
+def test_renaming_a_person_who_is_not_here_is_refused(home) -> None:
+    registry.list_cvs()
+    with pytest.raises(registry.CVError):
+        registry.rename_person("Nobody At All", "Someone")
+
+
+def test_rename_person_over_http_regroups_the_list(home) -> None:
+    client = TestClient(app)
+    _, first = registry.list_cvs()
+    client.post(f"/api/cvs/{first}/duplicate", json={"name": "Education"})
+
+    body = client.put(
+        "/api/cvs/person", json={"old": "Priya Raman", "new": "P. Raman"}
+    ).json()
+
+    assert {cv["person"] for cv in body["cvs"]} == {"P. Raman"}
+    assert sorted(cv["label"] for cv in body["cvs"]) == ["", "Education"]
+    # The literal path beats `/{cv_id}`, so this is a rename and not a 404.
+    assert (
+        client.put("/api/cvs/person", json={"old": "Nobody", "new": "X"}).status_code == 404
+    )

@@ -155,23 +155,30 @@ def restore(backup_id: str, name: str = "") -> str:
 
     Deliberately additive. See the module docstring: recovery must not be
     something you can lose work to.
+
+    It lands *under the person it belongs to*, labelled with when it was taken
+    -- "Priya Raman / Restored 2026-09-01 12:30" rather than a sixth row in a
+    list of people. A recovered draft is another of that person's CVs, which is
+    exactly what the label half of the name is for.
     """
     from . import cvs
 
     raw = read_backup(backup_id)
     described = _describe(path_for(backup_id))
-    label = name.strip() or _restored_name(described)
+    person, label = _restored_name(described)
+    if name.strip():
+        label = name.strip()
 
-    cv = cvs.create(label)
+    cv = cvs.create(person, label)
     cvs.path_for(cv.id).write_text(
         json.dumps(raw, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
     return cv.id
 
 
-def _restored_name(backup: Backup | None) -> str:
+def _restored_name(backup: Backup | None) -> tuple[str, str]:
+    """Whose it is, and which of theirs -- read off the backup itself."""
     if backup is None:
-        return "Restored CV"
+        return "Restored CV", ""
     when = backup.taken[:16].replace("T", " ")
-    who = backup.name or "Restored CV"
-    return f"{who} ({when})"
+    return backup.name or "Restored CV", f"Restored {when}"

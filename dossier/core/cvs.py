@@ -12,6 +12,14 @@ the format ``storage`` already reads and writes, so every migration, every
 validation and the atomic write apply unchanged; the only new thing is which
 file ``load_profile()`` reaches for when nobody names one.
 
+**A CV is named in two halves.** ``person`` is whose it is and ``label`` is
+which of theirs it is. One field held both until five people with three CVs
+each produced fifteen rows, five of them reading the same name, and
+``duplicate`` had to invent "(copy 2)" suffixes to tell apart what was really
+two different documents. The person comes free -- ``adopt_profile_name`` takes
+it from the profile as it is saved -- and the label is the only thing anybody
+types. The switcher then lists people, and one person's CVs open beside them.
+
 **What is per-CV and what is not.** The facts are, and so is the design: it
 was one file for all of them right up until somebody kept two CVs for two
 different people and setting a typeface on one silently reset the other. So is
@@ -42,10 +50,15 @@ from .storage import DATA_DIR, PROFILE_PATH
 
 CVS_DIR = DATA_DIR / "cvs"
 INDEX_PATH = DATA_DIR / "cvs.json"
-INDEX_VERSION = 1
+#: v1 named a CV in one field. v2 splits that into who it belongs to and which
+#: of their CVs it is -- see ``_migrate_index``.
+INDEX_VERSION = 2
 
 #: A name we chose rather than one the user did, and so one we may replace.
 DEFAULT_NAME_PREFIX = "CV "
+
+#: What separates the two halves when a CV has to be named in one line.
+NAME_JOIN = " — "
 
 #: The route caps a name at 80 characters. A name suggested here that overflowed
 #: it would be refused by the very endpoint that asked for it, so suggestions
@@ -60,11 +73,19 @@ class CVError(RuntimeError):
 @dataclass(frozen=True)
 class CV:
     id: str
-    name: str
+    #: Whose CV this is. Follows the profile's ``basics.name`` while
+    #: ``auto_named``, which is how five people's CVs sort themselves into five
+    #: groups without anybody typing a name twice.
+    person: str
+    #: Which of that person's CVs this is -- "Education", "Professional". Empty
+    #: means the one they started with, and is the common case: somebody with a
+    #: single CV should never have to invent a word for it.
+    label: str
     created: str
     updated: str
-    #: True while the name is still one we generated, so a profile saved into
-    #: this CV may claim it. See ``adopt_profile_name``.
+    #: True while the *person* is still one we took from the profile, so a
+    #: profile saved into this CV may keep claiming it. The label is never
+    #: automatic -- it is the half the user chose. See ``adopt_profile_name``.
     auto_named: bool
     #: The focus tag this CV opens with. A *default*, not a lock: the picker
     #: on the Resume screen still overrides it for one printing. Binding the
@@ -72,9 +93,24 @@ class CV:
     #: profile printed several ways without a second CV to keep in step.
     focus: str = ""
 
+    @property
+    def name(self) -> str:
+        """The whole thing on one line, for a toast or a confirmation.
+
+        The switcher shows the two halves on two lines and never needs this.
+        """
+        return f"{self.person}{NAME_JOIN}{self.label}" if self.label else self.person
+
     def as_dict(self) -> dict[str, object]:
         return {
             "id": self.id,
+            "person": self.person,
+            "label": self.label,
+            # Written as well as derived, and deliberately. A build from before
+            # the split reads `name` and nothing else; keeping it here means a
+            # rollback finds a list it can still show, which is the same
+            # bargain `_adopt` strikes with `data/profile.json`. Nothing reads
+            # it back -- `_entries` prefers `person`.
             "name": self.name,
             "created": self.created,
             "updated": self.updated,
@@ -114,9 +150,9 @@ def _adopt() -> dict[str, object]:
     """
     CVS_DIR.mkdir(parents=True, exist_ok=True)
     cv_id = uuid.uuid4().hex[:12]
-    name = "My CV"
+    person = "My CV"
     # "My CV" is a placeholder, not a choice, so it stays claimable: on a
-    # fresh install the first profile saved gives this CV its name. A name
+    # fresh install the first profile saved gives this CV its person. A name
     # read out of an existing profile below is the user's own and is not.
     auto = True
     if PROFILE_PATH.exists():
@@ -125,7 +161,7 @@ def _adopt() -> dict[str, object]:
             raw = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
             existing = str(raw.get("basics", {}).get("name", "")).strip()
             if existing:
-                name = existing
+                person = existing
                 auto = False
         except (json.JSONDecodeError, AttributeError, TypeError):
             # A profile too broken to read its own name is still a profile
@@ -137,7 +173,17 @@ def _adopt() -> dict[str, object]:
         "version": INDEX_VERSION,
         "active": cv_id,
         "cvs": [
-            CV(id=cv_id, name=name, created=now, updated=now, auto_named=auto, focus="").as_dict()
+            CV(
+                id=cv_id,
+                person=person,
+                # No label. The first CV of the only person here does not need
+                # a word to tell it apart from CVs that do not exist yet.
+                label="",
+                created=now,
+                updated=now,
+                auto_named=auto,
+                focus="",
+            ).as_dict()
         ],
     }
     _write_index(data)
@@ -157,6 +203,28 @@ def _index() -> dict[str, object]:
         raise CVError("cvs.json should hold an object with a list of CVs.")
     if not data["cvs"]:
         return _adopt()
+    return _migrate_index(data)
+
+
+def _migrate_index(data: dict[str, object]) -> dict[str, object]:
+    """Bring an older index up to the shape the rest of this module expects.
+
+    v1 gave a CV one name field, and everything anyone ever put in it was a
+    person's name -- there was nowhere else to put one. So the whole value
+    becomes ``person`` and the label starts empty, which reads as "the CV they
+    already had" and needs no word invented for it.
+
+    Done in memory on every read and written back by the next operation that
+    writes anything. Rewriting the file here would mean a rollback met a v2
+    index the moment somebody merely opened the app.
+    """
+    if int(data.get("version") or 1) >= INDEX_VERSION:
+        return data
+    for row in data.get("cvs", []):  # type: ignore[union-attr]
+        if isinstance(row, dict) and "person" not in row:
+            row["person"] = row.get("name") or "Untitled"
+            row["label"] = ""
+    data["version"] = INDEX_VERSION
     return data
 
 
@@ -168,7 +236,10 @@ def _entries(data: dict[str, object]) -> list[CV]:
         out.append(
             CV(
                 id=str(row["id"]),
-                name=str(row.get("name") or "Untitled"),
+                # `name` is the v1 spelling and the fallback for a row that
+                # somehow reached here unmigrated.
+                person=str(row.get("person") or row.get("name") or "Untitled"),
+                label=str(row.get("label") or ""),
                 created=str(row.get("created") or ""),
                 updated=str(row.get("updated") or ""),
                 auto_named=bool(row.get("auto_named", False)),
@@ -199,8 +270,13 @@ def active_path() -> Path:
     return path_for(active_id())
 
 
-def create(name: str | None = None) -> CV:
-    """Start a blank CV and switch to it.
+def create(person: str | None = None, label: str = "") -> CV:
+    """Start a blank CV for somebody new and switch to it.
+
+    A *new person*, not another CV for one who is already here -- that is what
+    ``duplicate`` is for, and it is the commoner request. So no label: the
+    first CV of a person does not need a word telling it apart from CVs that
+    do not exist.
 
     Nothing is done to the one being left. It is a file on disk that autosave
     has already written; not touching it is what "the previous one is saved"
@@ -211,10 +287,11 @@ def create(name: str | None = None) -> CV:
     entries = _entries(data)
     cv_id = uuid.uuid4().hex[:12]
     now = _now()
-    chosen = (name or "").strip()
+    chosen = (person or "").strip()[:NAME_MAX]
     cv = CV(
         id=cv_id,
-        name=chosen or f"{DEFAULT_NAME_PREFIX}{len(entries) + 1}",
+        person=chosen or f"{DEFAULT_NAME_PREFIX}{len(entries) + 1}",
+        label=label.strip()[:NAME_MAX],
         created=now,
         updated=now,
         auto_named=not chosen,
@@ -232,28 +309,31 @@ def create(name: str | None = None) -> CV:
     return cv
 
 
-def duplicate(cv_id: str, name: str = "") -> CV:
-    """Copy a CV -- its facts, its design and its focus -- and open the copy.
+def duplicate(cv_id: str, label: str = "") -> CV:
+    """Another CV for the same person -- facts, design and focus -- and open it.
 
     This is what "a work CV and an education CV" asks for. Those two documents
     share a life and differ in emphasis, so starting the second from the first
     is starting from almost all of it; starting from ``create`` is retyping a
     history you have already typed once.
 
-    **The copy is never auto-named.** ``adopt_profile_name`` renames any CV
-    still carrying a generated name every time a profile is saved into it, so
-    an auto-named copy would snap back to the person's own name at the next
-    autosave and leave two rows in the switcher reading the same words. Naming
-    it is what makes it a second document rather than a second copy of the
-    first, which is why the flag is cleared here whether or not a name was
-    supplied.
+    The copy keeps ``source.person`` and takes a new ``label``, which is the
+    whole reason the name was split in two. Before the split this had to invent
+    "(copy)" and "(copy 2)" suffixes, because two CVs of one person had one
+    field between them to be different in.
+
+    **The copy is never auto-named.** ``adopt_profile_name`` re-takes the
+    person from the profile on every save for any CV still flagged, and both
+    copies carry the same profile name -- so leaving the flag set would drag
+    the copy back into the group under a name the user did not choose. The
+    label it is given here is the user's, and stays.
 
     Ordered so nothing is ever half-made: the profile is on disk, then the
     design, and only then the single atomic index write that both lists the
     copy and makes it active. ``create`` cannot be reused for this -- it flips
     ``active`` in the same write that creates the placeholder, so a failure
     during the copy would leave you standing on an empty CV wearing the copy's
-    name. An interruption here leaves an unreferenced file in ``data/cvs``,
+    label. An interruption here leaves an unreferenced file in ``data/cvs``,
     which nobody ever sees.
     """
     data = _index()
@@ -280,10 +360,18 @@ def duplicate(cv_id: str, name: str = "") -> CV:
     _copy_design(source.id, new_id)
 
     now = _now()
-    chosen = (name or "").strip()[:NAME_MAX]
+    chosen = (label or "").strip()[:NAME_MAX]
     cv = CV(
         id=new_id,
-        name=chosen or _copy_name(source.name, {row.name for row in entries}),
+        person=source.person,
+        label=chosen
+        or _copy_label(
+            source.label,
+            # Only this person's labels. "Education" under one name has no
+            # quarrel with "Education" under another, and counting across
+            # everybody would hand somebody a "Copy 4" for their first copy.
+            {row.label for row in entries if row.person == source.person},
+        ),
         created=now,
         updated=now,
         auto_named=False,
@@ -295,21 +383,25 @@ def duplicate(cv_id: str, name: str = "") -> CV:
     return cv
 
 
-def _copy_name(source: str, taken: set[str]) -> str:
-    """"X (copy)", and then "X (copy 2)".
+def _copy_label(source: str, taken: set[str]) -> str:
+    """A label for a copy nobody has named yet. "Copy", then "Copy 2".
 
-    Two copies of one CV is precisely the case this feature exists for, and a
-    list whose rows read the same words is a list nobody can choose from.
+    Only a fallback. The interface asks for the label before it makes the copy,
+    precisely so that this is not what ends up in the list -- somebody wanting
+    a second CV wants "Education", not "Copy". It exists for a caller that does
+    not ask, and for the label to still be unique when one does not.
+
+    ``taken`` is scoped to one person by the caller, so the numbering counts
+    that person's CVs rather than everybody's.
     """
     # The *stem* is trimmed to fit, never the finished string. Truncating the
-    # whole candidate would cut off the "(copy 2)" that makes each one
-    # different, and the loop below would then propose the same name for ever.
-    # " (copy 999)" is eleven characters.
-    stem = source[: NAME_MAX - 12].rstrip()
-    candidate = f"{stem} (copy)"
+    # whole candidate would cut off the " 2" that makes each one different, and
+    # the loop below would then propose the same label for ever.
+    stem = source[: NAME_MAX - 10].rstrip()
+    candidate = f"{stem} copy".strip() if stem else "Copy"
     number = 2
     while candidate in taken:
-        candidate = f"{stem} (copy {number})"
+        candidate = f"{stem} copy {number}".strip() if stem else f"Copy {number}"
         number += 1
     return candidate
 
@@ -352,11 +444,53 @@ def switch(cv_id: str) -> CV:
     return match
 
 
-def rename(cv_id: str, name: str) -> CV:
-    name = name.strip()
-    if not name:
-        raise CVError("A CV needs a name.")
-    return _update(cv_id, name=name, auto_named=False)
+def rename(cv_id: str, label: str) -> CV:
+    """Name this one of a person's CVs. The person is not touched.
+
+    An empty label is allowed and means "their main one" -- the state every CV
+    starts in. Clearing a label is a thing somebody down to one CV would
+    reasonably want, and refusing it would leave them stuck with a word that
+    no longer distinguishes anything.
+    """
+    return _update(cv_id, label=label.strip()[:NAME_MAX])
+
+
+def rename_person(old: str, new: str) -> int:
+    """Rename somebody across every CV of theirs, returning how many moved.
+
+    The person is what groups the list, so renaming it on one CV and not the
+    others would split a group in half -- somebody's three CVs becoming two
+    entries under two spellings of one name, which is the failure this whole
+    structure exists to prevent. That is why this takes a person rather than a
+    CV id, and why it is not reachable from the panel that renames a label.
+
+    ``auto_named`` is cleared on every row it touches: a name typed by hand is
+    not one ``adopt_profile_name`` may overwrite at the next save.
+
+    One write. A loop calling ``_update`` per row would read, modify and write
+    the index once per CV, and an interruption partway would leave exactly the
+    half-renamed group this function exists to make impossible.
+    """
+    old = old.strip()
+    new = new.strip()[:NAME_MAX]
+    if not new:
+        raise CVError("A person needs a name.")
+    data = _index()
+    if not any(cv.person == old for cv in _entries(data)):
+        raise CVError(f"Nobody here is called {old!r}.")
+
+    now = _now()
+    moved = 0
+    for row in data["cvs"]:  # type: ignore[union-attr]
+        if isinstance(row, dict) and (row.get("person") or row.get("name")) == old:
+            row["person"] = new
+            row["auto_named"] = False
+            row["updated"] = now
+            # The flat `name` is written for a rollback to read; keep it honest.
+            row["name"] = f"{new}{NAME_JOIN}{row['label']}" if row.get("label") else new
+            moved += 1
+    _write_index(data)
+    return moved
 
 
 def delete(cv_id: str) -> str:
@@ -386,21 +520,26 @@ def delete(cv_id: str) -> str:
 
 
 def adopt_profile_name(name: str, cv_id: str | None = None) -> None:
-    """Let a CV take its name from the profile saved into it.
+    """Let a CV take its *person* from the profile saved into it.
 
-    Only while the name is still one we generated. Someone who has named a CV
-    "Research" does not want it renamed every time they correct a typo in
-    their own name, and someone who has not named it at all should not be left
+    This is what makes the grouping free. Save a profile for Priya and her CV
+    files itself under Priya without anybody typing the name a second time, so
+    five people sort themselves into five groups as their profiles are written.
+
+    Only the person, and only while it is still one we generated. The label is
+    never touched -- that half is always the user's word, and somebody who
+    called a CV "Research" does not want it renamed because they corrected a
+    typo in their own name. Somebody who named nothing should not be left
     picking "CV 2" out of a list of four.
     """
-    name = name.strip()
+    name = name.strip()[:NAME_MAX]
     if not name:
         return
     data = _index()
     target = cv_id or str(data.get("active") or "")
     for cv in _entries(data):
         if cv.id == target and cv.auto_named:
-            _update(target, name=name, auto_named=True)
+            _update(target, person=name, auto_named=True)
             return
 
 
@@ -420,7 +559,8 @@ def set_focus(cv_id: str, focus: str) -> CV:
 def _update(
     cv_id: str,
     *,
-    name: str | None = None,
+    person: str | None = None,
+    label: str | None = None,
     auto_named: bool | None = None,
     focus: str | None = None,
 ) -> CV:
@@ -429,8 +569,10 @@ def _update(
     rows = []
     for row in data["cvs"]:  # type: ignore[union-attr]
         if isinstance(row, dict) and row.get("id") == cv_id:
-            if name is not None:
-                row["name"] = name
+            if person is not None:
+                row["person"] = person
+            if label is not None:
+                row["label"] = label
             if auto_named is not None:
                 row["auto_named"] = auto_named
             if focus is not None:
@@ -438,12 +580,16 @@ def _update(
             row["updated"] = _now()
             found = CV(
                 id=cv_id,
-                name=str(row.get("name") or "Untitled"),
+                person=str(row.get("person") or row.get("name") or "Untitled"),
+                label=str(row.get("label") or ""),
                 created=str(row.get("created") or ""),
                 updated=str(row["updated"]),
                 auto_named=bool(row.get("auto_named", False)),
                 focus=str(row.get("focus") or ""),
             )
+            # The flat `name` exists only for a build that predates the split.
+            # Rewritten from the halves rather than edited, so it cannot drift.
+            row["name"] = found.name
         rows.append(row)
     if found is None:
         raise CVError("That CV is not in this data directory.")

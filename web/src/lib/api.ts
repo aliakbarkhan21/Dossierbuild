@@ -141,8 +141,12 @@ export const api = {
   cvs: () => request<CVList>("/api/cvs"),
   newCv: () => request<CVList>("/api/cvs", "POST", {}),
   switchCv: (id: string) => request<CVList>(`/api/cvs/${id}/active`, "PUT"),
+  /** Label one of a person's CVs. An empty name clears it back to their main one. */
   renameCv: (id: string, name: string) => request<CVList>(`/api/cvs/${id}`, "PUT", { name }),
-  /** Content, design and focus, under a new name, and you land on the copy. */
+  /** Rename somebody across every CV of theirs, so a group cannot be split. */
+  renamePerson: (old: string, next: string) =>
+    request<CVList>("/api/cvs/person", "PUT", { old, new: next }),
+  /** Content, design and focus, under a new label, and you land on the copy. */
   duplicateCv: (id: string, name = "") =>
     request<CVList>(`/api/cvs/${id}/duplicate`, "POST", { name }),
   deleteCv: (id: string) => request<CVList>(`/api/cvs/${id}`, "DELETE"),

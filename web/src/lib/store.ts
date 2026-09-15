@@ -93,9 +93,14 @@ interface State {
   cvs: CVSummary[];
   activeCv: string;
   newCv: () => Promise<void>;
-  /** Copy the CV you are on -- content, design and focus -- and open the copy. */
-  duplicateCv: (name?: string) => Promise<void>;
+  /**
+   * Copy a CV -- content, design and focus -- under a new label, and open it.
+   * Defaults to the CV you are on; the switcher's flyout names another.
+   */
+  duplicateCv: (name?: string, id?: string) => Promise<void>;
   renameCv: (id: string, name: string) => Promise<void>;
+  /** Rename somebody across every CV of theirs. */
+  renamePerson: (old: string, next: string) => Promise<void>;
   switchCv: (id: string) => Promise<void>;
   deleteCv: (id: string) => Promise<void>;
   syncCvs: () => Promise<void>;
@@ -454,12 +459,12 @@ export const useStore = create<State>()(
      * could pull one CV's paragraph into another is not a history anyone can
      * reason about. `adoptCv` does that.
      */
-    async duplicateCv(name = "") {
+    async duplicateCv(name = "", id) {
       try {
         // The server copies files. Anything still sitting in a debounce here
         // is not in those files yet.
         await flushPending(get);
-        const list = await api.duplicateCv(get().activeCv, name);
+        const list = await api.duplicateCv(id ?? get().activeCv, name);
         await get().adoptCv(list);
         toast.success(
           "Copy made",
@@ -482,16 +487,43 @@ export const useStore = create<State>()(
      * the confirmation; a message saying the name you just typed is now the
      * name would be telling you what you can already see.
      *
-     * One side effect worth knowing: the registry clears `auto_named`, so a CV
-     * you have named yourself stops taking the profile's name at every save.
-     * That is the point of naming it -- see `syncCvs`.
+     * This renames the *label* -- which of that person's CVs this one is. The
+     * person is renamed by `renamePerson`, which moves the whole group at
+     * once; doing it here, one CV at a time, would split somebody's three CVs
+     * into two entries under two spellings of one name.
+     *
+     * An empty name is allowed and clears the label, so a trimmed-to-nothing
+     * input is a real request rather than a no-op.
      */
     async renameCv(id, name) {
       const wanted = name.trim();
-      const current = get().cvs.find((cv) => cv.id === id)?.name;
-      if (!wanted || wanted === current) return;
+      if (wanted === (get().cvs.find((cv) => cv.id === id)?.label ?? "")) return;
       try {
         const list = await api.renameCv(id, wanted);
+        set((s) => {
+          s.cvs = list.cvs;
+          s.activeCv = list.active;
+        });
+      } catch (error) {
+        if (error instanceof ApiError) toast.error(error.message, error.fix);
+      }
+    },
+
+    /**
+     * Rename somebody wherever they appear.
+     *
+     * Addressed by name rather than by id because the person is what groups
+     * the list. The server moves every one of their CVs in a single write, so
+     * there is no moment at which half of them answer to the new name.
+     *
+     * Like `renameCv`: no `adoptCv`, because which document is open has not
+     * changed and the undo history belongs to the document, not to its label.
+     */
+    async renamePerson(old, next) {
+      const wanted = next.trim();
+      if (!wanted || wanted === old) return;
+      try {
+        const list = await api.renamePerson(old, wanted);
         set((s) => {
           s.cvs = list.cvs;
           s.activeCv = list.active;
@@ -555,7 +587,10 @@ export const useStore = create<State>()(
       const { cvs, activeCv, profile } = get();
       const mine = cvs.find((cv) => cv.id === activeCv);
       const named = profile?.basics.name.trim() ?? "";
-      const couldRename = mine?.auto_named && named && mine.name !== named;
+      // The *person* is the half that follows the profile. Comparing against
+      // the joined `name` would see "Priya Raman — Education" differ from
+      // "Priya Raman" on every save and refetch the list for nothing.
+      const couldRename = mine?.auto_named && named && mine.person !== named;
       if (!mine || (!mine.blank && !couldRename)) return;
       try {
         const list = await api.cvs();
