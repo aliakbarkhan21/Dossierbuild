@@ -94,10 +94,16 @@ sidebar switches between CVs, each a profile file of exactly the same format.
 The design and the focus tag belong to the CV; the applications, the saved
 versions and the letters are shared, because those are a record of a job search
 rather than of a document. Starting one asks nothing, because the one you were
-on is already written to disk. And where the two documents share a history —
+on is already written to disk.
+
+A CV is named in two halves — whose it is, and which of theirs it is — so the
+switcher lists people and a person's CVs open in a panel beside them. Five
+people with three CVs each is five rows, not fifteen. The person is taken from
+the profile as it is saved, so the grouping costs nothing to maintain; the
+label is the only thing you type. Where two of somebody's CVs share a history —
 the same degree, the same three jobs, aimed once at research and once at
-support — **Duplicate** copies content, design and focus together, so you edit
-the difference instead of retyping the overlap.
+support — **Another CV for them** copies content, design and focus together, so
+you edit the difference instead of retyping the overlap.
 
 **A saved version is the document you actually sent.** Profile and design
 together, because a resume is both: the same words at 92% type with tight

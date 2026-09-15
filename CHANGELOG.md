@@ -6,6 +6,53 @@ wrong for a while, it says that too.
 
 ---
 
+## 2.3.0 — 2026-09-15
+
+### Added
+
+- **A CV is named in two halves: whose it is, and which of theirs it is.** One
+  field held both, and at five people with three CVs each that produced fifteen
+  rows, five of them reading "Muhammad Ali Akbar Khan" — a list nobody can
+  choose from. `person` now groups the switcher and `label` says which one it
+  is. The person comes free: it is taken from the profile's name as the profile
+  is saved, so people sort themselves into groups without anybody typing a name
+  twice, and the label is the only thing there is to type.
+- **The switcher lists people, and a person's CVs open beside them.** Click a
+  name for a panel of their CVs; once one is open, moving onto another person
+  swaps it. Not hover-to-open from closed — a menu that springs open under a
+  pointer on its way elsewhere needs safe-triangle tracking to be bearable and
+  is unreachable by touch or keyboard regardless. Somebody with a single CV
+  switches on the first click instead of opening a panel to announce the one CV
+  you already knew about.
+- **Rename a person**, from their own row, moving every one of their CVs in a
+  single write. Renaming them one CV at a time is how three CVs become two
+  entries under two spellings of one name, so the registry does not offer a way
+  to do it.
+- **A fade at the foot of the list** when there is more below it. Every
+  scrollbar in the app has been hidden since 2.1.0, which meant a list of
+  fifteen people in a box eight tall looked exactly like a list of eight.
+
+### Changed
+
+- **The sidebar row is two lines** — the person, and the CV's label under it in
+  small type. Both stay whole at 232px; putting them on one line with a
+  separator would have brought back the truncation 2.2.0 removed.
+- **"Duplicate" is now "Another CV for them"**, inside a person's panel, where
+  it reads as what it does. It no longer has to invent "(copy)" and "(copy 2)"
+  names either: those existed only because two CVs of one person had a single
+  field between them to be different in.
+- **A restored backup lands under the person it belongs to**, labelled with
+  when it was taken, rather than as another entry in the list of people.
+
+### Fixed
+
+- **The sidebar stopped re-fetching the CV list after every save.** `syncCvs`
+  compared the profile's name against the CV's full name, so
+  "Priya Raman — Education" differed from "Priya Raman" every time and asked
+  the server about it. It compares the person now.
+
+---
+
 ## 2.2.0 — 2026-09-15
 
 ### Added
