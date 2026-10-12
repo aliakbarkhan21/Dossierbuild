@@ -195,7 +195,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
         {health && (!health.pdf_available || !health.ai_available) && (
           <p className="mt-2 px-1 text-2xs text-faint">
             {!health.pdf_available && "PDF unavailable. "}
-            {!health.ai_available && "No Gemini key: import cannot parse."}
+            {!health.ai_available && "No AI key: import cannot parse."}
           </p>
         )}
 

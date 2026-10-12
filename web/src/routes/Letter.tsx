@@ -353,7 +353,7 @@ export function LetterScreen() {
               </button>
               {!health?.ai_available && (
                 <p className="w-full text-xs text-fair">
-                  No Gemini key, so drafting is off. You can still write the letter below and
+                  No AI key, so drafting is off. You can still write the letter below and
                   print it.
                 </p>
               )}

@@ -338,12 +338,13 @@ export function ImportScreen() {
           <section className="card p-5">
             <p className="max-w-prose text-sm text-muted">
               Reading the text out of a PDF or DOCX is exact. Working out which line is a job title
-              is not, so that part uses Gemini and everything it returns is shown for review.
+              is not, so that part uses a model (Gemini or Claude, chosen in Settings) and everything it
+              returns is shown for review.
             </p>
             {!health?.ai_available && (
               <p className="mt-3 rounded-md border border-fair/40 bg-fair-soft p-3 text-sm text-fair">
-                No Gemini key found, so a file can be read but not parsed into fields. Put
-                GEMINI_API_KEY in .env and restart the server.
+                No AI key for the chosen provider, so a file can be read but not parsed into
+                fields. Add a Gemini or Claude key on the Settings screen.
               </p>
             )}
             <FilePicker
@@ -405,7 +406,7 @@ export function ImportScreen() {
               </button>
               <span className="text-xs text-muted">
                 {busy === "parse"
-                  ? "Gemini is reading it. This takes 10–35 seconds when the flash tier is busy."
+                  ? "The model is reading it. This usually takes 10–35 seconds."
                   : `${text.length} characters`}
               </span>
             </div>

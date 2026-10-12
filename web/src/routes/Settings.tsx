@@ -19,12 +19,12 @@
  */
 
 import { Check, Copy, KeyRound, Loader2, Trash2, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 
 import { BackupsCard } from "../components/BackupsCard";
 import { ApiError, api } from "../lib/api";
 import { toast } from "../lib/toast";
-import type { Capability, Settings } from "../lib/types";
+import type { AiProvider, Capability, ProviderKey, Settings } from "../lib/types";
 
 export function SettingsScreen() {
   const [data, setData] = useState<Settings | null>(null);
@@ -85,8 +85,42 @@ export function SettingsScreen() {
           <div className="card h-40 animate-pulse bg-sunken" aria-hidden />
         ) : (
           <>
-            <KeyCard data={data} busy={busy} run={run} />
-            <ModelCard data={data} busy={busy} run={run} />
+            <ProviderCard data={data} busy={busy} run={run} />
+            {data.provider === "claude" ? (
+              <KeyCard
+                provider="Claude"
+                state={data.claude}
+                busy={busy}
+                run={run}
+                save={api.saveClaudeKey}
+                clear={api.clearClaudeKey}
+                checkedBy="Anthropic"
+                getAt="platform.claude.com"
+                getHref="https://platform.claude.com/settings/keys"
+                note={
+                  <>
+                    Requests use <code>{data.claude_model}</code>. Set <code>CLAUDE_MODEL</code> in{" "}
+                    <code>.env</code> to choose another.
+                  </>
+                }
+              />
+            ) : (
+              <>
+                <KeyCard
+                  provider="Gemini"
+                  state={data}
+                  busy={busy}
+                  run={run}
+                  save={api.saveKey}
+                  clear={api.clearKey}
+                  checkedBy="Google"
+                  getAt="aistudio.google.com/apikey"
+                  getHref="https://aistudio.google.com/apikey"
+                  free
+                />
+                <ModelCard data={data} busy={busy} run={run} />
+              </>
+            )}
             <CapabilityCard data={data} />
             <BackupsCard />
             <DataCard data={data} />
@@ -99,14 +133,88 @@ export function SettingsScreen() {
 
 type Run = (what: string, work: () => Promise<Settings>) => Promise<boolean>;
 
+const PROVIDER_LABEL: Record<AiProvider, string> = { gemini: "Gemini", claude: "Claude" };
+
 /**
- * The key, checked before it is kept.
+ * Who answers.
+ *
+ * Every AI feature goes through the same call and the same fabrication check
+ * afterwards, so this changes which company writes the suggestion, not what
+ * happens to it. Choosing one with no key is allowed -- it is how you reach
+ * the box where its key goes.
+ */
+function ProviderCard({ data, busy, run }: { data: Settings; busy: string; run: Run }) {
+  return (
+    <section className="card p-5">
+      <h2 className="font-display text-lg font-semibold">AI provider</h2>
+      <p className="mt-1 text-sm text-muted">
+        Optional. A key from either buys three things: parsing a resume you import, rewriting
+        bullets for a posting, and drafting a line on request. Reading a posting, scoring your
+        writing, every template and every PDF work without one. Every rewrite is checked against
+        your profile whichever you choose.
+      </p>
+      <div
+        className="mt-3 inline-flex rounded-md border border-line p-0.5"
+        role="radiogroup"
+        aria-label="AI provider"
+      >
+        {data.providers.map((name) => {
+          const chosen = data.provider === name;
+          return (
+            <button
+              key={name}
+              type="button"
+              role="radio"
+              aria-checked={chosen}
+              disabled={busy !== ""}
+              className={`rounded px-3 py-1.5 text-sm font-medium ${
+                chosen ? "bg-accent text-white" : "text-muted hover:text-ink"
+              }`}
+              onClick={() => {
+                if (!chosen) void run("provider", () => api.setProvider(name));
+              }}
+            >
+              {PROVIDER_LABEL[name]}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * A provider's key, checked before it is kept.
  *
  * Verifying first is the whole point of the flow: a key stored without a check
  * comes back as a failure on some later action, by which time the cause is two
  * screens away and looks like the app being broken.
  */
-function KeyCard({ data, busy, run }: { data: Settings; busy: string; run: Run }) {
+function KeyCard({
+  provider,
+  state,
+  busy,
+  run,
+  save,
+  clear,
+  checkedBy,
+  getAt,
+  getHref,
+  free = false,
+  note,
+}: {
+  provider: string;
+  state: ProviderKey;
+  busy: string;
+  run: Run;
+  save: (key: string) => Promise<Settings>;
+  clear: () => Promise<Settings>;
+  checkedBy: string;
+  getAt: string;
+  getHref: string;
+  free?: boolean;
+  note?: ReactNode;
+}) {
   const [key, setKey] = useState("");
 
   return (
@@ -114,22 +222,17 @@ function KeyCard({ data, busy, run }: { data: Settings; busy: string; run: Run }
       <div className="flex items-start gap-3">
         <KeyRound size={17} className="mt-0.5 shrink-0 text-muted" />
         <div className="min-w-0 flex-1">
-          <h2 className="font-display text-lg font-semibold">Gemini API key</h2>
-          <p className="mt-1 text-sm text-muted">
-            Optional, and it buys exactly three things: parsing a resume you import, rewriting
-            bullets for a posting, and drafting a single line on request. Reading a posting,
-            scoring your writing, every template and every PDF work without one.
-          </p>
+          <h2 className="font-display text-lg font-semibold">{provider} API key</h2>
 
-          {data.key_set ? (
+          {state.key_set ? (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded bg-good-soft px-2 py-1 text-xs font-medium text-good">
                 <Check size={13} /> A key is set
               </span>
               <code className="rounded bg-sunken px-1.5 py-1 font-mono text-xs text-muted">
-                {data.key_hint}
+                {state.key_hint}
               </code>
-              {data.key_from_environment ? (
+              {state.key_from_environment ? (
                 // Exported in the shell rather than written by us. Offering a
                 // Remove button that cannot work is worse than saying so.
                 <span className="text-xs text-faint">
@@ -141,7 +244,7 @@ function KeyCard({ data, busy, run }: { data: Settings; busy: string; run: Run }
                   className="btn btn-quiet px-2 py-1 text-xs text-poor"
                   disabled={busy !== ""}
                   onClick={() =>
-                    void run("clear", api.clearKey).then((ok) => {
+                    void run("clear", clear).then((ok) => {
                       if (ok) toast.info("Key removed", "The AI features are off until you add one.");
                     })
                   }
@@ -152,7 +255,7 @@ function KeyCard({ data, busy, run }: { data: Settings; busy: string; run: Run }
             </div>
           ) : (
             <p className="mt-3 inline-flex items-center gap-1.5 rounded bg-sunken px-2 py-1 text-xs text-muted">
-              <X size={13} /> No key, so the three things above are switched off.
+              <X size={13} /> No {provider} key, so the three AI features are switched off.
             </p>
           )}
 
@@ -161,10 +264,10 @@ function KeyCard({ data, busy, run }: { data: Settings; busy: string; run: Run }
             onSubmit={(event) => {
               event.preventDefault();
               if (!key.trim()) return;
-              void run("key", () => api.saveKey(key)).then((ok) => {
+              void run("key", () => save(key)).then((ok) => {
                 if (ok) {
                   setKey("");
-                  toast.success("Key saved", "Checked with Google before storing, and it works.");
+                  toast.success("Key saved", `Checked with ${checkedBy} before storing, and it works.`);
                 }
               });
             }}
@@ -172,12 +275,12 @@ function KeyCard({ data, busy, run }: { data: Settings; busy: string; run: Run }
             <input
               type="password"
               className="field min-w-0 flex-1 font-mono text-sm"
-              placeholder={data.key_set ? "Paste a different key" : "Paste your key"}
+              placeholder={state.key_set ? "Paste a different key" : "Paste your key"}
               value={key}
               onChange={(event) => setKey(event.target.value)}
               autoComplete="off"
               spellCheck={false}
-              aria-label="Gemini API key"
+              aria-label={`${provider} API key`}
             />
             <button type="submit" className="btn btn-primary" disabled={!key.trim() || busy !== ""}>
               {busy === "key" ? <Loader2 size={14} className="animate-spin" /> : null}
@@ -186,19 +289,20 @@ function KeyCard({ data, busy, run }: { data: Settings; busy: string; run: Run }
           </form>
 
           <p className="mt-2 text-2xs text-faint">
-            Tested against Google before it is stored, so a typo fails here rather than on the
-            screen where you next needed it. Written to <code>.env</code>, which is gitignored.
-            Get one free at{" "}
+            Tested against {checkedBy} before it is stored, so a typo fails here rather than on the
+            screen where you next needed it. Written to <code>.env</code>, which is gitignored, and
+            sent only to {checkedBy}. {free ? "Get one free at" : "Create one at"}{" "}
             <a
               className="underline decoration-line underline-offset-2 hover:text-accent"
-              href="https://aistudio.google.com/apikey"
+              href={getHref}
               target="_blank"
               rel="noopener noreferrer"
             >
-              aistudio.google.com/apikey
+              {getAt}
             </a>
             .
           </p>
+          {note ? <p className="mt-2 text-2xs text-faint">{note}</p> : null}
         </div>
       </div>
     </section>
@@ -217,7 +321,7 @@ function KeyCard({ data, busy, run }: { data: Settings; busy: string; run: Run }
 function ModelCard({ data, busy, run }: { data: Settings; busy: string; run: Run }) {
   return (
     <section className="card p-5">
-      <h2 className="font-display text-lg font-semibold">Model</h2>
+      <h2 className="font-display text-lg font-semibold">Gemini model</h2>
       <p className="mt-1 text-sm text-muted">
         Automatic tries the newest first and falls through to a quieter one when Google is busy —
         which is what a slow answer nearly always is. Pin one only if you have a reason to.

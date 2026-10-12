@@ -272,13 +272,13 @@ export function TailorScreen() {
                 </button>
                 {busy === "rewrite" && (
                   <p className="w-full text-xs text-muted">
-                    Gemini is re-angling them. This takes 20–70 seconds — the model thinks
+                    The model is re-angling them. This takes 20–70 seconds — the model thinks
                     harder here than on an import, and every rewrite is checked afterwards.
                   </p>
                 )}
                 {!health?.ai_available && (
                   <p className="w-full text-xs text-fair">
-                    No Gemini key, so rewriting is off. Everything above still works — it is
+                    No AI key, so rewriting is off. Everything above still works — it is
                     computed here, not by a model.
                   </p>
                 )}

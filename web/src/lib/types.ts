@@ -604,7 +604,23 @@ export interface SettingsStorage {
   bytes: number;
 }
 
+/** One provider's key, described without ever including it. */
+export interface ProviderKey {
+  key_set: boolean;
+  key_hint: string;
+  key_from_environment: boolean;
+}
+
+export type AiProvider = "gemini" | "claude";
+
 export interface Settings {
+  /** Who answers. Gemini unless someone chose otherwise. */
+  provider: AiProvider;
+  providers: AiProvider[];
+  claude: ProviderKey;
+  /** The Claude model requests will use; set by CLAUDE_MODEL. */
+  claude_model: string;
+  /** The Gemini key. The name predates a second provider. */
   key_set: boolean;
   /** `AIza…9f2b`. Never the key itself. */
   key_hint: string;

@@ -8,6 +8,7 @@
  */
 
 import type {
+  AiProvider,
   ApplicationStatus,
   BackupList,
   Coverage,
@@ -313,6 +314,10 @@ export const api = {
   saveKey: (key: string) => request<Settings>("/api/settings/key", "PUT", { key }),
   clearKey: () => request<Settings>("/api/settings/key", "DELETE"),
   pinModel: (model: string) => request<Settings>("/api/settings/model", "PUT", { model }),
+  setProvider: (provider: AiProvider) =>
+    request<Settings>("/api/settings/provider", "PUT", { provider }),
+  saveClaudeKey: (key: string) => request<Settings>("/api/settings/claude-key", "PUT", { key }),
+  clearClaudeKey: () => request<Settings>("/api/settings/claude-key", "DELETE"),
 
   analysePosting: (body: { text: string; title?: string; company?: string; profile?: Profile }) =>
     request<MatchReport>("/api/tailor/analyse", "POST", body),
