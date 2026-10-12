@@ -17,8 +17,10 @@ python-multipart>=0.0.9
 pypdf>=4.2
 python-docx>=1.1
 
-# AI parsing, and the tailoring still to come.
+# AI parsing, rewrites and drafting. Gemini is the default provider; Claude
+# is the alternative, chosen on the Settings screen.
 google-genai>=1.0
+anthropic>=1.0
 python-dotenv>=1.0
 
 # Rendering: profile -> HTML -> PDF.

@@ -1,4 +1,4 @@
-"""Turning resume text into structured profile data with Gemini.
+"""Turning resume text into structured profile data with a model (Gemini or Claude).
 
 This is the first place a model appears in Dossierbuild, and it is worth being
 precise about what it is being asked to do: **transcribe and structure, never
@@ -561,19 +561,31 @@ def remember_api_key(key: str, path: Path | None = None) -> Path:
     GEMINI_API_KEY line is replaced rather than appended to, so repeated saves
     do not stack up.
     """
+    return write_env("GEMINI_API_KEY", key.strip(), path)
+
+
+def write_env(name: str, value: str | None, path: Path | None = None) -> Path:
+    """Set one ``NAME=value`` line in .env, or remove it when ``value`` is None.
+
+    The same file and the same rules for every setting kept there -- either
+    provider's key, and which provider is chosen -- so none of them can end up
+    stored somewhere the others are not.
+    """
     target = path or ENV_PATH
     header = "# Written by Dossierbuild. This file is gitignored -- keep it that way."
-    lines = [f"GEMINI_API_KEY={key.strip()}"]
+    lines = [f"{name}={value}"] if value is not None else []
     if target.exists():
         kept = [
             ln
             for ln in target.read_text(encoding="utf-8").splitlines()
-            if not ln.strip().startswith("GEMINI_API_KEY=")
+            if not ln.strip().startswith(f"{name}=")
         ]
         while kept and not kept[-1].strip():
             kept.pop()
         lines = [*kept, *lines]
-    else:
+    elif lines:
         lines = [header, *lines]
+    else:
+        return target
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return target

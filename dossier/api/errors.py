@@ -117,7 +117,7 @@ def install(app: FastAPI) -> None:
         return problem(
             401,
             str(exc),
-            fix="Set GEMINI_API_KEY in .env. Get one free at aistudio.google.com/apikey.",
+            fix="Add a key for your chosen provider (Gemini or Claude) on the Settings screen.",
         )
 
     @app.exception_handler(CVError)
@@ -169,7 +169,8 @@ def install(app: FastAPI) -> None:
 
         The message is carried across as-is. Every ``RuntimeError`` this app
         raises is already written for the person reading it -- ``ai/client.py``
-        explains that Gemini is congested and what to set to avoid it -- and a
+        explains that Gemini is congested, ``ai/claude.py`` that Claude is
+        rate-limiting the key -- and a
         message written for a person is better than "something went wrong".
 
         The traceback still goes to the log: this changes what the user is

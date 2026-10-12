@@ -1,4 +1,7 @@
-"""The one place that talks to Gemini.
+"""The one place that talks to Gemini, and the entry point for every model call.
+
+``generate`` hands each request to whichever provider is chosen (see
+``provider.py``); the Gemini implementation below is the default one.
 
 Extracted when tailoring became the second thing to call a model, because the
 part worth getting right is not the prompt -- it is everything around it. The
@@ -86,8 +89,15 @@ class MissingAPIKey(RuntimeError):
     pass
 
 
-def api_key_present() -> bool:
+def gemini_key_present() -> bool:
     return any(os.environ.get(v) for v in API_KEY_VARS)
+
+
+def api_key_present() -> bool:
+    """Whether the chosen provider has a key, which is what "AI is on" means."""
+    from .provider import active
+
+    return active().key_present()
 
 
 #: The client, and the key it was built for. Kept so that the connection pool
@@ -233,7 +243,38 @@ def generate(
     on_attempt: Progress | None = None,
     task: str = "request",
 ) -> tuple[T, str]:
-    """Ask a model for one structured answer. Returns ``(parsed, model_name)``.
+    """Ask the chosen provider for one structured answer. Returns ``(parsed, model_name)``.
+
+    The one entry point every AI feature uses. Which company answers is a
+    setting (see ``provider.py``); what the caller does with the answer is
+    not, so the fabrication audit applies to both alike.
+    """
+    from .provider import active
+
+    return active().generate(
+        prompt,
+        system=system,
+        schema=schema,
+        temperature=temperature,
+        thinking=thinking,
+        model=model,
+        on_attempt=on_attempt,
+        task=task,
+    )
+
+
+def generate_gemini(
+    prompt: str,
+    *,
+    system: str,
+    schema: type[T],
+    temperature: float = 0.1,
+    thinking: str = "LOW",
+    model: str | None = None,
+    on_attempt: Progress | None = None,
+    task: str = "request",
+) -> tuple[T, str]:
+    """Ask Gemini for one structured answer. Returns ``(parsed, model_name)``.
 
     The answer is constrained to ``schema`` by the API, so a caller never has
     to parse JSON hopefully or handle a shape the app cannot load.
