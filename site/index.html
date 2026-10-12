@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dossierbuild — résumés that tell the truth, aimed at every job</title>
+  <meta name="description" content="Dossierbuild is an AI-assisted resume builder that keeps one master profile, tailors a version to each job, and checks that no rewrite invents a fact. Runs on your own machine." />
+  <meta property="og:title" content="Dossierbuild" />
+  <meta property="og:description" content="One master profile. A tailored, print-ready resume for every application, and an audit that catches AI rewrites that add facts you never wrote." />
+  <meta property="og:image" content="img/resume.png" />
+  <link rel="icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    /* The app's own tokens, so the site and the product look like one thing. */
+    :root {
+      --c-bg: #faf9f7;
+      --c-surface: #ffffff;
+      --c-text: #1b1d1c;
+      --c-muted: #5a5954;
+      --c-faint: #6f6b62;
+      --c-line: #e7e5e1;
+      --c-line-strong: #d5d2cc;
+      --c-accent: #2c6a54;
+      --c-accent-hover: #235544;
+      --c-accent-soft: #e3efe9;
+      --c-on-accent: #ffffff;
+      --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-display: "Source Serif 4", Georgia, serif;
+      --shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px rgb(0 0 0 / 0.08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --c-bg: #0f1211;
+        --c-surface: #161a19;
+        --c-text: #e8ecea;
+        --c-muted: #a2aca7;
+        --c-faint: #8e9995;
+        --c-line: #242a28;
+        --c-line-strong: #343c39;
+        --c-accent: #5fbe96;
+        --c-accent-hover: #7bd0ab;
+        --c-accent-soft: #17281f;
+        --c-on-accent: #071310;
+        --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px rgb(0 0 0 / 0.4);
+        --mark-bg: #e8ecea;
+        --mark-pad: 3px;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--c-bg);
+      color: var(--c-text);
+      font-family: var(--font-sans);
+      font-size: 17px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    img { max-width: 100%; display: block; }
+    a { color: var(--c-accent); }
+    a:hover { color: var(--c-accent-hover); }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+    @media (min-width: 720px) { .wrap { padding: 0 32px; } }
+
+    /* Header */
+    header { border-bottom: 1px solid var(--c-line); }
+    .nav { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--c-text); text-decoration: none; font-weight: 600; }
+    .brand img { width: 28px; height: 28px; border-radius: 6px; background: var(--mark-bg, transparent); padding: var(--mark-pad, 0); }
+    .nav-links { display: flex; gap: 20px; font-size: 15px; }
+    .nav-links a { color: var(--c-muted); text-decoration: none; }
+    .nav-links a:hover { color: var(--c-text); }
+    @media (max-width: 560px) { .nav-links .optional { display: none; } }
+
+    /* Hero */
+    .hero { padding: 72px 0 48px; text-align: center; }
+    .eyebrow {
+      display: inline-block; font-size: 13px; font-weight: 600; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--c-accent); background: var(--c-accent-soft);
+      padding: 4px 12px; border-radius: 999px; margin-bottom: 20px;
+    }
+    h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; margin: 0; }
+    h1 { font-size: clamp(36px, 6vw, 60px); font-weight: 700; letter-spacing: -0.01em; max-width: 16ch; margin: 0 auto; }
+    .lede { font-size: clamp(17px, 2.2vw, 20px); color: var(--c-muted); max-width: 40em; margin: 20px auto 0; }
+    .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 32px; }
+    .btn {
+      display: inline-block; padding: 12px 22px; border-radius: 8px; font-weight: 600;
+      font-size: 16px; text-decoration: none; border: 1px solid transparent;
+    }
+    .btn-primary { background: var(--c-accent); color: var(--c-on-accent); }
+    .btn-primary:hover { background: var(--c-accent-hover); color: var(--c-on-accent); }
+    .btn-ghost { border-color: var(--c-line-strong); color: var(--c-text); }
+    .btn-ghost:hover { border-color: var(--c-text); color: var(--c-text); }
+
+    .shot {
+      border: 1px solid var(--c-line); border-radius: 12px; overflow: hidden;
+      box-shadow: var(--shadow); background: var(--c-surface);
+    }
+    .hero .shot { margin-top: 56px; }
+
+    /* Sections */
+    section { padding: 72px 0; }
+    section + section { border-top: 1px solid var(--c-line); }
+    .section-head { max-width: 44em; margin-bottom: 40px; }
+    .section-head h2 { font-size: clamp(28px, 4vw, 38px); }
+    .section-head p { color: var(--c-muted); margin: 12px 0 0; }
+
+    .grid3 { display: grid; gap: 20px; grid-template-columns: 1fr; }
+    @media (min-width: 820px) { .grid3 { grid-template-columns: repeat(3, 1fr); } }
+    .card {
+      background: var(--c-surface); border: 1px solid var(--c-line); border-radius: 12px; padding: 24px;
+    }
+    .card h3 { font-size: 21px; margin-bottom: 8px; }
+    .card p { margin: 0; color: var(--c-muted); font-size: 16px; }
+    .num {
+      font-family: var(--font-display); font-weight: 700; color: var(--c-accent);
+      font-size: 15px; margin-bottom: 12px;
+    }
+
+    .feature { display: grid; gap: 32px; align-items: center; grid-template-columns: 1fr; }
+    .feature + .feature { margin-top: 64px; }
+    @media (min-width: 880px) {
+      .feature { grid-template-columns: 5fr 7fr; gap: 48px; }
+      .feature.flip > :first-child { order: 2; }
+    }
+    .feature h3 { font-size: 26px; margin-bottom: 12px; }
+    .feature p { color: var(--c-muted); margin: 0 0 12px; }
+
+    .screens { display: grid; gap: 12px; grid-template-columns: 1fr; }
+    @media (min-width: 640px) { .screens { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 960px) { .screens { grid-template-columns: repeat(4, 1fr); } }
+    .screens div { border: 1px solid var(--c-line); border-radius: 10px; padding: 16px; background: var(--c-surface); }
+    .screens strong { display: block; margin-bottom: 4px; }
+    .screens span { color: var(--c-muted); font-size: 15px; }
+
+    .privacy {
+      background: var(--c-accent-soft); border-radius: 16px; padding: 40px 24px; text-align: center;
+    }
+    .privacy h2 { font-size: clamp(26px, 3.6vw, 34px); }
+    .privacy p { color: var(--c-muted); max-width: 40em; margin: 14px auto 0; }
+
+    footer { border-top: 1px solid var(--c-line); padding: 32px 0 48px; color: var(--c-faint); font-size: 14px; }
+    .foot { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
+    .foot nav { display: flex; gap: 20px; }
+    .foot a { color: var(--c-muted); text-decoration: none; }
+    .foot a:hover { color: var(--c-text); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="#">
+        <img src="mark.png" alt="" />
+        Dossierbuild
+      </a>
+      <nav class="nav-links">
+        <a class="optional" href="#how">How it works</a>
+        <a class="optional" href="#features">Features</a>
+        <a href="https://github.com/aliakbarkhan21/Dossierbuild">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap hero">
+      <span class="eyebrow">AI-assisted resume builder</span>
+      <h1>One true profile. A tailored resume for every job.</h1>
+      <p class="lede">
+        Dossierbuild keeps a single master record of everything you have done,
+        re-angles it at each job you apply for, and prints it to a real PDF.
+        Every AI rewrite is checked against your own history, so it can sharpen
+        a line but never invent a fact.
+      </p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/aliakbarkhan21/Dossierbuild">Get Dossierbuild</a>
+        <a class="btn btn-ghost" href="#how">See how it works</a>
+      </div>
+      <div class="shot">
+        <img src="img/resume.png" alt="The Resume screen: a template picker beside a live preview of the printed document" />
+      </div>
+    </div>
+
+    <section id="how">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Why it is different</h2>
+          <p>
+            Most resume tools hand your history and the job advert to a model
+            together and print whatever comes back. Dossierbuild deliberately
+            does not.
+          </p>
+        </div>
+        <div class="grid3">
+          <div class="card">
+            <div class="num">01</div>
+            <h3>The job is read by rules</h3>
+            <p>
+              A posting is parsed into weighted requirements by a deterministic
+              engine and scored against your profile. The gap analysis is
+              testable, repeatable, and works with no API key at all.
+            </p>
+          </div>
+          <div class="card">
+            <div class="num">02</div>
+            <h3>Rewrites cannot add facts</h3>
+            <p>
+              Every AI suggestion is diffed against the line it came from. A
+              number, tool or employer that is not already in your profile is
+              flagged, and flagged suggestions arrive unticked.
+            </p>
+          </div>
+          <div class="card">
+            <div class="num">03</div>
+            <h3>The writing standard is code</h3>
+            <p>
+              A built-in linter catches filler and vague claims, and the same
+              linter judges the model's output. A rewrite that trades one
+              cliché for another shows up as a score that did not move.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="wrap">
+        <div class="feature">
+          <div>
+            <h3>Tailor to the posting, honestly</h3>
+            <p>
+              Paste a job advert. Dossierbuild reads it into the requirements
+              that matter, shows which ones your profile already evidences, and
+              only then asks a model to re-angle your bullets toward the gaps.
+            </p>
+            <p>Each application is filed with the exact version you sent.</p>
+          </div>
+          <div class="shot">
+            <img src="img/tailor.png" alt="The Tailor screen: a job posting read into weighted requirements and scored against the profile" loading="lazy" />
+          </div>
+        </div>
+        <div class="feature flip">
+          <div>
+            <h3>Review the whole document</h3>
+            <p>
+              A job that ends before it starts, a resume with no email on it,
+              the same bullet pasted twice. Review reads the entire document and
+              points to the one line worth fixing first.
+            </p>
+          </div>
+          <div class="shot">
+            <img src="img/health.png" alt="The Review screen: the document with each line scored against the writing standard" loading="lazy" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Everything a job search needs</h2>
+        </div>
+        <div class="screens">
+          <div><strong>Profile</strong><span>Every role, project and skill, autosaved with backups.</span></div>
+          <div><strong>Resume</strong><span>Ten templates, and a preview that is the printed PDF.</span></div>
+          <div><strong>Tailor</strong><span>Rules-based job analysis plus audited AI rewrites.</span></div>
+          <div><strong>Applications</strong><span>Every posting, its stage, and the gaps you keep hitting.</span></div>
+          <div><strong>Import</strong><span>LinkedIn export, PDF, DOCX or pasted text.</span></div>
+          <div><strong>Cover letters</strong><span>Drafted from what your profile can actually evidence.</span></div>
+          <div><strong>Interview brief</strong><span>What you can evidence, what you can't, and the questions each invites.</span></div>
+          <div><strong>Review</strong><span>Document-wide checks and a line-by-line writing score.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="privacy">
+          <h2>Your history stays yours</h2>
+          <p>
+            Dossierbuild runs on your own machine. Your profile, portrait, saved
+            versions and API key never leave it. The only thing that goes out is
+            the text you explicitly send to a model.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot">
+      <span>© <span id="year">2026</span> Dossierbuild</span>
+      <nav>
+        <a href="https://github.com/aliakbarkhan21/Dossierbuild">GitHub</a>
+        <a href="https://github.com/aliakbarkhan21/Dossierbuild/blob/main/CHANGELOG.md">Changelog</a>
+      </nav>
+    </div>
+  </footer>
+  <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+</body>
+</html>
