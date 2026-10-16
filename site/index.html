@@ -6,9 +6,33 @@
   <title>Dossierbuild — tailored resumes that never invent a fact</title>
   <meta name="description" content="Dossierbuild tailors your resume to every job and checks each AI rewrite against your own history, so it never invents a fact. Free, open source, and runs on your own machine." />
   <meta name="theme-color" content="#0b0f0d" />
-  <meta property="og:title" content="Dossierbuild" />
+  <link rel="canonical" href="https://dossierbuild.lol/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Dossierbuild" />
+  <meta property="og:url" content="https://dossierbuild.lol/" />
+  <meta property="og:title" content="Dossierbuild — tailored resumes that never invent a fact" />
   <meta property="og:description" content="A tailored resume for every job. Every AI rewrite is checked against your own history, so it never invents a fact." />
-  <meta property="og:image" content="img/resume.png" />
+  <meta property="og:image" content="https://dossierbuild.lol/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Dossierbuild: tailored resumes that never invent a fact, beside a screenshot of the app" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Dossierbuild — tailored resumes that never invent a fact" />
+  <meta name="twitter:description" content="A tailored resume for every job. Every AI rewrite is checked against your own history." />
+  <meta name="twitter:image" content="https://dossierbuild.lol/og.png" />
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Dossierbuild",
+      "url": "https://dossierbuild.lol/",
+      "description": "An AI-assisted resume builder that runs on your own machine. It tailors your resume to each job and checks every AI rewrite against your own history, so it never invents a fact.",
+      "applicationCategory": "BusinessApplication",
+      "license": "https://github.com/aliakbarkhan21/Dossierbuild/blob/main/LICENSE",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "sameAs": ["https://github.com/aliakbarkhan21/Dossierbuild"]
+    }
+  </script>
   <link rel="icon" href="favicon.ico" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -140,7 +164,47 @@
     .nav-links a { color: var(--ink-muted); text-decoration: none; }
     .nav-links a:hover { color: #fff; }
     .nav-links .btn { padding: 8px 16px; font-size: 14px; color: #06120d; }
-    @media (max-width: 720px) { .nav-links .optional { display: none; } }
+    .nav-links { gap: 24px; }
+    .menu-btn { display: none; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--ink-line);
+      background: rgb(255 255 255 / 0.04); cursor: pointer; padding: 0; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+    .menu-btn span { display: block; width: 16px; height: 2px; border-radius: 2px; background: var(--ink-text); transition: transform 0.2s ease, opacity 0.2s ease; }
+    .menu-btn[aria-expanded="true"] span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+    .menu-btn[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+    .menu-btn[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+    .mobile-menu { border-top: 1px solid var(--ink-line); padding: 8px 16px 16px; display: grid; background: var(--ink); }
+    .mobile-menu[hidden] { display: none; }
+    .mobile-menu a { color: var(--ink-text); text-decoration: none; padding: 12px 4px; border-bottom: 1px solid var(--ink-line); font-size: 16px; }
+    .mobile-menu a:last-child { border-bottom: 0; }
+    @media (max-width: 900px) { .nav-links .optional { display: none; } .menu-btn { display: inline-flex; } }
+    @media (min-width: 901px) { .mobile-menu { display: none !important; } }
+
+    /* ---------- Video ---------- */
+    .video { margin: 0 auto; max-width: 1040px; border-radius: 14px; overflow: hidden; background: var(--ink-2);
+      border: 1px solid var(--c-line); box-shadow: var(--shadow); }
+    .video .browser-bar { border-bottom: 1px solid var(--ink-line); }
+    .video video { display: block; width: 100%; height: auto; background: var(--ink-2); }
+    .video figcaption { background: var(--c-surface); color: var(--c-faint); font-size: 14px; padding: 12px 16px; border-top: 1px solid var(--c-line); }
+
+    /* ---------- Roadmap ---------- */
+    .roadmap { display: grid; gap: 16px; grid-template-columns: 1fr; max-width: 960px; margin: 0 auto; }
+    @media (min-width: 820px) { .roadmap { grid-template-columns: 1fr 1fr; } }
+    .road { border: 1px solid var(--c-line); border-radius: var(--radius); background: var(--c-surface); padding: 28px; }
+    .road h3 { font-size: 20px; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+    .road ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+    .road li { color: var(--c-muted); font-size: 16px; }
+    .road li strong { display: block; color: var(--c-text); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.done { background: var(--c-accent); }
+    .dot.next { background: transparent; border: 2px solid var(--c-accent); }
+
+    /* ---------- Founder ---------- */
+    .founder { max-width: 760px; margin: 0 auto; text-align: center; }
+    .founder blockquote { margin: 0; }
+    .founder blockquote p { font-family: var(--font-display); font-size: clamp(20px, 2.4vw, 25px); line-height: 1.5; color: var(--c-text); margin: 0 0 18px; }
+    .founder figcaption { display: inline-flex; align-items: center; gap: 12px; margin-top: 12px; text-align: left; }
+    .founder figcaption img { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--c-line); background: #fff; padding: 4px; }
+    .founder figcaption strong { display: block; font-size: 16px; }
+    .founder figcaption span span { font-size: 14px; color: var(--c-faint); }
 
     /* ---------- Hero ---------- */
     .hero { padding: 88px 0 0; text-align: center; }
@@ -168,10 +232,11 @@
     .browser-bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--ink-line); }
     .browser-bar i { width: 11px; height: 11px; border-radius: 50%; background: rgb(255 255 255 / 0.16); }
     .browser-bar span { margin: 0 auto; font-size: 12px; color: var(--ink-muted); background: rgb(255 255 255 / 0.05); padding: 3px 14px; border-radius: 6px; }
-    .browser img { width: 100%; }
+    .browser img { width: 100%; height: auto; }
 
     /* ---------- Sections ---------- */
     section.block { padding: 112px 0; }
+    section[id] { scroll-margin-top: 72px; }
     .eyebrow { display: inline-block; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-accent); margin-bottom: 14px; }
     .head { max-width: 46rem; margin: 0 auto 56px; text-align: center; }
     .head h2 { font-size: clamp(32px, 5vw, 54px); text-wrap: balance; }
@@ -322,10 +387,23 @@
       </a>
       <nav class="nav-links" aria-label="Main">
         <a class="optional" href="#how">How it works</a>
+        <a class="optional" href="#demo-video">Demo</a>
         <a class="optional" href="#features">Features</a>
+        <a class="optional" href="#roadmap">Roadmap</a>
         <a class="optional" href="#faq">FAQ</a>
         <a class="btn btn-glow" href="https://github.com/aliakbarkhan21/Dossierbuild">Get started</a>
+        <button class="menu-btn" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
+          <span></span><span></span><span></span>
+        </button>
       </nav>
+    </div>
+    <div class="mobile-menu" id="mobile-menu" hidden>
+      <a href="#how">How it works</a>
+      <a href="#demo-video">Demo</a>
+      <a href="#features">Features</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#faq">FAQ</a>
+      <a href="#founder">From the founder</a>
     </div>
   </header>
 
@@ -352,7 +430,7 @@
         </ul>
         <div class="browser">
           <div class="browser-bar"><i></i><i></i><i></i><span>localhost:8000</span></div>
-          <img src="img/resume.png" alt="The Resume screen: a template picker beside a live preview of the printed document" />
+          <picture><source type="image/webp" srcset="img/resume-800.webp 800w, img/resume-1280.webp 1280w, img/resume-1920.webp 1920w" sizes="(min-width: 1140px) 1040px, 92vw" /><img src="img/resume.png" alt="The Resume screen: a template picker beside a live preview of the printed document" width="3120" height="1880" fetchpriority="high" /></picture>
         </div>
       </div>
     </div>
@@ -429,6 +507,28 @@
       </div>
     </section>
 
+    <section class="block" id="demo-video" style="padding-top:0">
+      <div class="wrap">
+        <div class="head reveal">
+          <span class="eyebrow">See it work</span>
+          <h2>The real app, <span class="serif">in 25 seconds.</span></h2>
+          <p>
+            Recorded from Dossierbuild running locally on the worked example: a job posting read by
+            rules and scored against the profile, then the whole document reviewed.
+          </p>
+        </div>
+        <figure class="video reveal">
+          <div class="browser-bar"><i></i><i></i><i></i><span>localhost:8000</span></div>
+          <video muted loop playsinline preload="none" poster="media/demo-poster.webp" width="1280" height="800"
+            aria-label="Screen recording: the Resume screen, a job posting analysed on the Tailor screen, then the Review screen">
+            <source src="media/demo.webm" type="video/webm" />
+            <source src="media/demo.mp4" type="video/mp4" />
+          </video>
+          <figcaption>No AI was used in this clip. The analysis and the review run on rules alone.</figcaption>
+        </figure>
+      </div>
+    </section>
+
     <section class="block" id="features" style="padding-top:0">
       <div class="wrap">
         <div class="head reveal">
@@ -439,7 +539,7 @@
           <div class="tile span2 reveal">
             <h3>See the gaps before you write a word</h3>
             <p>Tailor shows which of a job's requirements your profile already evidences, and which it doesn't, before any rewriting starts.</p>
-            <div class="shot"><img src="img/tailor.png" alt="The Tailor screen: a job posting read into weighted requirements and scored against the profile" loading="lazy" /></div>
+            <div class="shot"><picture><source type="image/webp" srcset="img/tailor-800.webp 800w, img/tailor-1280.webp 1280w, img/tailor-1920.webp 1920w" sizes="(min-width: 1020px) 700px, (min-width: 760px) 92vw, 92vw" /><img src="img/tailor.png" alt="The Tailor screen: a job posting read into weighted requirements and scored against the profile" width="3120" height="1880" loading="lazy" decoding="async" /></picture></div>
           </div>
           <div class="tile accent reveal">
             <div class="big">0</div>
@@ -454,7 +554,7 @@
           <div class="tile span2 reveal">
             <h3>A writing standard that's code</h3>
             <p>Review reads the whole document and every line in it, flags filler and vague claims, and points to the one line worth fixing first. The same check scores the AI's rewrites.</p>
-            <div class="shot"><img src="img/health.png" alt="The Review screen: the document with each line scored against the writing standard" loading="lazy" /></div>
+            <div class="shot"><picture><source type="image/webp" srcset="img/health-800.webp 800w, img/health-1280.webp 1280w, img/health-1920.webp 1920w" sizes="(min-width: 1020px) 700px, (min-width: 760px) 92vw, 92vw" /><img src="img/health.png" alt="The Review screen: the document with each line scored against the writing standard" width="3120" height="1880" loading="lazy" decoding="async" /></picture></div>
           </div>
           <div class="tile reveal">
             <h3>Applications tracker</h3>
@@ -468,6 +568,34 @@
             <h3>Built for real job hunts</h3>
             <p>Separate CVs for different careers, focus tags for job families, saved versions and full undo.</p>
             <div class="chips"><span>Multiple CVs</span><span>Focus tags</span><span>Saved versions</span><span>Undo</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="roadmap" style="padding-top:0">
+      <div class="wrap">
+        <div class="head reveal">
+          <span class="eyebrow">Roadmap</span>
+          <h2>What shipped, <span class="serif">and what's next.</span></h2>
+          <p>The next column is a plan, not a promise.</p>
+        </div>
+        <div class="roadmap">
+          <div class="road reveal">
+            <h3><span class="dot done"></span>Recently shipped</h3>
+            <ul>
+              <li><strong>Claude as a second AI provider.</strong> Choose Gemini or Claude in Settings. Both go through the same check.</li>
+              <li><strong>Several CVs per person.</strong> Separate CVs for different careers, grouped by person, with duplicate and rename.</li>
+              <li><strong>Editing on the page itself.</strong> Type straight onto the resume without changing the printed document.</li>
+            </ul>
+          </div>
+          <div class="road reveal">
+            <h3><span class="dot next"></span>Next</h3>
+            <ul>
+              <li><strong>A snippet library.</strong> The sentences you retype across applications, kept in one place.</li>
+              <li><strong>Bulk actions on bullets.</strong> Select several, then delete, move or improve them together.</li>
+              <li><strong>Local models.</strong> Run the AI steps on a model on your own machine, so nothing leaves it at all.</li>
+            </ul>
           </div>
         </div>
       </div>
@@ -504,6 +632,33 @@
       </div>
     </section>
 
+    <section class="block" id="founder" style="padding-top:0">
+      <div class="wrap">
+        <figure class="founder reveal">
+          <span class="eyebrow">Why I'm building this</span>
+          <blockquote>
+            <p>
+              Most AI resume tools hand your history and a job advert to a model and print whatever
+              comes back. It's fast, and it's how a resume ends up claiming a tool you've never used.
+            </p>
+            <p>
+              I wanted the opposite: the job read by rules, the AI only allowed to rewrite, and every
+              rewrite checked against what you've actually done. Dossierbuild is that tool. It runs on
+              your own machine, it's open source, and its limits are written down in the README.
+            </p>
+          </blockquote>
+          <figcaption>
+            <img src="mark.png" alt="" width="40" height="40" />
+            <span>
+              <strong>Muhammad Ali Akbar</strong>
+              <span>Founder, Dossierbuild ·
+                <a href="https://www.linkedin.com/in/muhammad-ali-akbar-khan-7b37b8197" rel="noopener">LinkedIn</a></span>
+            </span>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
     <div class="ink closer">
       <div class="wrap">
         <h2>Your next resume, <span class="serif">without the fiction.</span></h2>
@@ -536,6 +691,18 @@
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
 
+    // The phone menu: one button, and any link inside closes it again.
+    var menuBtn = document.querySelector(".menu-btn");
+    var menu = document.getElementById("mobile-menu");
+    function setMenu(open) {
+      menuBtn.setAttribute("aria-expanded", String(open));
+      menuBtn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+      menu.hidden = !open;
+    }
+    menuBtn.addEventListener("click", function () { setMenu(menu.hidden); });
+    menu.addEventListener("click", function (e) { if (e.target.closest("a")) setMenu(false); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") setMenu(false); });
+
     var still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     // Fade sections in as they scroll into view.
@@ -549,6 +716,22 @@
         });
       }, { threshold: 0.12 });
       reveals.forEach(function (el) { io.observe(el); });
+    }
+
+    // The demo video starts only once it is on screen, so nobody pays for it
+    // on the way past -- and never by itself for anyone who asked for less motion.
+    var video = document.querySelector("#demo-video video");
+    if (still || !("IntersectionObserver" in window)) {
+      video.controls = true;
+    } else {
+      new IntersectionObserver(function (entries) {
+        if (entries[0].isIntersecting) {
+          var playing = video.play();
+          if (playing && playing.catch) playing.catch(function () { video.controls = true; });
+        } else {
+          video.pause();
+        }
+      }, { threshold: 0.35 }).observe(video);
     }
 
     // The rewrite check, played on a loop: each suggestion arrives, is
