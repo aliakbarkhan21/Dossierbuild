@@ -141,13 +141,30 @@
     .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none;
       font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 15px; }
     .brand img { width: 30px; height: 30px; border-radius: 8px; background: #fff; padding: 3px; border: 1px solid var(--line); }
-    .tabs { display: flex; gap: 4px; }
+    .tabs { display: flex; gap: 4px; position: relative; }
     .tabs a {
+      position: relative; z-index: 1;
       color: var(--muted); text-decoration: none; font-size: 15px; padding: 8px 12px; border-radius: 999px;
-      white-space: nowrap; transition: color 0.15s ease, background 0.15s ease;
+      white-space: nowrap; transition: color 0.3s ease, background 0.15s ease;
     }
     .tabs a:hover { color: var(--text); }
     .tabs a[aria-current="page"] { color: var(--text); background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
+    /* One highlight that glides between tabs, rather than one per tab. Until
+       the script has placed it, the per-tab highlight above stands in. */
+    .tabs .thumb {
+      position: absolute; z-index: 0; top: 0; left: 0; width: 0; height: 0; border-radius: 999px;
+      background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 2px 8px rgb(14 28 23 / 0.06);
+      pointer-events: none; opacity: 0;
+    }
+    .tabs.glide .thumb { opacity: 1; }
+    .tabs.glide a[aria-current="page"] { background: none; box-shadow: none; }
+    .tabs.moving .thumb {
+      transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1), width 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    /* The tab you switch to fades up into place. */
+    @keyframes arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    .js .panel.arriving { animation: arrive 0.38s cubic-bezier(0.32, 0.72, 0, 1); }
     .bar-right { display: flex; align-items: center; gap: 14px; }
     .bar-right .gh { color: var(--muted); text-decoration: none; font-size: 15px; }
     .bar-right .gh:hover { color: var(--text); }
@@ -432,7 +449,7 @@
 
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
-      *, *::before, *::after { transition: none !important; }
+      *, *::before, *::after { transition: none !important; animation: none !important; }
     }
   </style>
   <script>document.documentElement.classList.add("js");</script>
@@ -864,8 +881,38 @@
     var panels = document.querySelectorAll("[data-panel]");
     var links = document.querySelectorAll("[data-tab]");
 
-    function show(name, scroll) {
-      panels.forEach(function (p) { p.classList.toggle("active", p.dataset.panel === name); });
+    // ---------- The gliding highlight ----------
+    var bars = document.querySelectorAll(".tabs");
+    bars.forEach(function (bar) {
+      var thumb = document.createElement("span");
+      thumb.className = "thumb";
+      thumb.setAttribute("aria-hidden", "true");
+      bar.prepend(thumb);
+    });
+    function placeThumbs(animate) {
+      bars.forEach(function (bar) {
+        var thumb = bar.querySelector(".thumb");
+        var current = bar.querySelector("[aria-current]");
+        if (!current || !bar.offsetParent) return;      // hidden at this width
+        bar.classList.toggle("moving", !!animate && !still);
+        thumb.style.width = current.offsetWidth + "px";
+        thumb.style.height = current.offsetHeight + "px";
+        thumb.style.transform = "translate(" + current.offsetLeft + "px," + current.offsetTop + "px)";
+        bar.classList.add("glide");
+      });
+    }
+
+    function show(name, scroll, animate) {
+      panels.forEach(function (p) {
+        var on = p.dataset.panel === name;
+        var was = p.classList.contains("active");
+        p.classList.toggle("active", on);
+        if (on && !was && animate) {
+          p.classList.remove("arriving");
+          void p.offsetWidth;                              // restart the animation
+          p.classList.add("arriving");
+        }
+      });
       links.forEach(function (a) {
         if (a.closest(".tabs")) {
           if (a.dataset.tab === name) a.setAttribute("aria-current", "page");
@@ -876,7 +923,8 @@
       // scrollIntoView would nudge the whole page sideways as well.
       var strip = document.querySelector(".tabs-mobile");
       var current = strip.querySelector("[aria-current]");
-      if (current) strip.scrollLeft = current.offsetLeft - (strip.clientWidth - current.offsetWidth) / 2;
+      if (current) strip.scrollTo({ left: current.offsetLeft - (strip.clientWidth - current.offsetWidth) / 2, behavior: animate && !still ? "smooth" : "instant" });
+      placeThumbs(animate);
       if (scroll) window.scrollTo({ top: 0, behavior: "instant" });
       if (name === "how") startSteps(); else stopSteps();
     }
@@ -888,10 +936,17 @@
         e.preventDefault();
         var name = a.dataset.tab;
         if (location.hash !== "#" + name) history.pushState(null, "", "#" + name);
-        show(name, true);
+        show(name, true, true);
       });
     });
-    window.addEventListener("popstate", function () { show(fromHash(), true); });
+    window.addEventListener("popstate", function () { show(fromHash(), true, true); });
+    // Widths change when the web font arrives and when the window is resized;
+    // the highlight follows without animating.
+    window.addEventListener("resize", function () { placeThumbs(false); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { placeThumbs(false); });
+    document.querySelectorAll(".panel").forEach(function (p) {
+      p.addEventListener("animationend", function () { p.classList.remove("arriving"); });
+    });
 
     // ---------- How it works: the stepper ----------
     var STEPS = [
@@ -944,7 +999,7 @@
       }, { threshold: 0.35 }).observe(video);
     }
 
-    show(fromHash(), false);
+    show(fromHash(), false, false);
   </script>
 </body>
 </html>
