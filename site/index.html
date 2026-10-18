@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dossierbuild — tailored resumes that never invent a fact</title>
   <meta name="description" content="Dossierbuild tailors your resume to every job and checks each AI rewrite against your own history, so it never invents a fact. Free, open source, and runs on your own machine." />
-  <meta name="theme-color" content="#0b0f0d" />
+  <meta name="theme-color" content="#f4f2ed" />
   <link rel="canonical" href="https://dossierbuild.lol/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Dossierbuild" />
@@ -38,577 +38,715 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,500;1,8..60,700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap"
     rel="stylesheet"
   />
   <style>
     /*
-     * The app's palette, pushed further. The hero and the closer are always
-     * dark ("ink") panels so the page opens with weight; everything between
-     * follows the visitor's light or dark preference.
+     * Warm paper, deep green ink, light-weight display type. The layout takes
+     * its cues from the clean product sites in this category; the palette and
+     * the mark stay Dossierbuild's own.
      */
     :root {
-      --c-bg: #faf9f7;
-      --c-surface: #ffffff;
-      --c-text: #151716;
-      --c-muted: #5a5954;
-      --c-faint: #6f6b62;
-      --c-line: #e7e5e1;
-      --c-line-strong: #d5d2cc;
-      --c-accent: #2c6a54;
-      --c-accent-hover: #235544;
-      --c-accent-soft: #e3efe9;
-      --c-on-accent: #ffffff;
-      --c-poor: #a4443f;
-      --c-poor-soft: #f7e5e3;
-      --c-good: #2f7355;
-
-      --ink: #0b0f0d;
-      --ink-2: #121815;
-      --ink-line: rgb(255 255 255 / 0.09);
-      --ink-text: #eef3f0;
-      --ink-muted: #9fb0a8;
-      --glow: #5fbe96;
-
-      --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-      --font-display: "Source Serif 4", Georgia, serif;
-      --shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 16px 40px rgb(0 0 0 / 0.08);
-      --radius: 16px;
+      --bg: #f4f2ed;
+      --surface: #ffffff;
+      --text: #0e1c17;
+      --muted: #56615c;
+      --faint: #7b8580;
+      --line: #e3e0d8;
+      --line-strong: #d2cec4;
+      --accent: #2c6a54;
+      --accent-strong: #1f5442;
+      --accent-soft: #e1eee7;
+      --good: #2f7355;
+      --good-soft: #e2efe7;
+      --fair: #8a6318;
+      --fair-soft: #f6eddb;
+      --poor: #a4443f;
+      --poor-soft: #f7e5e3;
+      --deep: #0d1a15;
+      --deep-2: #15241e;
+      --deep-line: rgb(255 255 255 / 0.09);
+      --deep-text: #eef3f0;
+      --deep-muted: #9fb0a8;
+      --mint: #7fd1ae;
+      --shadow: 0 1px 2px rgb(14 28 23 / 0.05), 0 18px 48px rgb(14 28 23 / 0.10);
+      --radius: 18px;
+      --font: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --serif: "Source Serif 4", Georgia, serif;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --c-bg: #0f1211;
-        --c-surface: #161a19;
-        --c-text: #e8ecea;
-        --c-muted: #a2aca7;
-        --c-faint: #8e9995;
-        --c-line: #242a28;
-        --c-line-strong: #343c39;
-        --c-accent: #5fbe96;
-        --c-accent-hover: #7bd0ab;
-        --c-accent-soft: #17281f;
-        --c-on-accent: #071310;
-        --c-poor: #e0847c;
-        --c-poor-soft: #2a1715;
-        --c-good: #6cc39b;
-        --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 16px 40px rgb(0 0 0 / 0.45);
+        --bg: #0e1210;
+        --surface: #161b19;
+        --text: #e8ecea;
+        --muted: #a5b0ab;
+        --faint: #8a9690;
+        --line: #252c29;
+        --line-strong: #353e3a;
+        --accent: #5fbe96;
+        --accent-strong: #7bd0ab;
+        --accent-soft: #17281f;
+        --good: #6cc39b;
+        --good-soft: #16241d;
+        --fair: #d3a45c;
+        --fair-soft: #241d10;
+        --poor: #e0847c;
+        --poor-soft: #2a1715;
+        --deep: #0a110e;
+        --deep-2: #121a16;
+        --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 18px 48px rgb(0 0 0 / 0.45);
       }
     }
 
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
-      margin: 0;
-      background: var(--c-bg);
-      color: var(--c-text);
-      font-family: var(--font-sans);
-      font-size: 17px;
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-      overflow-wrap: break-word;
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: var(--font); font-size: 17px; line-height: 1.6;
+      -webkit-font-smoothing: antialiased; overflow-x: hidden; overflow-wrap: break-word;
     }
-    img { max-width: 100%; height: auto; display: block; }
-    a { color: var(--c-accent); }
-    :focus-visible { outline: 2px solid var(--glow); outline-offset: 3px; border-radius: 6px; }
+    img, video { max-width: 100%; height: auto; display: block; }
+    a { color: var(--accent); }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+    h1, h2, h3 { margin: 0; font-weight: 450; letter-spacing: -0.035em; line-height: 1.06; }
+    p { margin: 0; }
 
-    .wrap { max-width: 1140px; margin: 0 auto; padding: 0 16px; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
     @media (min-width: 720px) { .wrap { padding: 0 32px; } }
-
-    h1, h2, h3 { margin: 0; line-height: 1.08; letter-spacing: -0.03em; font-weight: 800; }
-    .serif { font-family: var(--font-display); font-style: italic; font-weight: 600; letter-spacing: -0.01em; }
 
     /* ---------- Buttons ---------- */
     .btn {
-      display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 999px;
-      font-weight: 600; font-size: 16px; text-decoration: none; border: 1px solid transparent;
-      transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px;
+      font: 500 16px/1 var(--font); text-decoration: none; border: 1px solid transparent; cursor: pointer;
+      transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
     }
     .btn:hover { transform: translateY(-1px); }
-    .btn-glow { background: var(--glow); color: #06120d; box-shadow: 0 0 0 1px rgb(95 190 150 / 0.4), 0 8px 30px rgb(95 190 150 / 0.35); }
-    .btn-glow:hover { background: #7bd0ab; color: #06120d; box-shadow: 0 0 0 1px rgb(95 190 150 / 0.6), 0 10px 40px rgb(95 190 150 / 0.5); }
-    .btn-line { border-color: var(--ink-line); color: var(--ink-text); background: rgb(255 255 255 / 0.04); }
-    .btn-line:hover { border-color: rgb(255 255 255 / 0.3); color: #fff; }
-    .arrow { transition: transform 0.15s ease; }
-    .btn:hover .arrow { transform: translateX(3px); }
+    .btn-dark { background: var(--text); color: var(--bg); }
+    .btn-dark:hover { background: var(--accent-strong); color: #fff; }
+    .btn-light { background: #fff; color: #0e1c17; }
+    .btn-light:hover { background: #eef6f1; color: #0e1c17; }
+    .btn-line { border-color: var(--line-strong); color: var(--text); background: transparent; }
+    .btn-line:hover { border-color: var(--text); color: var(--text); }
+    .btn-glass { border-color: rgb(255 255 255 / 0.4); color: #fff; background: rgb(255 255 255 / 0.1); }
+    .btn-glass:hover { background: rgb(255 255 255 / 0.2); color: #fff; }
 
-    /* ---------- Ink panels (hero + closer) ---------- */
-    .ink { background: var(--ink); color: var(--ink-text); position: relative; isolation: isolate; overflow: hidden; }
-    .ink::before {
-      /* faint grid, fading out toward the edges */
-      content: ""; position: absolute; inset: 0; z-index: -1;
-      background-image:
-        linear-gradient(var(--ink-line) 1px, transparent 1px),
-        linear-gradient(90deg, var(--ink-line) 1px, transparent 1px);
-      background-size: 56px 56px;
-      mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
-      -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
-    }
-    .ink::after {
-      content: ""; position: absolute; z-index: -1; left: 50%; top: -260px; width: 900px; height: 600px;
-      transform: translateX(-50%); border-radius: 50%;
-      background: radial-gradient(closest-side, rgb(95 190 150 / 0.35), transparent);
-      filter: blur(20px); pointer-events: none;
-    }
-
-    /* ---------- Header ---------- */
+    /* ---------- Header and tabs ---------- */
     header.site {
-      position: sticky; top: 0; z-index: 20;
-      background: rgb(11 15 13 / 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--ink-line); color: var(--ink-text);
+      position: sticky; top: 0; z-index: 30;
+      background: color-mix(in srgb, var(--bg) 86%, transparent);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     }
-    .nav { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 16px; }
-    .brand { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; font-weight: 700; letter-spacing: -0.01em; font-size: 17px; }
-    .brand img { width: 30px; height: 30px; border-radius: 8px; background: #eef3f0; padding: 3px; }
-    .nav-links { display: flex; align-items: center; gap: 28px; font-size: 15px; }
-    .nav-links a { color: var(--ink-muted); text-decoration: none; }
-    .nav-links a:hover { color: #fff; }
-    .nav-links .btn { padding: 8px 16px; font-size: 14px; color: #06120d; }
-    .nav-links { gap: 24px; }
-    .menu-btn { display: none; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--ink-line);
-      background: rgb(255 255 255 / 0.04); cursor: pointer; padding: 0; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
-    .menu-btn span { display: block; width: 16px; height: 2px; border-radius: 2px; background: var(--ink-text); transition: transform 0.2s ease, opacity 0.2s ease; }
-    .menu-btn[aria-expanded="true"] span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
-    .menu-btn[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
-    .menu-btn[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
-    .mobile-menu { border-top: 1px solid var(--ink-line); padding: 8px 16px 16px; display: grid; background: var(--ink); }
-    .mobile-menu[hidden] { display: none; }
-    .mobile-menu a { color: var(--ink-text); text-decoration: none; padding: 12px 4px; border-bottom: 1px solid var(--ink-line); font-size: 16px; }
-    .mobile-menu a:last-child { border-bottom: 0; }
-    @media (max-width: 900px) { .nav-links .optional { display: none; } .menu-btn { display: inline-flex; } }
-    @media (min-width: 901px) { .mobile-menu { display: none !important; } }
+    .bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 68px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none;
+      font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 15px; }
+    .brand img { width: 30px; height: 30px; border-radius: 8px; background: #fff; padding: 3px; border: 1px solid var(--line); }
+    .tabs { display: flex; gap: 4px; }
+    .tabs a {
+      color: var(--muted); text-decoration: none; font-size: 15px; padding: 8px 12px; border-radius: 999px;
+      white-space: nowrap; transition: color 0.15s ease, background 0.15s ease;
+    }
+    .tabs a:hover { color: var(--text); }
+    .tabs a[aria-current="page"] { color: var(--text); background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
+    .bar-right { display: flex; align-items: center; gap: 14px; }
+    .bar-right .gh { color: var(--muted); text-decoration: none; font-size: 15px; }
+    .bar-right .gh:hover { color: var(--text); }
+    .bar-right .btn { padding: 10px 16px; font-size: 15px; }
+    .tabs-mobile { display: none; }
+    @media (max-width: 1060px) { .bar-right .gh { display: none; } }
+    @media (max-width: 920px) {
+      .bar .tabs { display: none; }
+      .tabs-mobile {
+        display: flex; overflow-x: auto; scrollbar-width: none; padding: 0 12px 10px; gap: 4px;
+        -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
+        mask-image: linear-gradient(90deg, #000 88%, transparent);
+      }
+      .tabs-mobile::-webkit-scrollbar { display: none; }
+      .tabs-mobile a:last-child { margin-right: 32px; }
+    }
 
-    /* ---------- Video ---------- */
-    .video { margin: 0 auto; max-width: 1040px; border-radius: 14px; overflow: hidden; background: var(--ink-2);
-      border: 1px solid var(--c-line); box-shadow: var(--shadow); }
-    .video .browser-bar { border-bottom: 1px solid var(--ink-line); }
-    .video video { display: block; width: 100%; height: auto; background: var(--ink-2); }
-    .video figcaption { background: var(--c-surface); color: var(--c-faint); font-size: 14px; padding: 12px 16px; border-top: 1px solid var(--c-line); }
-
-    /* ---------- Roadmap ---------- */
-    .roadmap { display: grid; gap: 16px; grid-template-columns: 1fr; max-width: 960px; margin: 0 auto; }
-    @media (min-width: 820px) { .roadmap { grid-template-columns: 1fr 1fr; } }
-    .road { border: 1px solid var(--c-line); border-radius: var(--radius); background: var(--c-surface); padding: 28px; }
-    .road h3 { font-size: 20px; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
-    .road ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
-    .road li { color: var(--c-muted); font-size: 16px; }
-    .road li strong { display: block; color: var(--c-text); }
-    .dot { width: 10px; height: 10px; border-radius: 50%; }
-    .dot.done { background: var(--c-accent); }
-    .dot.next { background: transparent; border: 2px solid var(--c-accent); }
-
-    /* ---------- Founder ---------- */
-    .founder { max-width: 760px; margin: 0 auto; text-align: center; }
-    .founder blockquote { margin: 0; }
-    .founder blockquote p { font-family: var(--font-display); font-size: clamp(20px, 2.4vw, 25px); line-height: 1.5; color: var(--c-text); margin: 0 0 18px; }
-    .founder figcaption { display: inline-flex; align-items: center; gap: 12px; margin-top: 12px; text-align: left; }
-    .founder figcaption img { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--c-line); background: #fff; padding: 4px; }
-    .founder figcaption strong { display: block; font-size: 16px; }
-    .founder figcaption span span { font-size: 14px; color: var(--c-faint); }
+    /* ---------- Panels ---------- */
+    .js .panel:not(.active) { display: none; }
+    .panel { padding-bottom: 24px; }
+    .panel + .panel { border-top: 1px solid var(--line); }
+    .js .panel + .panel { border-top: 0; }
+    .page-head { text-align: center; max-width: 46rem; margin: 0 auto; padding: 64px 0 48px; }
+    .page-head h1, .page-head h2 { font-size: clamp(36px, 5.6vw, 60px); }
+    .page-head p { color: var(--muted); font-size: clamp(17px, 1.9vw, 20px); margin-top: 18px; }
+    .eyebrow { display: inline-block; font: 500 12px/1 ui-monospace, "SFMono-Regular", Menlo, monospace;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
+    .serif-i { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -0.02em; }
 
     /* ---------- Hero ---------- */
-    .hero { padding: 88px 0 0; text-align: center; }
-    .announce {
-      display: inline-flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-text);
-      background: rgb(255 255 255 / 0.05); border: 1px solid var(--ink-line);
-      padding: 5px 14px 5px 6px; border-radius: 999px; text-decoration: none; margin-bottom: 28px;
+    .hero {
+      margin: 4px 12px 0; border-radius: 28px; overflow: hidden; position: relative; isolation: isolate;
+      background: linear-gradient(172deg, #143a2f 0%, #1f5846 28%, #3b876b 56%, #95ccb4 80%, #dcebe2 100%);
+      color: #fff; text-align: center; padding: 72px 16px 0;
     }
-    .announce b { background: var(--glow); color: #06120d; font-size: 12px; padding: 2px 9px; border-radius: 999px; font-weight: 700; }
-    .announce:hover { border-color: rgb(255 255 255 / 0.25); color: #fff; }
-    .hero h1 {
-      font-size: clamp(42px, 7.6vw, 84px); max-width: 16ch; margin: 0 auto; text-wrap: balance;
+    .hero::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0.5;
+      background: radial-gradient(60% 50% at 20% 10%, rgb(127 209 174 / 0.35), transparent 70%),
+                  radial-gradient(50% 40% at 85% 30%, rgb(196 210 255 / 0.25), transparent 70%);
     }
-    .hero h1 .serif { color: var(--glow); padding-right: 0.06em; }
-    .hero .lede { font-size: clamp(17px, 2.1vw, 21px); color: var(--ink-muted); max-width: 34em; margin: 24px auto 0; }
-    .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 36px; }
-    .trust { display: flex; gap: 8px 24px; justify-content: center; flex-wrap: wrap; margin: 28px 0 0; padding: 0; list-style: none; font-size: 14px; color: var(--ink-muted); }
-    .trust li::before { content: "✓"; color: var(--glow); font-weight: 700; margin-right: 6px; }
-
-    .browser {
-      margin: 64px auto 0; max-width: 1040px; border-radius: 14px 14px 0 0; overflow: hidden;
-      border: 1px solid rgb(255 255 255 / 0.12); border-bottom: 0; background: var(--ink-2);
-      box-shadow: 0 -20px 80px rgb(95 190 150 / 0.18), 0 40px 120px rgb(0 0 0 / 0.6);
+    @media (min-width: 720px) { .hero { margin: 4px 16px 0; padding-top: 88px; } }
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px; background: #fff; color: #0e1c17;
+      font-size: 14px; padding: 6px 14px 6px 6px; border-radius: 999px; margin-bottom: 28px;
+      box-shadow: 0 6px 20px rgb(0 0 0 / 0.12);
     }
-    .browser-bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--ink-line); }
-    .browser-bar i { width: 11px; height: 11px; border-radius: 50%; background: rgb(255 255 255 / 0.16); }
-    .browser-bar span { margin: 0 auto; font-size: 12px; color: var(--ink-muted); background: rgb(255 255 255 / 0.05); padding: 3px 14px; border-radius: 6px; }
-    .browser img { width: 100%; height: auto; }
+    @media (max-width: 480px) { .pill-more { display: none; } }
+    .pill b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+      background: #2c6a54; color: #fff; font-size: 12px; }
+    .hero h1 { font-size: clamp(40px, 7vw, 76px); max-width: 14ch; margin: 0 auto; text-wrap: balance; }
+    .hero h1 .serif-i { color: #c9f0dd; }
+    .hero .lede { font-size: clamp(17px, 2vw, 20px); color: rgb(255 255 255 / 0.85); max-width: 34em; margin: 22px auto 0; }
+    .hero .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 32px; }
+    .proof { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; margin: 22px 0 0; padding: 0;
+      list-style: none; font-size: 14px; color: rgb(255 255 255 / 0.85); }
+    .proof li::before { content: "✓"; margin-right: 6px; color: #c9f0dd; }
 
-    /* ---------- Sections ---------- */
-    section.block { padding: 112px 0; }
-    section[id] { scroll-margin-top: 72px; }
-    .eyebrow { display: inline-block; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-accent); margin-bottom: 14px; }
-    .head { max-width: 46rem; margin: 0 auto 56px; text-align: center; }
-    .head h2 { font-size: clamp(32px, 5vw, 54px); text-wrap: balance; }
-    .head h2 .serif { color: var(--c-accent); }
-    .head p { color: var(--c-muted); font-size: clamp(17px, 1.8vw, 19px); margin: 18px auto 0; max-width: 36em; }
+    /* The resume page, and the cards that float over it */
+    .stage { position: relative; max-width: 940px; margin: 56px auto 0; text-align: left; }
+    .paper {
+      background: #fff; color: #1b1d1c; border-radius: 10px 10px 0 0; padding: 36px 40px 28px;
+      box-shadow: 0 -10px 60px rgb(0 0 0 / 0.18); font-family: var(--serif); max-width: 720px; margin: 0 auto;
+      position: relative;
+    }
+    .paper::before, .paper::after {
+      content: ""; position: absolute; left: 4%; right: 4%; top: -12px; height: 12px; border-radius: 10px 10px 0 0;
+      background: rgb(255 255 255 / 0.55);
+    }
+    .paper::after { left: 8%; right: 8%; top: -22px; background: rgb(255 255 255 / 0.3); }
+    .paper .name { text-align: center; font-size: 28px; font-weight: 600; letter-spacing: -0.01em; }
+    .paper .role { text-align: center; font-style: italic; color: #555; font-size: 14px; margin-top: 2px; }
+    .paper .contact { text-align: center; font-size: 12.5px; color: #555; margin-top: 6px; }
+    .paper h4 { margin: 18px 0 6px; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase;
+      border-bottom: 1.5px solid #1b1d1c; padding-bottom: 3px; font-weight: 700; }
+    .paper p, .paper li { font-size: 13.5px; line-height: 1.5; }
+    .paper .job { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; margin-top: 4px; }
+    .paper .job b { font-weight: 600; }
+    .paper .job span { color: #555; white-space: nowrap; }
+    .paper ul { margin: 4px 0 0; padding-left: 16px; }
+    .paper li { margin: 2px 0; transition: background 0.35s ease, color 0.35s ease; border-radius: 3px; }
+    .paper mark { background: none; color: inherit; transition: background 0.35s ease; border-radius: 3px; padding: 0 1px; }
+    .paper.keys mark { background: #d8efe3; }
+    .paper li.target { transition: background 0.35s ease; }
+    .paper.rewrite li.target { background: #fbeceb; color: #9a3f3a; text-decoration: line-through; text-decoration-color: rgb(164 68 63 / 0.5); }
+    .paper.saved li.target { display: none; }
+    .paper li.replacement { display: none; background: #e7f3ec; }
+    .paper.saved li.replacement { display: list-item; }
+    .paper .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 70px;
+      background: linear-gradient(transparent, #fff); border-radius: 0; }
 
-    /* ---------- Problem / comparison ---------- */
-    .versus { display: grid; gap: 16px; grid-template-columns: 1fr; max-width: 960px; margin: 0 auto; }
+    .float {
+      position: absolute; background: #fff; color: #0e1c17; border-radius: 16px; padding: 16px 18px;
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 22px 50px rgb(0 0 0 / 0.18); font-size: 14px; width: 260px;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .float .k { display: flex; justify-content: space-between; align-items: center; color: #6f6b62; font-size: 13px; }
+    .badge { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 6px; }
+    .badge.good { background: #e2efe7; color: #2f7355; }
+    .badge.fair { background: #f6eddb; color: #8a6318; }
+    .badge.poor { background: #f7e5e3; color: #a4443f; }
+    .badge.none { background: #f0eee9; color: #8a8a82; }
+    .float .big { font-size: 46px; font-weight: 400; letter-spacing: -0.04em; line-height: 1; margin: 12px 0 10px; }
+    .meter { height: 5px; border-radius: 5px; background: #ecebe6; overflow: hidden; }
+    .meter i { display: block; height: 100%; background: #2f7355; border-radius: 5px; transition: width 0.6s ease; }
+    .float .lbl { margin: 14px 0 8px; font: 500 11px/1 ui-monospace, Menlo, monospace; letter-spacing: 0.1em; text-transform: uppercase; color: #8a8a82; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; background: #e2efe7; color: #2f7355; }
+    .chip.miss { background: #f7e5e3; color: #a4443f; }
+    .chip::before { content: "✓ "; }
+    .chip.miss::before { content: "✕ "; }
+    .float.match { right: -28px; top: 120px; }
+    .float.check { left: -36px; bottom: 36px; width: 290px; }
+    .sug { display: grid; grid-template-columns: 18px 1fr; gap: 10px; padding: 10px; border-radius: 10px; border: 1px solid #ebe8e1; margin-top: 8px; font-size: 13px; line-height: 1.45; }
+    .sug .box { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid #cfcbc2; margin-top: 2px; display: grid; place-items: center; }
+    .sug.ok .box { background: #2c6a54; border-color: #2c6a54; }
+    .sug.ok .box::after { content: ""; width: 8px; height: 4px; border: 2px solid #fff; border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px); }
+    .sug.flag { background: #fbeceb; border-color: #efcfcc; }
+    .sug.flag u { text-decoration: none; border-bottom: 2px solid #a4443f; color: #a4443f; font-weight: 600; }
+    .sug small { display: block; margin-top: 4px; font-weight: 600; font-size: 12px; }
+    .sug.ok small { color: #2f7355; }
+    .sug.flag small { color: #a4443f; }
+    @media (max-width: 1040px) { .float.match { right: 8px; } .float.check { left: 8px; } }
+    @media (max-width: 760px) {
+      .paper { padding: 26px 20px 20px; }
+      .paper .job { flex-direction: column; gap: 0; }
+      .float { position: static; width: auto; margin: 12px 0 0; }
+      .stage-floats { display: grid; gap: 12px; padding: 0 0 16px; }
+    }
+    .illustration-note { font-size: 13px; color: var(--faint); text-align: center; margin: 14px auto 0; max-width: 40em; }
+
+    /* ---------- Home: comparison and next steps ---------- */
+    .section { padding-top: 96px; padding-bottom: 24px; }
+    .section-head { text-align: center; max-width: 44rem; margin: 0 auto 44px; }
+    .section-head h2 { font-size: clamp(32px, 4.8vw, 52px); text-wrap: balance; }
+    .section-head p { color: var(--muted); font-size: 18px; margin-top: 14px; }
+    .versus { display: grid; gap: 16px; grid-template-columns: 1fr; max-width: 920px; margin: 0 auto; }
     @media (min-width: 820px) { .versus { grid-template-columns: 1fr 1fr; } }
-    .vs-card { border-radius: var(--radius); padding: 28px; border: 1px solid var(--c-line); background: var(--c-surface); }
-    .vs-card h3 { font-size: 20px; letter-spacing: -0.02em; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
-    .vs-card ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-    .vs-card li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; color: var(--c-muted); font-size: 16px; }
-    .vs-card li::before { font-weight: 800; }
-    .vs-bad li::before { content: "✕"; color: var(--c-poor); }
-    .vs-good { border-color: color-mix(in srgb, var(--c-accent) 45%, var(--c-line)); box-shadow: 0 0 0 4px var(--c-accent-soft), var(--shadow); }
-    .vs-good li::before { content: "✓"; color: var(--c-accent); }
-    .vs-good li { color: var(--c-text); }
-    .tag { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; letter-spacing: 0; }
-    .vs-bad .tag { background: var(--c-poor-soft); color: var(--c-poor); }
-    .vs-good .tag { background: var(--c-accent-soft); color: var(--c-accent); }
+    .vs { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; }
+    .vs.us { border: 1.5px solid var(--accent); box-shadow: 0 0 0 5px var(--accent-soft); }
+    .vs-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+    .vs-top h3 { font-size: 20px; letter-spacing: -0.02em; font-weight: 500; }
+    .vs-top span { font: 500 11px/1 ui-monospace, Menlo, monospace; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+    .vs ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+    .vs li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 16px; color: var(--muted); }
+    .vs li::before { content: "✕"; color: var(--poor); font-weight: 700; }
+    .vs.us li { color: var(--text); }
+    .vs.us li::before { content: "✓"; color: var(--accent); }
 
-    /* ---------- Live demo of the rewrite check ---------- */
-    .demo-wrap { display: grid; gap: 48px; grid-template-columns: 1fr; align-items: center; }
-    @media (min-width: 920px) { .demo-wrap { grid-template-columns: 0.9fr 1.1fr; gap: 72px; } }
-    .demo-copy h2 { font-size: clamp(30px, 4.4vw, 48px); text-wrap: balance; }
-    .demo-copy h2 .serif { color: var(--c-accent); }
-    .demo-copy p { color: var(--c-muted); font-size: 18px; margin: 18px 0 0; }
-    .steps { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 14px; counter-reset: s; }
-    .steps li { counter-increment: s; display: grid; grid-template-columns: 30px 1fr; gap: 14px; align-items: start; font-size: 16px; color: var(--c-muted); }
-    .steps li strong { color: var(--c-text); }
-    .steps li::before {
-      content: counter(s); width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
-      font-size: 14px; font-weight: 700; color: var(--c-accent); background: var(--c-accent-soft);
+    .explore { display: grid; gap: 16px; grid-template-columns: 1fr; }
+    @media (min-width: 760px) { .explore { grid-template-columns: repeat(3, 1fr); } }
+    .explore a {
+      display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: var(--text);
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px;
+      transition: border-color 0.15s ease, transform 0.15s ease;
     }
+    .explore a:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+    .explore b { font-size: 19px; font-weight: 500; letter-spacing: -0.02em; }
+    .explore span { color: var(--muted); font-size: 15px; }
+    .explore em { font-style: normal; color: var(--accent); font-size: 15px; margin-top: auto; padding-top: 6px; }
 
-    .demo {
-      position: relative; border-radius: 20px; padding: 24px; background: var(--c-surface);
-      border: 1px solid var(--c-line); box-shadow: var(--shadow); font-size: 15px; isolation: isolate;
+    /* ---------- How it works: stepper ---------- */
+    .stepper {
+      display: flex; gap: 4px; justify-content: center; margin: 0 auto; width: max-content; max-width: 100%;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px;
+      overflow-x: auto; scrollbar-width: none;
     }
-    .demo::before {
-      content: ""; position: absolute; inset: -1px; border-radius: 21px; z-index: -1;
-      background: linear-gradient(140deg, rgb(95 190 150 / 0.55), transparent 40%, transparent 60%, rgb(95 190 150 / 0.35));
-      filter: blur(18px); opacity: 0.6;
+    .stepper::-webkit-scrollbar { display: none; }
+    .stepper button {
+      font: 500 14px/1 var(--font); color: var(--muted); background: none; border: 0; cursor: pointer;
+      padding: 10px 14px; border-radius: 999px; white-space: nowrap;
     }
-    .demo-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
-    .demo-top strong { font-size: 14px; }
-    .live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--c-faint); }
-    .live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c-accent); animation: pulse 1.6s ease-in-out infinite; }
-    @keyframes pulse { 50% { opacity: 0.3; } }
-    .lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-faint); margin-bottom: 8px; }
-    .src { padding: 12px 14px; border-radius: 10px; border: 1px dashed var(--c-line-strong); color: var(--c-muted); background: var(--c-surface); }
-    .row {
-      display: grid; grid-template-columns: 20px 1fr; gap: 12px; align-items: start; background: var(--c-surface);
-      padding: 14px; border-radius: 10px; margin-top: 10px; border: 1px solid var(--c-line);
-      opacity: 0; transform: translateY(8px); transition: opacity 0.45s ease, transform 0.45s ease, background 0.4s ease, border-color 0.4s ease;
-    }
-    .row.in { opacity: 1; transform: none; }
-    .box {
-      width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--c-line-strong); margin-top: 3px;
-      display: grid; place-items: center; transition: background 0.3s ease, border-color 0.3s ease;
-    }
-    .row.ticked .box { background: var(--c-accent); border-color: var(--c-accent); }
-    .row.ticked .box::after {
-      content: ""; width: 9px; height: 5px; border: 2px solid var(--c-on-accent);
-      border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px);
-    }
-    .row.flagged { border-color: color-mix(in srgb, var(--c-poor) 45%, var(--c-line)); background: var(--c-poor-soft); }
-    .row mark { background: none; color: inherit; border-bottom: 2px solid transparent; transition: border-color 0.3s ease, color 0.3s ease; }
-    .row.flagged mark { border-color: var(--c-poor); color: var(--c-poor); font-weight: 600; }
-    .note { display: block; margin-top: 6px; font-size: 13px; font-weight: 600; opacity: 0; transition: opacity 0.3s ease; }
-    .row.done .note { opacity: 1; }
-    .row.ticked .note { color: var(--c-good); }
-    .row.flagged .note { color: var(--c-poor); }
-    .cap { margin: 16px 2px 0; font-size: 13px; color: var(--c-faint); }
+    .stepper button i { font: 500 11px/1 ui-monospace, Menlo, monospace; font-style: normal; opacity: 0.7; margin-right: 6px; }
+    .stepper button[aria-selected="true"] { background: var(--text); color: var(--bg); }
+    .stepper button.done { color: var(--text); }
+    .stepper button.done i::before { content: "✓ "; }
+    .step-title { text-align: center; font-size: clamp(28px, 4.4vw, 46px); margin: 28px auto 8px; min-height: 1.1em; }
+    .step-copy { text-align: center; color: var(--muted); max-width: 38em; margin: 0 auto; min-height: 3.2em; font-size: 17px; }
+    .how-stage { margin-top: 36px; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 40px 16px 0; overflow: hidden; }
+    .how-stage .stage { margin-top: 0; }
+    .how-stage .paper { box-shadow: 0 -4px 40px rgb(14 28 23 / 0.10); border: 1px solid #ece9e2; border-bottom: 0; }
+    .how-stage .paper::before, .how-stage .paper::after { display: none; }
+    [data-show] { opacity: 0; transform: translateY(8px); pointer-events: none; }
+    [data-show].on { opacity: 1; transform: none; pointer-events: auto; }
+    @media (max-width: 760px) { [data-show]:not(.on) { display: none; } }
 
-    /* ---------- Bento features ---------- */
-    .bento { display: grid; gap: 16px; grid-template-columns: 1fr; }
+    .video-card { margin: 72px auto 0; max-width: 1040px; }
+    .video-card .frame { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); background: #121815; }
+    .video-card .bar-dots { display: flex; align-items: center; gap: 7px; padding: 11px 14px; border-bottom: 1px solid rgb(255 255 255 / 0.08); }
+    .video-card .bar-dots i { width: 10px; height: 10px; border-radius: 50%; background: rgb(255 255 255 / 0.16); }
+    .video-card .bar-dots span { margin: 0 auto; font-size: 12px; color: #9fb0a8; }
+    .video-card figcaption { color: var(--faint); font-size: 14px; text-align: center; margin-top: 14px; }
+
+    /* ---------- Features: the dark toolkit ---------- */
+    .toolkit { background: var(--deep); color: var(--deep-text); border-radius: 28px; padding: 56px 20px 20px; margin: 0 12px; }
+    @media (min-width: 720px) { .toolkit { margin: 0 16px; padding: 64px 40px 40px; } }
+    .toolkit-head { display: grid; gap: 18px; grid-template-columns: 1fr; align-items: end; max-width: 1100px; margin: 0 auto 36px; }
+    @media (min-width: 860px) { .toolkit-head { grid-template-columns: 1.4fr 1fr; } }
+    .toolkit-head h1 { font-size: clamp(34px, 5vw, 56px); }
+    .toolkit-head p { color: var(--deep-muted); font-size: 17px; }
+    .toolkit .eyebrow { color: var(--mint); }
+    .bento { display: grid; gap: 12px; grid-template-columns: 1fr; max-width: 1100px; margin: 0 auto; }
     @media (min-width: 760px) { .bento { grid-template-columns: repeat(2, 1fr); } }
-    @media (min-width: 1020px) { .bento { grid-template-columns: repeat(3, 1fr); } }
-    .tile {
-      border-radius: var(--radius); border: 1px solid var(--c-line); background: var(--c-surface);
-      padding: 28px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; min-width: 0;
-      transition: border-color 0.2s ease, transform 0.2s ease, opacity 0.7s ease;
-    }
-    .tile:hover { border-color: var(--c-line-strong); }
-    .tile h3 { font-size: 21px; letter-spacing: -0.02em; }
-    .tile p { margin: 0; color: var(--c-muted); font-size: 16px; }
-    .tile .big { font-size: 56px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: var(--c-accent); }
-    .tile .shot { margin: 12px -28px -28px; border-top: 1px solid var(--c-line); }
-    @media (min-width: 760px) { .span2 { grid-column: span 2; } }
-    .tile.accent { background: var(--c-accent-soft); border-color: transparent; }
-    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-    .chips span { font-size: 13px; font-weight: 600; padding: 5px 11px; border-radius: 999px; background: var(--c-bg); border: 1px solid var(--c-line); color: var(--c-muted); }
+    @media (min-width: 1040px) { .bento { grid-template-columns: repeat(3, 1fr); } .w2 { grid-column: span 2; } }
+    .cell { background: var(--deep-2); border: 1px solid var(--deep-line); border-radius: 18px; padding: 24px; overflow: hidden;
+      display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .cell .n { font: 500 11px/1 ui-monospace, Menlo, monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--deep-muted); }
+    .cell h3 { font-size: 22px; letter-spacing: -0.025em; }
+    .cell p { color: var(--deep-muted); font-size: 15px; }
+    .cell .shot { margin: 14px -24px -24px; border-top: 1px solid var(--deep-line); }
+    .cell .stat { font-size: 64px; font-weight: 300; letter-spacing: -0.05em; line-height: 1; color: var(--mint); margin: 6px 0; }
+    .stack { display: grid; gap: 12px; min-width: 0; }
+    .cell.green { background: linear-gradient(160deg, #1f5846, #2c6a54 60%, #3b876b); border-color: transparent; }
+    .cell.green p { color: rgb(255 255 255 / 0.8); }
+    .cell.green .n { color: rgb(255 255 255 / 0.7); }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .tags span { font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--deep-line); color: var(--deep-text); background: rgb(255 255 255 / 0.04); }
+
+    /* ---------- Roadmap ---------- */
+    .roadmap { display: grid; gap: 16px; grid-template-columns: 1fr; max-width: 980px; margin: 0 auto; }
+    @media (min-width: 820px) { .roadmap { grid-template-columns: 1fr 1fr; } }
+    .road { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
+    .road h3 { font-size: 21px; font-weight: 500; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .road ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+    .road li { padding: 14px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 15.5px; }
+    .road li strong { display: block; color: var(--text); font-weight: 500; font-size: 16.5px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.done { background: var(--accent); }
+    .dot.next { border: 2px solid var(--accent); }
 
     /* ---------- FAQ ---------- */
-    .faq { max-width: 780px; margin: 0 auto; border-top: 1px solid var(--c-line); }
-    .faq details { border-bottom: 1px solid var(--c-line); }
-    .faq summary {
-      cursor: pointer; list-style: none; padding: 22px 40px 22px 0; position: relative;
-      font-weight: 600; font-size: 18px; letter-spacing: -0.01em;
-    }
+    .faq-grid { display: grid; gap: 32px; grid-template-columns: 1fr; padding-top: 64px; padding-bottom: 24px; }
+    @media (min-width: 880px) { .faq-grid { grid-template-columns: 0.8fr 1.2fr; gap: 64px; } }
+    .faq-grid > * { min-width: 0; }
+    .faq-grid h1 { font-size: clamp(38px, 5.6vw, 60px); }
+    .faq-grid .side p { color: var(--muted); margin-top: 16px; }
+    .faq details { border-top: 1px solid var(--line-strong); }
+    .faq details:last-child { border-bottom: 1px solid var(--line-strong); }
+    .faq summary { cursor: pointer; list-style: none; padding: 20px 36px 20px 0; position: relative; font-size: 18px; font-weight: 450; letter-spacing: -0.01em; }
     .faq summary::-webkit-details-marker { display: none; }
-    .faq summary::after {
-      content: "+"; position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
-      font-size: 24px; font-weight: 400; color: var(--c-faint); transition: transform 0.2s ease;
-    }
+    .faq summary::after { content: "+"; position: absolute; right: 2px; top: 50%; transform: translateY(-50%); font-size: 22px; font-weight: 300; color: var(--faint); transition: transform 0.2s ease; }
     .faq details[open] summary::after { transform: translateY(-50%) rotate(45deg); }
-    .faq details p { margin: 0 0 22px; color: var(--c-muted); max-width: 40em; }
+    .faq details p { color: var(--muted); padding: 0 0 22px; max-width: 42em; }
 
-    /* ---------- Closer ---------- */
-    .closer { padding: 120px 0; text-align: center; }
-    .closer::after { top: auto; bottom: -300px; }
-    .closer h2 { font-size: clamp(36px, 6vw, 68px); max-width: 14ch; margin: 0 auto; text-wrap: balance; }
-    .closer h2 .serif { color: var(--glow); }
-    .closer p { color: var(--ink-muted); font-size: 19px; max-width: 32em; margin: 20px auto 0; }
+    /* ---------- About ---------- */
+    .about { display: grid; gap: 16px; grid-template-columns: 1fr; max-width: 1000px; margin: 0 auto; }
+    @media (min-width: 880px) { .about { grid-template-columns: 1.5fr 1fr; } }
+    .note { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px; }
+    .note blockquote { margin: 0; }
+    .note blockquote p { font-family: var(--serif); font-size: clamp(19px, 2.2vw, 23px); line-height: 1.55; margin-bottom: 16px; }
+    .signed { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+    .signed img { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: #fff; padding: 4px; }
+    .signed strong { display: block; font-weight: 500; }
+    .signed span span { font-size: 14px; color: var(--faint); }
+    .side-cards { display: grid; gap: 16px; align-content: start; }
+    .side-cards .note { padding: 24px; }
+    .side-cards h3 { font-size: 20px; font-weight: 500; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .side-cards p { color: var(--muted); font-size: 15.5px; }
+    .side-cards .btn { margin-top: 16px; }
 
-    /* ---------- Footer ---------- */
-    footer { background: var(--ink); color: var(--ink-muted); border-top: 1px solid var(--ink-line); padding: 48px 0 40px; font-size: 15px; }
-    .foot { display: grid; gap: 28px; grid-template-columns: 1fr; }
-    @media (min-width: 760px) { .foot { grid-template-columns: 1.4fr 1fr; align-items: start; } }
-    .foot .brand { color: var(--ink-text); margin-bottom: 12px; }
-    .foot p { margin: 4px 0 0; }
-    .foot a { color: var(--ink-text); }
-    .foot a:hover { color: var(--glow); }
-    .foot nav { display: flex; flex-wrap: wrap; gap: 10px 28px; }
-    @media (min-width: 760px) { .foot nav { justify-content: flex-end; } }
-    .foot nav a { text-decoration: none; }
-    .copy { grid-column: 1 / -1; border-top: 1px solid var(--ink-line); padding-top: 22px; font-size: 14px; }
+    /* ---------- Closing card and footer ---------- */
+    .closer {
+      margin: 72px 12px 0; border-radius: 28px; padding: 56px 24px; text-align: center; color: #fff;
+      background: linear-gradient(160deg, #143a2f 0%, #23604c 45%, #4c977a 75%, #a9d6c1 100%);
+    }
+    @media (min-width: 720px) { .closer { margin: 88px 16px 0; padding: 72px 32px; } }
+    .closer h2 { font-size: clamp(32px, 5vw, 54px); max-width: 16ch; margin: 0 auto; text-wrap: balance; }
+    .closer p { color: rgb(255 255 255 / 0.85); max-width: 32em; margin: 16px auto 0; font-size: 18px; }
+    .closer .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 28px; }
 
-    /* ---------- Scroll reveal (only once JS confirms it can undo it) ---------- */
-    .js .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.7s ease, transform 0.7s ease; }
-    .js .reveal.shown { opacity: 1; transform: none; }
+    footer { padding: 56px 0 40px; font-size: 15px; color: var(--muted); }
+    .foot { display: grid; gap: 32px; grid-template-columns: 1fr 1fr; }
+    @media (min-width: 860px) { .foot { grid-template-columns: 1.6fr 1fr 1fr 1.2fr; } }
+    .foot .about-col { grid-column: 1 / -1; }
+    @media (min-width: 860px) { .foot .about-col { grid-column: auto; } }
+    .foot .about-col p { margin-top: 12px; max-width: 26em; }
+    .foot h4 { margin: 0 0 12px; font: 500 11px/1 ui-monospace, Menlo, monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
+    .foot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .foot a { color: var(--muted); text-decoration: none; }
+    .foot a:hover { color: var(--text); }
+    .foot .mail { color: var(--text); text-decoration: underline; text-underline-offset: 3px; word-break: break-all; }
+    .copy { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 20px; font-size: 14px; color: var(--faint); }
+
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
-      .js .reveal, .row { opacity: 1; transform: none; transition: none; }
-      .live::before { animation: none; }
+      *, *::before, *::after { transition: none !important; }
     }
   </style>
   <script>document.documentElement.classList.add("js");</script>
 </head>
 <body>
   <header class="site">
-    <div class="wrap nav">
-      <a class="brand" href="#top">
-        <img src="mark.png" alt="" />
+    <div class="wrap bar">
+      <a class="brand" href="#home" data-tab="home">
+        <img src="mark.png" alt="" width="30" height="30" />
         Dossierbuild
       </a>
-      <nav class="nav-links" aria-label="Main">
-        <a class="optional" href="#how">How it works</a>
-        <a class="optional" href="#demo-video">Demo</a>
-        <a class="optional" href="#features">Features</a>
-        <a class="optional" href="#roadmap">Roadmap</a>
-        <a class="optional" href="#faq">FAQ</a>
-        <a class="btn btn-glow" href="https://github.com/aliakbarkhan21/Dossierbuild">Get started</a>
-        <button class="menu-btn" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
-          <span></span><span></span><span></span>
-        </button>
+      <nav class="tabs" aria-label="Sections">
+        <a href="#home" data-tab="home">Home</a>
+        <a href="#how" data-tab="how">How it works</a>
+        <a href="#features" data-tab="features">Features</a>
+        <a href="#roadmap" data-tab="roadmap">Roadmap</a>
+        <a href="#faq" data-tab="faq">FAQ</a>
+        <a href="#about" data-tab="about">About</a>
       </nav>
-    </div>
-    <div class="mobile-menu" id="mobile-menu" hidden>
-      <a href="#how">How it works</a>
-      <a href="#demo-video">Demo</a>
-      <a href="#features">Features</a>
-      <a href="#roadmap">Roadmap</a>
-      <a href="#faq">FAQ</a>
-      <a href="#founder">From the founder</a>
-    </div>
-  </header>
-
-  <main id="top">
-    <div class="ink hero">
-      <div class="wrap">
-        <a class="announce" href="https://github.com/aliakbarkhan21/Dossierbuild/blob/main/CHANGELOG.md">
-          <b>New</b> Version 2.3 is out <span class="arrow">→</span>
-        </a>
-        <h1>Tailored resumes that <span class="serif">never invent</span> a&nbsp;fact.</h1>
-        <p class="lede">
-          Dossierbuild aims your resume at every job you apply for, and checks
-          every AI rewrite against your own history. It can sharpen a line. It
-          can't make one up.
-        </p>
-        <div class="cta">
-          <a class="btn btn-glow" href="https://github.com/aliakbarkhan21/Dossierbuild">Get Dossierbuild free <span class="arrow">→</span></a>
-          <a class="btn btn-line" href="#how">See how it works</a>
-        </div>
-        <ul class="trust">
-          <li>Free and open source</li>
-          <li>Runs on your own machine</li>
-          <li>Job analysis needs no API key</li>
-        </ul>
-        <div class="browser">
-          <div class="browser-bar"><i></i><i></i><i></i><span>localhost:8000</span></div>
-          <picture><source type="image/webp" srcset="img/resume-800.webp 800w, img/resume-1280.webp 1280w, img/resume-1920.webp 1920w" sizes="(min-width: 1140px) 1040px, 92vw" /><img src="img/resume.png" alt="The Resume screen: a template picker beside a live preview of the printed document" width="3120" height="1880" fetchpriority="high" /></picture>
-        </div>
+      <div class="bar-right">
+        <a class="gh" href="https://github.com/aliakbarkhan21/Dossierbuild">GitHub</a>
+        <a class="btn btn-dark" href="https://github.com/aliakbarkhan21/Dossierbuild">Get it free</a>
       </div>
     </div>
+    <nav class="tabs tabs-mobile" aria-label="Sections">
+      <a href="#home" data-tab="home">Home</a>
+      <a href="#how" data-tab="how">How it works</a>
+      <a href="#features" data-tab="features">Features</a>
+      <a href="#roadmap" data-tab="roadmap">Roadmap</a>
+      <a href="#faq" data-tab="faq">FAQ</a>
+      <a href="#about" data-tab="about">About</a>
+    </nav>
+  </header>
 
-    <section class="block">
-      <div class="wrap">
-        <div class="head reveal">
-          <span class="eyebrow">The problem</span>
-          <h2>AI resume tools are fast. <span class="serif">They also make things up.</span></h2>
-          <p>
-            Hand a model your history and a job advert, and it will happily
-            give you the skills the advert asked for. That's how a resume picks
-            up a tool you've never used, two days before the interview.
-          </p>
+  <main>
+    <!-- ============================== HOME ============================== -->
+    <section class="panel" id="tab-home" data-panel="home" aria-label="Home">
+      <div class="hero">
+        <span class="pill"><b>✓</b><span>Free and open source<span class="pill-more"> · runs on your own machine</span></span></span>
+        <h1>Tailored resumes that <span class="serif-i">never invent</span> a&nbsp;fact.</h1>
+        <p class="lede">
+          Dossierbuild aims your resume at every job you apply for, and checks every AI rewrite
+          against your own history. It can sharpen a line. It can't make one up.
+        </p>
+        <div class="cta">
+          <a class="btn btn-light" href="https://github.com/aliakbarkhan21/Dossierbuild">Get Dossierbuild free</a>
+          <a class="btn btn-glass" href="#how" data-tab="how">See how it works</a>
+        </div>
+        <ul class="proof">
+          <li>No account</li>
+          <li>Job analysis needs no API key</li>
+          <li>Gemini or Claude for the AI steps</li>
+        </ul>
+
+        <div class="stage" role="img" aria-label="Illustration: the worked example's resume, its match against a job posting, and the rewrite check flagging a suggestion that adds facts">
+          <div class="paper keys">
+            <div class="name">Priya Raman</div>
+            <div class="role">Backend engineer — data platforms and the services on top of them</div>
+            <div class="contact">Manchester, UK · priya.raman@example.com · GitHub · LinkedIn</div>
+            <h4>Summary</h4>
+            <p>Backend engineer, four years on <mark>Python</mark> data platforms. Happiest owning a thing end to end, from the <mark>Postgres</mark> schema to the dashboard the team actually reads.</p>
+            <h4>Experience</h4>
+            <div class="job"><b>Senior Backend Engineer, Ridgeway Systems</b><span>Feb 2024 – Present</span></div>
+            <ul>
+              <li>Cut the nightly reconciliation run from 4 hours to 26 minutes by batching <mark>Postgres</mark> writes and moving the join into the database</li>
+              <li>Rebuilt the ingest service in <mark>Python</mark> around a Redis queue, taking the failure rate on malformed supplier files from 12% to under 1%</li>
+              <li>Wrote the <mark>Airflow</mark> alerting and the runbook for twelve scheduled jobs, cutting out-of-hours pages from nine a month to two</li>
+            </ul>
+            <div class="fade"></div>
+          </div>
+          <div class="stage-floats">
+            <div class="float match">
+              <div class="k">Job match <span class="badge good">Good</span></div>
+              <div class="big">73%</div>
+              <div class="meter"><i style="width:73%"></i></div>
+              <div class="lbl">Evidenced</div>
+              <div class="chips"><span class="chip">PostgreSQL</span><span class="chip">Python</span><span class="chip">Airflow</span><span class="chip">APIs</span></div>
+              <div class="lbl">Missing</div>
+              <div class="chips"><span class="chip miss">Kubernetes</span><span class="chip miss">Terraform</span></div>
+            </div>
+            <div class="float check">
+              <div class="k">Rewrite check <span class="badge poor">1 flagged</span></div>
+              <div class="sug flag"><span class="box"></span><div>Ran the backend's services on <u>Kubernetes</u>, cutting incidents by <u>40%</u>.<small>Not in your profile · left unticked</small></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="illustration-note wrap">Illustration built from the worked example that ships with the app. The 73% is what the app scores it against the posting in the demo video.</p>
+
+      <div class="wrap section">
+        <div class="section-head">
+          <span class="eyebrow">Same prompt, different result</span>
+          <h2>Other AI tools give you text. <span class="serif-i">Dossierbuild checks it.</span></h2>
         </div>
         <div class="versus">
-          <div class="vs-card vs-bad reveal">
-            <h3>The usual approach <span class="tag">Guesswork</span></h3>
+          <div class="vs">
+            <div class="vs-top"><h3>The usual AI resume tool</h3><span>Guesswork</span></div>
             <ul>
-              <li>The model reads the job advert and decides what matters</li>
+              <li>The model reads the advert and decides what matters</li>
               <li>Rewrites borrow the advert's buzzwords as if they were yours</li>
               <li>Whatever comes back goes straight onto the page</li>
               <li>Nothing records what you actually sent</li>
             </ul>
           </div>
-          <div class="vs-card vs-good reveal">
-            <h3>Dossierbuild <span class="tag">Checked</span></h3>
+          <div class="vs us">
+            <div class="vs-top"><h3>Dossierbuild</h3><span>Checked</span></div>
             <ul>
               <li>The advert is read by rules, so the analysis is repeatable</li>
               <li>Every rewrite is diffed against the line it came from</li>
-              <li>New numbers, tools or employers are flagged and left unticked</li>
+              <li>New numbers, tools or employers arrive flagged and unticked</li>
               <li>Each application keeps the exact version you sent</li>
             </ul>
           </div>
         </div>
       </div>
+
+      <div class="wrap section">
+        <div class="explore">
+          <a href="#how" data-tab="how"><b>How it works</b><span>Four steps, one resume, and the check in action. Plus a 25-second recording of the real app.</span><em>See the steps →</em></a>
+          <a href="#features" data-tab="features"><b>Features</b><span>Tailoring, review, cover letters, interview briefs, ten templates and more.</span><em>See the toolkit →</em></a>
+          <a href="#faq" data-tab="faq"><b>Questions</b><span>Is it free, do you need a key, where does your data go.</span><em>Read the FAQ →</em></a>
+        </div>
+      </div>
     </section>
 
-    <section class="block" id="how" style="padding-top:0">
-      <div class="wrap demo-wrap">
-        <div class="demo-copy reveal">
+    <!-- ============================== HOW ============================== -->
+    <section class="panel" id="tab-how" data-panel="how" aria-label="How it works">
+      <div class="wrap">
+        <div class="page-head" style="padding-bottom:32px">
           <span class="eyebrow">How it works</span>
-          <h2>The AI suggests. <span class="serif">Your history decides.</span></h2>
-          <p>Only one step uses a model, and it never gets the last word.</p>
-          <ol class="steps">
-            <li><span><strong>Build one master profile.</strong> Import a LinkedIn export, PDF, DOCX or pasted text.</span></li>
-            <li><span><strong>Paste a job.</strong> It's read by rules into weighted requirements and scored against your profile.</span></li>
-            <li><span><strong>Review the rewrites.</strong> Anything your profile can't back up arrives flagged and unticked.</span></li>
-            <li><span><strong>Print a real PDF.</strong> It's filed against the posting, so you can reprint exactly what they saw.</span></li>
-          </ol>
+          <h1>The AI suggests. <span class="serif-i">Your history decides.</span></h1>
         </div>
 
-        <figure class="demo reveal" id="demo" aria-label="Animated example of the rewrite check" style="margin:0">
-          <div class="demo-top"><strong>Rewrite check</strong><span class="live">Checking against your profile</span></div>
-          <div class="lbl">Your line</div>
-          <div class="src">Moved the reporting database from MySQL to Postgres.</div>
-          <div class="lbl" style="margin-top:20px">Suggested rewrites</div>
-          <div class="row" data-result="ticked">
-            <span class="box" aria-hidden="true"></span>
-            <div>
-              Led the reporting database migration from MySQL to Postgres with no downtime.
-              <span class="note">✓ Backed by your profile · ticked</span>
+        <div class="stepper" role="tablist" aria-label="Steps">
+          <button type="button" role="tab" aria-selected="true" data-step="0"><i>01</i>Your profile</button>
+          <button type="button" role="tab" aria-selected="false" data-step="1"><i>02</i>Read the job</button>
+          <button type="button" role="tab" aria-selected="false" data-step="2"><i>03</i>Rewrite, checked</button>
+          <button type="button" role="tab" aria-selected="false" data-step="3"><i>04</i>Print and file</button>
+        </div>
+        <h2 class="step-title" aria-live="polite">One profile holds everything you've done.</h2>
+        <p class="step-copy">Import it from a LinkedIn export, a PDF, a DOCX or pasted text, or start from the worked example.</p>
+
+        <div class="how-stage">
+          <div class="stage" role="img" aria-label="Illustration of each step on the worked example">
+            <div class="paper" id="how-paper">
+              <div class="name">Priya Raman</div>
+              <div class="role">Backend engineer — data platforms and the services on top of them</div>
+              <div class="contact">Manchester, UK · priya.raman@example.com · GitHub · LinkedIn</div>
+              <h4>Experience</h4>
+              <div class="job"><b>Senior Backend Engineer, Ridgeway Systems</b><span>Feb 2024 – Present</span></div>
+              <ul>
+                <li>Cut the nightly reconciliation run from 4 hours to 26 minutes by batching <mark>Postgres</mark> writes and moving the join into the database</li>
+                <li>Wrote the <mark>Airflow</mark> alerting and the runbook for twelve scheduled jobs, cutting out-of-hours pages from nine a month to two</li>
+              </ul>
+              <div class="job"><b>Backend Engineer, Halden Analytics</b><span>Jul 2022 – Jan 2024</span></div>
+              <ul>
+                <li>Built the REST <mark>API</mark> behind the customer dashboard in FastAPI, serving 40 endpoints and 1.2 million requests a day</li>
+                <li>Migrated 380GB from MySQL to <mark>Postgres</mark> over four weekends with no downtime, using logical replication and a read-only cutover window</li>
+                <li class="target">Responsible for various tasks across the backend team.</li>
+                <li class="replacement">Kept the backend team's FastAPI services and Postgres migrations running, from review to release.</li>
+              </ul>
+              <div class="fade"></div>
+            </div>
+            <div class="stage-floats">
+              <div class="float match" data-show="1 2 3">
+                <div class="k">Job match <span class="badge good">Good</span></div>
+                <div class="big">73%</div>
+                <div class="meter"><i style="width:73%"></i></div>
+                <div class="lbl">7 evidenced · 3 listed only · 3 missing</div>
+                <div class="chips"><span class="chip">PostgreSQL</span><span class="chip">Python</span><span class="chip">Airflow</span><span class="chip">APIs</span><span class="chip miss">Kubernetes</span><span class="chip miss">Terraform</span></div>
+              </div>
+              <div class="float check" data-show="2">
+                <div class="k">Rewrite check <span class="badge poor">1 flagged</span></div>
+                <div class="sug ok"><span class="box"></span><div>Kept the backend team's FastAPI services and Postgres migrations running, from review to release.<small>Backed by your profile · ticked</small></div></div>
+                <div class="sug flag"><span class="box"></span><div>Ran the backend's services on <u>Kubernetes</u>, cutting incidents by <u>40%</u>.<small>Not in your profile · left unticked</small></div></div>
+              </div>
+              <div class="float check" data-show="3">
+                <div class="k">Saved version <span class="badge good">Filed</span></div>
+                <p style="margin-top:10px;font-size:13.5px;line-height:1.5">Backend Engineer, Data Platform<br /><span style="color:#6f6b62">PDF · words and design together, against the posting it went to.</span></p>
+                <div class="lbl">Exports</div>
+                <div class="chips"><span class="chip">PDF</span><span class="chip">HTML</span><span class="chip">Plain text</span></div>
+              </div>
             </div>
           </div>
-          <div class="row" data-result="flagged">
-            <span class="box" aria-hidden="true"></span>
-            <div>
-              Migrated the reporting database to Postgres on <mark>Kubernetes</mark>, cutting costs by <mark>40%</mark>.
-              <span class="note">⚠ Not in your profile · left unticked</span>
-            </div>
+        </div>
+        <p class="illustration-note">An illustration on the worked example that ships with the app. The rewrites shown are examples of what the check does.</p>
+
+        <figure class="video-card" id="demo-video">
+          <div class="section-head" style="margin-bottom:28px">
+            <span class="eyebrow">See it work</span>
+            <h2>The real app, <span class="serif-i">in 25 seconds.</span></h2>
           </div>
-          <figcaption class="cap">An illustration of the check. Words lifted from the job advert don't count as known.</figcaption>
+          <div class="frame">
+            <div class="bar-dots"><i></i><i></i><i></i><span>localhost:8000</span></div>
+            <video muted loop playsinline preload="none" poster="media/demo-poster.webp" width="1280" height="800"
+              aria-label="Screen recording: the Resume screen, a job posting analysed on the Tailor screen, then the Review screen">
+              <source src="media/demo.webm" type="video/webm" />
+              <source src="media/demo.mp4" type="video/mp4" />
+            </video>
+          </div>
+          <figcaption>Recorded from the app running locally on the worked example. No AI was used in this clip: the analysis and the review run on rules alone.</figcaption>
         </figure>
       </div>
     </section>
 
-    <section class="block" id="demo-video" style="padding-top:0">
-      <div class="wrap">
-        <div class="head reveal">
-          <span class="eyebrow">See it work</span>
-          <h2>The real app, <span class="serif">in 25 seconds.</span></h2>
-          <p>
-            Recorded from Dossierbuild running locally on the worked example: a job posting read by
-            rules and scored against the profile, then the whole document reviewed.
-          </p>
+    <!-- ============================== FEATURES ============================== -->
+    <section class="panel" id="tab-features" data-panel="features" aria-label="Features">
+      <div style="padding-top:12px">
+        <div class="toolkit">
+          <div class="toolkit-head">
+            <div>
+              <span class="eyebrow">The whole toolkit</span>
+              <h1>Everything a job search needs. <span class="serif-i">Nothing it doesn't.</span></h1>
+            </div>
+            <p>The analysis, the writing checks, the templates and the PDF all run on your machine without an AI key. A Gemini or Claude key adds import parsing, rewrites and line drafting.</p>
+          </div>
+          <div class="bento">
+            <div class="cell w2">
+              <span class="n">01 · Tailor</span>
+              <h3>See the gaps before you write a word.</h3>
+              <p>A posting is read by rules into weighted requirements and scored against your profile, before any rewriting starts.</p>
+              <div class="shot"><picture><source type="image/webp" srcset="img/tailor-800.webp 800w, img/tailor-1280.webp 1280w, img/tailor-1920.webp 1920w" sizes="(min-width: 1040px) 720px, 92vw" /><img src="img/tailor.png" alt="The Tailor screen: a job posting read into weighted requirements and scored against the profile" width="3120" height="1880" loading="lazy" decoding="async" /></picture></div>
+            </div>
+            <div class="cell green">
+              <span class="n">02 · The guard</span>
+              <h3>Rewrites can't add facts.</h3>
+              <p>Every AI suggestion is diffed against the line it came from. A number, tool or employer your profile doesn't contain arrives flagged and unticked, whichever provider wrote it.</p>
+            </div>
+            <div class="stack">
+              <div class="cell">
+                <span class="n">03 · No key needed</span>
+                <div class="stat">0</div>
+                <h3>API keys to analyse a job.</h3>
+                <p>Reading postings, the coverage score, the writing checks, every template and the PDF work without one.</p>
+              </div>
+              <div class="cell">
+                <span class="n">04 · Templates</span>
+                <div class="stat">10</div>
+                <h3>Templates, one true preview.</h3>
+                <p>The preview is the printed PDF. Export to PDF, self-contained HTML or plain text.</p>
+              </div>
+            </div>
+            <div class="cell w2">
+              <span class="n">05 · Review</span>
+              <h3>A writing standard that's code.</h3>
+              <p>Review reads the whole document, flags filler and vague claims, and points to the line worth fixing first. The same check scores the AI's rewrites.</p>
+              <div class="shot"><picture><source type="image/webp" srcset="img/health-800.webp 800w, img/health-1280.webp 1280w, img/health-1920.webp 1920w" sizes="(min-width: 1040px) 720px, 92vw" /><img src="img/health.png" alt="The Review screen: the document with each line scored against the writing standard" width="3120" height="1880" loading="lazy" decoding="async" /></picture></div>
+            </div>
+            <div class="cell">
+              <span class="n">06 · Applications</span>
+              <h3>Every posting, tracked.</h3>
+              <p>Each application's stage, the exact version you sent, and the requirements you keep missing across all of them.</p>
+            </div>
+            <div class="cell">
+              <span class="n">07 · Letters and interviews</span>
+              <h3>Cover letters and interview briefs.</h3>
+              <p>Letters drafted from what your profile can evidence. Briefs listing what you can and can't back up, and the questions each invites.</p>
+            </div>
+            <div class="cell">
+              <span class="n">08 · Real job hunts</span>
+              <h3>Several CVs, one history.</h3>
+              <p>Separate CVs for different careers, focus tags for job families, saved versions and full undo.</p>
+              <div class="tags"><span>Multiple CVs</span><span>Focus tags</span><span>Undo</span></div>
+            </div>
+            <div class="cell w2">
+              <span class="n">09 · Private by default</span>
+              <h3>Your history stays on your machine.</h3>
+              <p>Your profile, portrait, saved versions and API key live locally. The only thing that leaves is text you choose to send to the AI provider you picked: Gemini or Claude.</p>
+              <div class="tags"><span>Runs locally</span><span>No account</span><span>Open source, MIT</span></div>
+            </div>
+          </div>
         </div>
-        <figure class="video reveal">
-          <div class="browser-bar"><i></i><i></i><i></i><span>localhost:8000</span></div>
-          <video muted loop playsinline preload="none" poster="media/demo-poster.webp" width="1280" height="800"
-            aria-label="Screen recording: the Resume screen, a job posting analysed on the Tailor screen, then the Review screen">
-            <source src="media/demo.webm" type="video/webm" />
-            <source src="media/demo.mp4" type="video/mp4" />
-          </video>
-          <figcaption>No AI was used in this clip. The analysis and the review run on rules alone.</figcaption>
-        </figure>
       </div>
     </section>
 
-    <section class="block" id="features" style="padding-top:0">
+    <!-- ============================== ROADMAP ============================== -->
+    <section class="panel" id="tab-roadmap" data-panel="roadmap" aria-label="Roadmap">
       <div class="wrap">
-        <div class="head reveal">
-          <span class="eyebrow">Features</span>
-          <h2>Everything a job search needs. <span class="serif">Nothing it doesn't.</span></h2>
-        </div>
-        <div class="bento">
-          <div class="tile span2 reveal">
-            <h3>See the gaps before you write a word</h3>
-            <p>Tailor shows which of a job's requirements your profile already evidences, and which it doesn't, before any rewriting starts.</p>
-            <div class="shot"><picture><source type="image/webp" srcset="img/tailor-800.webp 800w, img/tailor-1280.webp 1280w, img/tailor-1920.webp 1920w" sizes="(min-width: 1020px) 700px, (min-width: 760px) 92vw, 92vw" /><img src="img/tailor.png" alt="The Tailor screen: a job posting read into weighted requirements and scored against the profile" width="3120" height="1880" loading="lazy" decoding="async" /></picture></div>
-          </div>
-          <div class="tile accent reveal">
-            <div class="big">0</div>
-            <h3>API keys to analyse a job</h3>
-            <p>The posting analysis, coverage score, writing checks, every template and the PDF all work without one. A Gemini or Claude key adds import parsing, rewrites and line drafting.</p>
-          </div>
-          <div class="tile reveal">
-            <div class="big">10</div>
-            <h3>Templates, one true preview</h3>
-            <p>The preview is the printed PDF. Export to PDF, self-contained HTML or plain text.</p>
-          </div>
-          <div class="tile span2 reveal">
-            <h3>A writing standard that's code</h3>
-            <p>Review reads the whole document and every line in it, flags filler and vague claims, and points to the one line worth fixing first. The same check scores the AI's rewrites.</p>
-            <div class="shot"><picture><source type="image/webp" srcset="img/health-800.webp 800w, img/health-1280.webp 1280w, img/health-1920.webp 1920w" sizes="(min-width: 1020px) 700px, (min-width: 760px) 92vw, 92vw" /><img src="img/health.png" alt="The Review screen: the document with each line scored against the writing standard" width="3120" height="1880" loading="lazy" decoding="async" /></picture></div>
-          </div>
-          <div class="tile reveal">
-            <h3>Applications tracker</h3>
-            <p>Every posting, its stage, and the requirements you keep missing across all of them.</p>
-          </div>
-          <div class="tile reveal">
-            <h3>Cover letters and interview briefs</h3>
-            <p>Letters drafted from what your profile can evidence. Briefs that list what you can and can't back up, and the questions each invites.</p>
-          </div>
-          <div class="tile reveal">
-            <h3>Built for real job hunts</h3>
-            <p>Separate CVs for different careers, focus tags for job families, saved versions and full undo.</p>
-            <div class="chips"><span>Multiple CVs</span><span>Focus tags</span><span>Saved versions</span><span>Undo</span></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="block" id="roadmap" style="padding-top:0">
-      <div class="wrap">
-        <div class="head reveal">
+        <div class="page-head">
           <span class="eyebrow">Roadmap</span>
-          <h2>What shipped, <span class="serif">and what's next.</span></h2>
+          <h1>What shipped, <span class="serif-i">and what's next.</span></h1>
           <p>The next column is a plan, not a promise.</p>
         </div>
         <div class="roadmap">
-          <div class="road reveal">
+          <div class="road">
             <h3><span class="dot done"></span>Recently shipped</h3>
-            <ul>
-              <li><strong>Claude as a second AI provider.</strong> Choose Gemini or Claude in Settings. Both go through the same check.</li>
-              <li><strong>Several CVs per person.</strong> Separate CVs for different careers, grouped by person, with duplicate and rename.</li>
-              <li><strong>Editing on the page itself.</strong> Type straight onto the resume without changing the printed document.</li>
-            </ul>
+            <ol>
+              <li><strong>Claude as a second AI provider</strong>Choose Gemini or Claude in Settings. Both go through the same check.</li>
+              <li><strong>Several CVs per person</strong>Separate CVs for different careers, grouped by person, with duplicate and rename.</li>
+              <li><strong>Editing on the page itself</strong>Type straight onto the resume without changing the printed document.</li>
+            </ol>
           </div>
-          <div class="road reveal">
+          <div class="road">
             <h3><span class="dot next"></span>Next</h3>
-            <ul>
-              <li><strong>A snippet library.</strong> The sentences you retype across applications, kept in one place.</li>
-              <li><strong>Bulk actions on bullets.</strong> Select several, then delete, move or improve them together.</li>
-              <li><strong>Local models.</strong> Run the AI steps on a model on your own machine, so nothing leaves it at all.</li>
-            </ul>
+            <ol>
+              <li><strong>A snippet library</strong>The sentences you retype across applications, kept in one place.</li>
+              <li><strong>Bulk actions on bullets</strong>Select several, then delete, move or improve them together.</li>
+              <li><strong>Local models</strong>Run the AI steps on a model on your own machine, so nothing leaves it at all.</li>
+            </ol>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="block" id="faq" style="padding-top:0">
-      <div class="wrap">
-        <div class="head reveal">
+    <!-- ============================== FAQ ============================== -->
+    <section class="panel" id="tab-faq" data-panel="faq" aria-label="FAQ">
+      <div class="wrap faq-grid">
+        <div class="side">
           <span class="eyebrow">FAQ</span>
-          <h2>Questions, <span class="serif">answered plainly.</span></h2>
+          <h1>Questions, <span class="serif-i">answered.</span></h1>
+          <p>Still unsure? Email <a href="mailto:aliakbar@dossierbuild.lol">aliakbar@dossierbuild.lol</a>.</p>
         </div>
-        <div class="faq reveal">
-          <details>
+        <div class="faq">
+          <details open>
             <summary>Is Dossierbuild free?</summary>
             <p>Yes. It's open source under the MIT license. You download it from GitHub and run it yourself.</p>
           </details>
@@ -617,12 +755,16 @@
             <p>Not to get started. Reading job postings, scoring your profile, the writing checks, every template and the PDF all work without one. An AI key is optional: a Gemini key or a Claude key adds three things, parsing an imported resume, rewriting bullets for a posting, and drafting a line on request. Every rewrite goes through the same check against your profile, whichever you use.</p>
           </details>
           <details>
-            <summary>Where does my data go?</summary>
-            <p>It stays with you. Your profile, portrait, saved versions and API key live on your own machine. The only thing that leaves is text you explicitly send to the model.</p>
+            <summary>Does the AI make things up?</summary>
+            <p>It can try, which is why every rewrite is diffed against the line it came from. A number, tool or employer that isn't already in your profile is flagged, and flagged suggestions arrive unticked. Words lifted from the job advert don't count as known.</p>
           </details>
           <details>
-            <summary>Can the AI still get something wrong?</summary>
-            <p>The check catches numbers and named technologies that a rewrite added. It's a diff against your profile, not a fact-checker, so it can't tell you whether something already in your profile is true. That part stays your job.</p>
+            <summary>Can the check still miss something?</summary>
+            <p>It catches numbers and named technologies a rewrite added. It's a diff against your profile, not a fact-checker, so it can't tell you whether something already in your profile is true. That part stays your job.</p>
+          </details>
+          <details>
+            <summary>Where does my data go?</summary>
+            <p>It stays with you. Your profile, portrait, saved versions and API key live on your own machine. The only thing that leaves is text you explicitly send to the model.</p>
           </details>
           <details>
             <summary>How do I run it?</summary>
@@ -632,94 +774,162 @@
       </div>
     </section>
 
-    <section class="block" id="founder" style="padding-top:0">
+    <!-- ============================== ABOUT ============================== -->
+    <section class="panel" id="tab-about" data-panel="about" aria-label="About">
       <div class="wrap">
-        <figure class="founder reveal">
-          <span class="eyebrow">Why I'm building this</span>
-          <blockquote>
-            <p>
-              Most AI resume tools hand your history and a job advert to a model and print whatever
-              comes back. It's fast, and it's how a resume ends up claiming a tool you've never used.
-            </p>
-            <p>
-              I wanted the opposite: the job read by rules, the AI only allowed to rewrite, and every
-              rewrite checked against what you've actually done. Dossierbuild is that tool. It runs on
-              your own machine, it's open source, and its limits are written down in the README.
-            </p>
-          </blockquote>
-          <figcaption>
-            <img src="mark.png" alt="" width="40" height="40" />
-            <span>
-              <strong>Muhammad Ali Akbar</strong>
-              <span>Founder, Dossierbuild ·
-                <a href="https://www.linkedin.com/in/muhammad-ali-akbar-khan-7b37b8197" rel="noopener">LinkedIn</a></span>
-            </span>
-          </figcaption>
-        </figure>
+        <div class="page-head">
+          <span class="eyebrow">About</span>
+          <h1>Why I'm <span class="serif-i">building this.</span></h1>
+        </div>
+        <div class="about">
+          <figure class="note" id="founder" style="margin:0">
+            <blockquote>
+              <p>Most AI resume tools hand your history and a job advert to a model and print whatever comes back. It's fast, and it's how a resume ends up claiming a tool you've never used.</p>
+              <p>I wanted the opposite: the job read by rules, the AI only allowed to rewrite, and every rewrite checked against what you've actually done. Dossierbuild is that tool. It runs on your own machine, it's open source, and its limits are written down in the README.</p>
+            </blockquote>
+            <figcaption class="signed">
+              <img src="mark.png" alt="" width="40" height="40" />
+              <span><strong>Muhammad Ali Akbar</strong><span>Founder, Dossierbuild · <a href="https://www.linkedin.com/in/muhammad-ali-akbar-khan-7b37b8197" rel="noopener">LinkedIn</a></span></span>
+            </figcaption>
+          </figure>
+          <div class="side-cards">
+            <div class="note">
+              <h3>Contact and support</h3>
+              <p>Questions, bugs or partnerships: <a href="mailto:aliakbar@dossierbuild.lol">aliakbar@dossierbuild.lol</a></p>
+            </div>
+            <div class="note">
+              <h3>Open source</h3>
+              <p>The code, the changelog and the known limitations are all public.</p>
+              <a class="btn btn-line" href="https://github.com/aliakbarkhan21/Dossierbuild">View on GitHub</a>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
-    <div class="ink closer">
-      <div class="wrap">
-        <h2>Your next resume, <span class="serif">without the fiction.</span></h2>
-        <p>Free, open source, and yours to run. Start with one profile and aim it at every job you want.</p>
-        <div class="cta">
-          <a class="btn btn-glow" href="https://github.com/aliakbarkhan21/Dossierbuild">Get Dossierbuild free <span class="arrow">→</span></a>
-          <a class="btn btn-line" href="mailto:aliakbar@dossierbuild.lol">Talk to the founder</a>
-        </div>
+    <div class="closer">
+      <h2>Your next resume, <span class="serif-i">without the fiction.</span></h2>
+      <p>Free, open source, and yours to run. Start with one profile and aim it at every job you want.</p>
+      <div class="cta">
+        <a class="btn btn-light" href="https://github.com/aliakbarkhan21/Dossierbuild">Get Dossierbuild free</a>
+        <a class="btn btn-glass" href="mailto:aliakbar@dossierbuild.lol">Talk to the founder</a>
       </div>
     </div>
   </main>
 
   <footer>
     <div class="wrap foot">
-      <div>
-        <a class="brand" href="#top">
-          <img src="mark.png" alt="" />
-          Dossierbuild
-        </a>
-        <p>Contact and support: <a href="mailto:aliakbar@dossierbuild.lol">aliakbar@dossierbuild.lol</a></p>
+      <div class="about-col">
+        <a class="brand" href="#home" data-tab="home"><img src="mark.png" alt="" width="30" height="30" />Dossierbuild</a>
+        <p>The resume builder that tailors to every job and never invents a fact.</p>
       </div>
-      <nav aria-label="Footer">
-        <a href="https://github.com/aliakbarkhan21/Dossierbuild">GitHub</a>
-        <a href="https://github.com/aliakbarkhan21/Dossierbuild/blob/main/LICENSE">MIT License</a>
-      </nav>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#how" data-tab="how">How it works</a></li>
+          <li><a href="#features" data-tab="features">Features</a></li>
+          <li><a href="#roadmap" data-tab="roadmap">Roadmap</a></li>
+          <li><a href="#faq" data-tab="faq">FAQ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <ul>
+          <li><a href="https://github.com/aliakbarkhan21/Dossierbuild">GitHub</a></li>
+          <li><a href="https://github.com/aliakbarkhan21/Dossierbuild/blob/main/CHANGELOG.md">Changelog</a></li>
+          <li><a href="https://github.com/aliakbarkhan21/Dossierbuild/blob/main/LICENSE">MIT License</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="#about" data-tab="about">About</a></li>
+          <li>Contact and support: <a class="mail" href="mailto:aliakbar@dossierbuild.lol">aliakbar@dossierbuild.lol</a></li>
+        </ul>
+      </div>
       <div class="copy">© <span id="year">2026</span> Dossierbuild</div>
     </div>
   </footer>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
-
-    // The phone menu: one button, and any link inside closes it again.
-    var menuBtn = document.querySelector(".menu-btn");
-    var menu = document.getElementById("mobile-menu");
-    function setMenu(open) {
-      menuBtn.setAttribute("aria-expanded", String(open));
-      menuBtn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
-      menu.hidden = !open;
-    }
-    menuBtn.addEventListener("click", function () { setMenu(menu.hidden); });
-    menu.addEventListener("click", function (e) { if (e.target.closest("a")) setMenu(false); });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape") setMenu(false); });
-
     var still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // Fade sections in as they scroll into view.
-    var reveals = document.querySelectorAll(".reveal");
-    if (still || !("IntersectionObserver" in window)) {
-      reveals.forEach(function (el) { el.classList.add("shown"); });
-    } else {
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) { e.target.classList.add("shown"); io.unobserve(e.target); }
-        });
-      }, { threshold: 0.12 });
-      reveals.forEach(function (el) { io.observe(el); });
-    }
+    // ---------- Tabs ----------
+    // Each tab has its own address (#features, #faq ...), so the back button
+    // and a shared link both land on the right one. Older links into the long
+    // page still resolve to the tab that now holds what they pointed at.
+    var ALIASES = { "": "home", home: "home", top: "home", how: "how", "demo-video": "how",
+      features: "features", roadmap: "roadmap", faq: "faq", about: "about", founder: "about" };
+    var panels = document.querySelectorAll("[data-panel]");
+    var links = document.querySelectorAll("[data-tab]");
 
-    // The demo video starts only once it is on screen, so nobody pays for it
-    // on the way past -- and never by itself for anyone who asked for less motion.
+    function show(name, scroll) {
+      panels.forEach(function (p) { p.classList.toggle("active", p.dataset.panel === name); });
+      links.forEach(function (a) {
+        if (a.closest(".tabs")) {
+          if (a.dataset.tab === name) a.setAttribute("aria-current", "page");
+          else a.removeAttribute("aria-current");
+        }
+      });
+      // Centre the chosen tab in the phone strip by scrolling the strip alone;
+      // scrollIntoView would nudge the whole page sideways as well.
+      var strip = document.querySelector(".tabs-mobile");
+      var current = strip.querySelector("[aria-current]");
+      if (current) strip.scrollLeft = current.offsetLeft - (strip.clientWidth - current.offsetWidth) / 2;
+      if (scroll) window.scrollTo({ top: 0, behavior: "instant" });
+      if (name === "how") startSteps(); else stopSteps();
+    }
+    function fromHash() {
+      return ALIASES[location.hash.replace("#", "")] || "home";
+    }
+    links.forEach(function (a) {
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        var name = a.dataset.tab;
+        if (location.hash !== "#" + name) history.pushState(null, "", "#" + name);
+        show(name, true);
+      });
+    });
+    window.addEventListener("popstate", function () { show(fromHash(), true); });
+
+    // ---------- How it works: the stepper ----------
+    var STEPS = [
+      ["One profile holds everything you've done.", "Import it from a LinkedIn export, a PDF, a DOCX or pasted text, or start from the worked example."],
+      ["The job is read by rules, not a model.", "Paste a posting. It's read into weighted requirements and scored against your profile, with no API key needed."],
+      ["Rewrites are checked against your history.", "Only this step uses AI. A suggestion that adds a number, tool or employer your profile doesn't have arrives flagged and unticked."],
+      ["Print it, and keep what you sent.", "A real PDF, saved against the posting it went to, so you can reprint exactly what the employer saw."]
+    ];
+    var paperClass = ["", "keys", "keys rewrite", "keys saved"];
+    var stepBtns = document.querySelectorAll(".stepper button");
+    var stepTitle = document.querySelector(".step-title");
+    var stepCopy = document.querySelector(".step-copy");
+    var howPaper = document.getElementById("how-paper");
+    var floats = document.querySelectorAll("#tab-how [data-show]");
+    var step = 0, timer = null, userPicked = false;
+
+    function setStep(i) {
+      step = i;
+      stepBtns.forEach(function (b, n) {
+        b.setAttribute("aria-selected", String(n === i));
+        b.classList.toggle("done", n < i);
+      });
+      stepTitle.textContent = STEPS[i][0];
+      stepCopy.textContent = STEPS[i][1];
+      howPaper.className = "paper " + paperClass[i];
+      floats.forEach(function (f) { f.classList.toggle("on", f.dataset.show.split(" ").indexOf(String(i)) !== -1); });
+    }
+    function startSteps() {
+      if (still || userPicked || timer) return;
+      timer = setInterval(function () { setStep((step + 1) % STEPS.length); }, 4500);
+    }
+    function stopSteps() { clearInterval(timer); timer = null; }
+    stepBtns.forEach(function (b) {
+      b.addEventListener("click", function () { userPicked = true; stopSteps(); setStep(+b.dataset.step); });
+    });
+    setStep(0);
+
+    // ---------- The demo video starts only when it's on screen ----------
     var video = document.querySelector("#demo-video video");
     if (still || !("IntersectionObserver" in window)) {
       video.controls = true;
@@ -734,33 +944,7 @@
       }, { threshold: 0.35 }).observe(video);
     }
 
-    // The rewrite check, played on a loop: each suggestion arrives, is
-    // checked, and lands ticked or flagged.
-    var rows = document.querySelectorAll("#demo .row");
-    function settle(row) { row.classList.add("in", "done", row.dataset.result); }
-    if (still || !("IntersectionObserver" in window)) {
-      rows.forEach(settle);
-    } else {
-      var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
-      var play = async function () {
-        for (;;) {
-          rows.forEach(function (r) { r.className = "row"; });
-          await wait(700);
-          for (var i = 0; i < rows.length; i++) {
-            rows[i].classList.add("in");
-            await wait(1100);
-            settle(rows[i]);
-            await wait(900);
-          }
-          await wait(4000);
-        }
-      };
-      var started = false;
-      var demoObserver = new IntersectionObserver(function (entries) {
-        if (entries[0].isIntersecting && !started) { started = true; demoObserver.disconnect(); play(); }
-      }, { threshold: 0.3 });
-      demoObserver.observe(document.getElementById("demo"));
-    }
+    show(fromHash(), false);
   </script>
 </body>
 </html>
