@@ -174,7 +174,7 @@
     @media (max-width: 920px) {
       .bar .tabs { display: none; }
       .tabs-mobile {
-        display: flex; overflow-x: auto; scrollbar-width: none; padding: 0 12px 10px; gap: 4px;
+        display: flex; overflow-x: auto; scrollbar-width: none; padding: 6px 12px 12px; gap: 4px;
         -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
         mask-image: linear-gradient(90deg, #000 88%, transparent);
       }
@@ -444,7 +444,10 @@
     .foot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
     .foot a { color: var(--muted); text-decoration: none; }
     .foot a:hover { color: var(--text); }
-    .foot .mail { color: var(--text); text-decoration: underline; text-underline-offset: 3px; word-break: break-all; }
+    .foot .mail { color: var(--text); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+    .foot .contact-col { grid-column: 1 / -1; }
+    @media (min-width: 860px) { .foot .contact-col { grid-column: auto; } }
+    .foot .contact-col .mail-line { display: block; margin-top: 2px; }
     .copy { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 20px; font-size: 14px; color: var(--faint); }
 
     @media (prefers-reduced-motion: reduce) {
@@ -857,11 +860,11 @@
           <li><a href="https://github.com/aliakbarkhan21/Dossierbuild/blob/main/LICENSE">MIT License</a></li>
         </ul>
       </div>
-      <div>
+      <div class="contact-col">
         <h4>Contact</h4>
         <ul>
           <li><a href="#about" data-tab="about">About</a></li>
-          <li>Contact and support: <a class="mail" href="mailto:aliakbar@dossierbuild.lol">aliakbar@dossierbuild.lol</a></li>
+          <li>Contact and support:<span class="mail-line"><a class="mail" href="mailto:aliakbar@dossierbuild.lol">aliakbar@dossierbuild.lol</a></span></li>
         </ul>
       </div>
       <div class="copy">© <span id="year">2026</span> Dossierbuild</div>
