@@ -247,11 +247,14 @@
     .paper li { margin: 2px 0; transition: background 0.35s ease, color 0.35s ease; border-radius: 3px; }
     .paper mark { background: none; color: inherit; transition: background 0.35s ease; border-radius: 3px; padding: 0 1px; }
     .paper.keys mark { background: #d8efe3; }
-    .paper li.target { transition: background 0.35s ease; }
-    .paper.rewrite li.target { background: #fbeceb; color: #9a3f3a; text-decoration: line-through; text-decoration-color: rgb(164 68 63 / 0.5); }
-    .paper.saved li.target { display: none; }
-    .paper li.replacement { display: none; background: #e7f3ec; }
-    .paper.saved li.replacement { display: list-item; }
+    /* Old and new wording occupy the same cell, so the list is as tall as the
+       longer of the two in every state and nothing below it moves. */
+    .paper li.swap { display: grid; }
+    .paper li.swap > span { grid-area: 1 / 1; transition: opacity 0.3s ease, background 0.35s ease, color 0.35s ease; border-radius: 3px; }
+    .paper li.swap .new { opacity: 0; visibility: hidden; background: #e7f3ec; }
+    .paper.rewrite li.swap .old { background: #fbeceb; color: #9a3f3a; text-decoration: line-through; text-decoration-color: rgb(164 68 63 / 0.5); }
+    .paper.saved li.swap .old { opacity: 0; visibility: hidden; }
+    .paper.saved li.swap .new { opacity: 1; visibility: visible; }
     .paper .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 70px;
       background: linear-gradient(transparent, #fff); border-radius: 0; }
 
@@ -340,15 +343,28 @@
     .stepper button[aria-selected="true"] { background: var(--text); color: var(--bg); }
     .stepper button.done { color: var(--text); }
     .stepper button.done i::before { content: "✓ "; }
-    .step-title { text-align: center; font-size: clamp(28px, 4.4vw, 46px); margin: 28px auto 8px; min-height: 1.1em; }
-    .step-copy { text-align: center; color: var(--muted); max-width: 38em; margin: 0 auto; min-height: 3.2em; font-size: 17px; }
+    .step-title { text-align: center; font-size: clamp(28px, 4.4vw, 46px); margin: 28px auto 8px; }
+    .step-copy { text-align: center; color: var(--muted); max-width: 38em; margin: 0 auto; font-size: 17px; }
     .how-stage { margin-top: 36px; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 40px 16px 0; overflow: hidden; }
     .how-stage .stage { margin-top: 0; }
     .how-stage .paper { box-shadow: 0 -4px 40px rgb(14 28 23 / 0.10); border: 1px solid #ece9e2; border-bottom: 0; }
     .how-stage .paper::before, .how-stage .paper::after { display: none; }
-    [data-show] { opacity: 0; transform: translateY(8px); pointer-events: none; }
-    [data-show].on { opacity: 1; transform: none; pointer-events: auto; }
-    @media (max-width: 760px) { [data-show]:not(.on) { display: none; } }
+    [data-show] { opacity: 0; visibility: hidden; transform: translateY(8px); pointer-events: none; }
+    [data-show].on { opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
+    /* On phones the cards sit under the page rather than over it. All of them
+       share one grid cell, so the space is reserved for the tallest and the
+       page is the same height at every step. */
+    @media (max-width: 760px) { .how-stage .stage-floats > .float { grid-area: 1 / 1; } }
+
+    /* The heading and paragraph for every step share one cell for the same reason. */
+    .step-title, .step-copy { display: grid; min-height: 0; }
+    .step-title > span, .step-copy > span { grid-area: 1 / 1; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
+    .step-title > span.on, .step-copy > span.on { opacity: 1; visibility: visible; }
+    /* A 2x2 grid on phones, instead of a strip that scrolls sideways. */
+    @media (max-width: 640px) {
+      .stepper { display: grid; grid-template-columns: 1fr 1fr; width: 100%; border-radius: 22px; overflow: visible; }
+      .stepper button { padding: 11px 10px; text-align: center; }
+    }
 
     .video-card { margin: 72px auto 0; max-width: 1040px; }
     .video-card .frame { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); background: #121815; }
@@ -611,8 +627,7 @@
               <ul>
                 <li>Built the REST <mark>API</mark> behind the customer dashboard in FastAPI, serving 40 endpoints and 1.2 million requests a day</li>
                 <li>Migrated 380GB from MySQL to <mark>Postgres</mark> over four weekends with no downtime, using logical replication and a read-only cutover window</li>
-                <li class="target">Responsible for various tasks across the backend team.</li>
-                <li class="replacement">Kept the backend team's FastAPI services and Postgres migrations running, from review to release.</li>
+                <li class="swap"><span class="old">Responsible for various tasks across the backend team.</span><span class="new">Kept the backend team's FastAPI services and Postgres migrations running, from review to release.</span></li>
               </ul>
               <div class="fade"></div>
             </div>
@@ -972,18 +987,41 @@
         b.setAttribute("aria-selected", String(n === i));
         b.classList.toggle("done", n < i);
       });
-      stepTitle.textContent = STEPS[i][0];
-      stepCopy.textContent = STEPS[i][1];
+      stepTitle.querySelectorAll("span").forEach(function (el, n) { el.classList.toggle("on", n === i); el.setAttribute("aria-hidden", String(n !== i)); });
+      stepCopy.querySelectorAll("span").forEach(function (el, n) { el.classList.toggle("on", n === i); el.setAttribute("aria-hidden", String(n !== i)); });
       howPaper.className = "paper " + paperClass[i];
       floats.forEach(function (f) { f.classList.toggle("on", f.dataset.show.split(" ").indexOf(String(i)) !== -1); });
     }
-    function startSteps() {
-      if (still || userPicked || timer) return;
-      timer = setInterval(function () { setStep((step + 1) % STEPS.length); }, 4500);
+    // Every step's text is present at once, stacked in one cell, so the block is
+    // always as tall as the longest and changing step moves nothing.
+    [[stepTitle, 0], [stepCopy, 1]].forEach(function (pair) {
+      pair[0].textContent = "";
+      STEPS.forEach(function (text) {
+        var span = document.createElement("span");
+        span.textContent = text[pair[1]];
+        pair[0].appendChild(span);
+      });
+    });
+
+    // The steps advance by themselves only while you are looking at them. Left
+    // running off-screen they would be changing the page under your thumb.
+    var onScreen = false, tabOpen = false;
+    function syncTimer() {
+      var run = onScreen && tabOpen && !still && !userPicked && !document.hidden;
+      if (run && !timer) timer = setInterval(function () { setStep((step + 1) % STEPS.length); }, 4500);
+      if (!run && timer) { clearInterval(timer); timer = null; }
     }
-    function stopSteps() { clearInterval(timer); timer = null; }
+    function startSteps() { tabOpen = true; syncTimer(); }
+    function stopSteps() { tabOpen = false; syncTimer(); }
+    document.addEventListener("visibilitychange", syncTimer);
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (entries) {
+        onScreen = entries.some(function (e) { return e.isIntersecting; });
+        syncTimer();
+      }, { threshold: 0.25 }).observe(document.querySelector(".how-stage"));
+    }
     stepBtns.forEach(function (b) {
-      b.addEventListener("click", function () { userPicked = true; stopSteps(); setStep(+b.dataset.step); });
+      b.addEventListener("click", function () { userPicked = true; syncTimer(); setStep(+b.dataset.step); });
     });
     setStep(0);
 
