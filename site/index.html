@@ -1672,6 +1672,9 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
     // a step you are reading should not turn over mid-sentence -- and stop for
     // good once you pick one. Nothing is announced when they turn over by
     // themselves; a step you choose is announced as the tab you landed on.
+    // Long enough to read a step's heading and one sentence, short enough
+    // that someone who already has does not sit waiting for the next.
+    var STEP_MS = 3000;
     var onScreen = false, tabOpen = false, held = { pointer: false, focus: false };
     var steps = document.querySelector(".steps");
     steps.addEventListener("pointerenter", function (e) { if (e.pointerType === "mouse") { held.pointer = true; syncTimer(); } });
@@ -1680,7 +1683,7 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
     steps.addEventListener("focusout", function (e) { if (!steps.contains(e.relatedTarget)) { held.focus = false; syncTimer(); } });
     function syncTimer() {
       var run = onScreen && tabOpen && !still && !userPicked && !document.hidden && !held.pointer && !held.focus;
-      if (run && !timer) timer = setInterval(function () { setStep((step + 1) % STEPS.length); }, 4500);
+      if (run && !timer) timer = setInterval(function () { setStep((step + 1) % STEPS.length); }, STEP_MS);
       if (!run && timer) { clearInterval(timer); timer = null; }
     }
     function startSteps() { tabOpen = true; syncTimer(); }
