@@ -117,69 +117,176 @@
 
     /* ---------- Buttons ---------- */
     .btn {
-      display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px;
+      position: relative; isolation: isolate;
+      display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px;
       font: 500 16px/1 var(--font); text-decoration: none; border: 1px solid transparent; cursor: pointer;
-      transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+      transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
     }
     .btn:hover { transform: translateY(-1px); }
-    .btn-dark { background: var(--text); color: var(--bg); }
-    .btn-dark:hover { background: var(--accent-strong); color: #fff; }
     .btn-light { background: #fff; color: #0e1c17; }
     .btn-light:hover { background: #eef6f1; color: #0e1c17; }
     .btn-line { border-color: var(--line-strong); color: var(--text); background: transparent; }
     .btn-line:hover { border-color: var(--text); color: var(--text); }
-    .btn-glass { border-color: rgb(255 255 255 / 0.4); color: #fff; background: rgb(255 255 255 / 0.1); }
-    .btn-glass:hover { background: rgb(255 255 255 / 0.2); color: #fff; }
-
-    /* ---------- Header and tabs ---------- */
-    header.site {
-      position: sticky; top: 0; z-index: 30;
-      background: color-mix(in srgb, var(--bg) 86%, transparent);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    /* A glass button only ever sits on the green cards, so it is tinted dark
+       rather than white: white labels on it measure 4.5:1 or better. */
+    .btn-glass {
+      --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.12) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.32));
+      color: #fff; background: rgb(8 26 19 / 0.28);
+      -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
+      box-shadow: 0 6px 18px rgb(4 16 11 / 0.14), inset 0 0 12px rgb(255 255 255 / 0.08);
     }
-    .bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 68px; }
+    .btn-glass:hover { color: #fff; background: rgb(8 26 19 / 0.22); }
+
+    /* ---------- Liquid glass ----------
+     * The controls float on a layer of glass over the page instead of sitting
+     * in a strip above it. Glass is kept to controls -- the bar, the step
+     * picker, the secondary buttons on the green cards -- and never put on
+     * content: a resume behind frosted glass is a resume nobody can read.
+     * Each tone is a set of tokens, so a surface can flip between them as the
+     * page under it changes without any other rule knowing.
+     */
+    .glass {
+      --g-blur: 12px;
+      --g-tint: rgb(251 250 247 / 0.62);
+      --g-ink: #0e1c17;
+      --g-ink-2: #36433d;
+      --g-glow: rgb(44 106 84 / 0.16);
+      --g-thumb: rgb(255 255 255 / 0.92);
+      --g-thumb-shadow: 0 1px 2px rgb(14 28 23 / 0.08), 0 3px 10px rgb(14 28 23 / 0.06), inset 0 0 0 0.5px rgb(14 28 23 / 0.07);
+      --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.2) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.5));
+      --g-shadow: 0 10px 30px rgb(14 28 23 / 0.1), 0 1px 3px rgb(14 28 23 / 0.07), inset 0 0 0 0.5px rgb(14 28 23 / 0.08), inset 0 0 16px rgb(255 255 255 / 0.4);
+      --g-cta: #0e1c17; --g-cta-ink: #f4f2ed; --g-cta-hover: #1f5442;
+      position: relative; isolation: isolate;
+      background: var(--g-tint); color: var(--g-ink); box-shadow: var(--g-shadow);
+      -webkit-backdrop-filter: blur(var(--g-blur)) saturate(170%);
+      backdrop-filter: blur(var(--g-blur)) saturate(170%);
+      transition: background-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease;
+    }
+    .glass[data-tone="dark"] {
+      --g-tint: rgb(14 24 19 / 0.6);
+      --g-ink: #f3f8f5;
+      --g-ink-2: rgb(243 248 245 / 0.86);
+      --g-glow: rgb(255 255 255 / 0.22);
+      --g-thumb: rgb(255 255 255 / 0.16);
+      --g-thumb-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.2), 0 2px 8px rgb(0 0 0 / 0.18);
+      --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.1) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.26));
+      --g-shadow: 0 10px 30px rgb(0 0 0 / 0.26), 0 1px 3px rgb(0 0 0 / 0.2), inset 0 0 16px rgb(255 255 255 / 0.06);
+      --g-cta: #fff; --g-cta-ink: #0e1c17; --g-cta-hover: #e3f2ea;
+    }
+    @media (prefers-color-scheme: dark) {
+      .glass:not([data-tone="light"]) {
+        --g-tint: rgb(14 24 19 / 0.6);
+        --g-ink: #f3f8f5;
+        --g-ink-2: rgb(243 248 245 / 0.86);
+        --g-glow: rgb(255 255 255 / 0.22);
+        --g-thumb: rgb(255 255 255 / 0.16);
+        --g-thumb-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.2), 0 2px 8px rgb(0 0 0 / 0.18);
+        --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.1) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.26));
+        --g-shadow: 0 10px 30px rgb(0 0 0 / 0.26), 0 1px 3px rgb(0 0 0 / 0.2), inset 0 0 16px rgb(255 255 255 / 0.06);
+        --g-cta: #fff; --g-cta-ink: #0e1c17; --g-cta-hover: #e3f2ea;
+      }
+    }
+    /* The rim: light catching the bevel, brightest at the top left and
+       answered faintly at the bottom right. */
+    .glass::after, .btn-glass::after {
+      content: ""; position: absolute; inset: 0; z-index: 2; border-radius: inherit; padding: 1px; pointer-events: none;
+      background: var(--g-rim);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+    }
+    /* Glass lights up from the point you touch, and a button swells under the
+       press and settles back with a little give once you let go. */
+    .press::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+      background: radial-gradient(circle at var(--px, 50%) var(--py, 50%), var(--g-glow, rgb(255 255 255 / 0.3)), transparent 70%);
+      opacity: 0; transition: opacity 0.4s ease;
+    }
+    .btn.press::before { --g-glow: rgb(255 255 255 / 0.3); }
+    .btn-glass.press:hover::before { opacity: 0.55; }
+    .press.pressed::before { opacity: 1; transition-duration: 0.08s; }
+    .btn.press { transition: transform 0.55s cubic-bezier(0.3, 1.45, 0.5, 1), background-color 0.35s ease, color 0.35s ease; }
+    .btn.press.pressed { transform: scale(1.05); transition-duration: 0.16s, 0.35s, 0.35s; transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1), ease, ease; }
+
+    /* ---------- Header: floating glass ---------- */
+    /* The header's own height, which the green cards reach up behind:
+       12 above the bar, the bar, 8 below it. */
+    :root { --nav-h: 76px; }
+    header.site {
+      position: sticky; top: 0; z-index: 30; padding: 12px 20px 8px; pointer-events: none;
+      transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    @media (min-width: 720px) { header.site { padding: 12px 32px 8px; } }
+    header.site > * { pointer-events: auto; }
+    /* Where content meets the floating bar it softens instead of being cut by
+       a line: a band of blur behind the bar that fades out downward. Only
+       once something has scrolled under it -- at rest it would only smudge
+       the hero's top corners. */
+    header.site::before {
+      content: ""; position: absolute; inset: 0 0 -16px; z-index: -1; pointer-events: none;
+      -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+      -webkit-mask-image: linear-gradient(#000 35%, transparent); mask-image: linear-gradient(#000 35%, transparent);
+      opacity: 0; transition: opacity 0.3s ease;
+    }
+    header.site.scrolled::before { opacity: 1; }
+    .bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      max-width: 1116px; height: 56px; margin: 0 auto; padding: 0 9px 0 12px; border-radius: 28px;
+    }
     .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none;
       font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 15px; }
+    .bar .brand { color: var(--g-ink); transition: color 0.35s ease; }
     .brand img { width: 30px; height: 30px; border-radius: 8px; background: #fff; padding: 3px; border: 1px solid var(--line); }
-    .tabs { display: flex; gap: 4px; position: relative; }
+    .tabs { display: flex; gap: 2px; position: relative; }
     .tabs a {
       position: relative; z-index: 1;
-      color: var(--muted); text-decoration: none; font-size: 15px; padding: 8px 12px; border-radius: 999px;
-      white-space: nowrap; transition: color 0.3s ease, background 0.15s ease;
+      color: var(--g-ink-2); text-decoration: none; font-size: 15px; padding: 8px 13px; border-radius: 999px;
+      white-space: nowrap; transition: color 0.3s ease;
     }
-    .tabs a:hover { color: var(--text); }
-    .tabs a[aria-current="page"] { color: var(--text); background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
-    /* One highlight that glides between tabs, rather than one per tab. Until
-       the script has placed it, the per-tab highlight above stands in. */
-    .tabs .thumb {
+    .tabs a:hover, .tabs a[aria-current="page"] { color: var(--g-ink); }
+    /* Vibrancy, roughly: a faint halo in the tone's own background colour
+       keeps a label readable when something bright drifts behind the glass. */
+    header.site .glass { text-shadow: 0 0 10px rgb(255 255 255 / 0.55); }
+    header.site .glass[data-tone="dark"] { text-shadow: 0 0 10px rgb(0 0 0 / 0.35); }
+    header.site .btn { text-shadow: none; }
+    /* One droplet of highlight moves between tabs. Until the script has
+       placed it, a highlight on the current tab stands in. */
+    .tabs a[aria-current="page"], .stepper [aria-selected="true"] { background: var(--g-thumb); box-shadow: var(--g-thumb-shadow); }
+    .glide > a[aria-current="page"], .glide > [aria-selected="true"] { background: none; box-shadow: none; }
+    .thumb {
       position: absolute; z-index: 0; top: 0; left: 0; width: 0; height: 0; border-radius: 999px;
-      background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 2px 8px rgb(14 28 23 / 0.06);
-      pointer-events: none; opacity: 0;
+      background: var(--g-thumb); box-shadow: var(--g-thumb-shadow); pointer-events: none; opacity: 0;
+      transition: background-color 0.35s ease, box-shadow 0.35s ease;
     }
-    .tabs.glide .thumb { opacity: 1; }
-    .tabs.glide a[aria-current="page"] { background: none; box-shadow: none; }
-    .tabs.moving .thumb {
-      transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1), width 0.42s cubic-bezier(0.32, 0.72, 0, 1);
-    }
+    .glide > .thumb { opacity: 1; }
 
     /* The tab you switch to fades up into place. */
     @keyframes arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
     .js .panel.arriving { animation: arrive 0.38s cubic-bezier(0.32, 0.72, 0, 1); }
     .bar-right { display: flex; align-items: center; gap: 14px; }
-    .bar-right .gh { color: var(--muted); text-decoration: none; font-size: 15px; }
-    .bar-right .gh:hover { color: var(--text); }
-    .bar-right .btn { padding: 10px 16px; font-size: 15px; }
+    .bar-right .gh { color: var(--g-ink-2); text-decoration: none; font-size: 15px; transition: color 0.3s ease; }
+    .bar-right .gh:hover { color: var(--g-ink); }
+    .bar-right .btn { padding: 10px 17px; font-size: 15px; }
+    .btn-tone { background: var(--g-cta); color: var(--g-cta-ink); }
+    .btn-tone:hover { background: var(--g-cta-hover); color: var(--g-cta-ink); }
     .tabs-mobile { display: none; }
     @media (max-width: 1060px) { .bar-right .gh { display: none; } }
     @media (max-width: 920px) {
+      /* 12 above, the bar, 8 between, the tab strip, 8 below. */
+      :root { --nav-h: 124px; }
+      .bar { height: 52px; padding: 0 6px 0 10px; border-radius: 26px; }
       .bar .tabs { display: none; }
-      .tabs-mobile {
-        display: flex; overflow-x: auto; scrollbar-width: none; padding: 6px 12px 12px; gap: 4px;
-        -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
-        mask-image: linear-gradient(90deg, #000 88%, transparent);
+      .tabs-mobile { display: block; max-width: 1116px; height: 44px; margin: 8px auto 0; padding: 3px; border-radius: 22px; }
+      .tabs-mobile .strip {
+        height: 100%; align-items: center; overflow-x: auto; scrollbar-width: none;
+        -webkit-mask-image: linear-gradient(90deg, #000 86%, transparent);
+        mask-image: linear-gradient(90deg, #000 86%, transparent);
       }
-      .tabs-mobile::-webkit-scrollbar { display: none; }
-      .tabs-mobile a:last-child { margin-right: 32px; }
+      .tabs-mobile .strip::-webkit-scrollbar { display: none; }
+      .tabs-mobile .strip a:last-child { margin-right: 28px; }
+      /* While you read, the brand row steps aside and leaves the tabs. */
+      header.site .bar { transition: opacity 0.3s ease, background-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease; }
+      header.site.compact { transform: translateY(-60px); }
+      header.site.compact .bar { opacity: 0; }
     }
 
     /* ---------- Panels ---------- */
@@ -195,17 +302,21 @@
     .serif-i { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -0.02em; }
 
     /* ---------- Hero ---------- */
+    /* The green cards start 4px from the top of the page and run up behind the
+       glass bar, so the bar floats over them from the first frame instead of
+       sitting in a band of its own above them. */
+    .under-nav { margin-top: calc(4px - var(--nav-h)); }
     .hero {
-      margin: 4px 12px 0; border-radius: 28px; overflow: hidden; position: relative; isolation: isolate;
+      margin-left: 12px; margin-right: 12px; border-radius: 28px; overflow: hidden; position: relative; isolation: isolate;
       background: linear-gradient(172deg, #143a2f 0%, #1f5846 28%, #3b876b 56%, #95ccb4 80%, #dcebe2 100%);
-      color: #fff; text-align: center; padding: 72px 16px 0;
+      color: #fff; text-align: center; padding: calc(var(--nav-h) + 56px) 16px 0;
     }
     .hero::before {
       content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0.5;
       background: radial-gradient(60% 50% at 20% 10%, rgb(127 209 174 / 0.35), transparent 70%),
                   radial-gradient(50% 40% at 85% 30%, rgb(196 210 255 / 0.25), transparent 70%);
     }
-    @media (min-width: 720px) { .hero { margin: 4px 16px 0; padding-top: 88px; } }
+    @media (min-width: 720px) { .hero { margin-left: 16px; margin-right: 16px; padding-top: calc(var(--nav-h) + 76px); } }
     .pill {
       display: inline-flex; align-items: center; gap: 8px; background: #fff; color: #0e1c17;
       font-size: 14px; padding: 6px 14px 6px 6px; border-radius: 999px; margin-bottom: 28px;
@@ -329,19 +440,20 @@
     .explore em { font-style: normal; color: var(--accent); font-size: 15px; margin-top: auto; padding-top: 6px; }
 
     /* ---------- How it works: stepper ---------- */
+    /* The step picker is a glass segmented control: the same droplet as the
+       tab bar slides under the current step. */
     .stepper {
-      display: flex; gap: 4px; justify-content: center; margin: 0 auto; width: max-content; max-width: 100%;
-      background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px;
-      overflow-x: auto; scrollbar-width: none;
+      display: flex; gap: 2px; justify-content: center; margin: 0 auto; width: max-content; max-width: 100%;
+      border-radius: 999px; padding: 4px; overflow-x: auto; scrollbar-width: none;
     }
     .stepper::-webkit-scrollbar { display: none; }
     .stepper button {
+      position: relative; z-index: 1;
       font: 500 14px/1 var(--font); color: var(--muted); background: none; border: 0; cursor: pointer;
-      padding: 10px 14px; border-radius: 999px; white-space: nowrap;
+      padding: 10px 14px; border-radius: 999px; white-space: nowrap; transition: color 0.3s ease;
     }
     .stepper button i { font: 500 11px/1 ui-monospace, Menlo, monospace; font-style: normal; opacity: 0.7; margin-right: 6px; }
-    .stepper button[aria-selected="true"] { background: var(--text); color: var(--bg); }
-    .stepper button.done { color: var(--text); }
+    .stepper button[aria-selected="true"], .stepper button.done { color: var(--text); }
     .stepper button.done i::before { content: "✓ "; }
     .step-title { text-align: center; font-size: clamp(28px, 4.4vw, 46px); margin: 28px auto 8px; }
     .step-copy { text-align: center; color: var(--muted); max-width: 38em; margin: 0 auto; font-size: 17px; }
@@ -374,8 +486,8 @@
     .video-card figcaption { color: var(--faint); font-size: 14px; text-align: center; margin-top: 14px; }
 
     /* ---------- Features: the dark toolkit ---------- */
-    .toolkit { background: var(--deep); color: var(--deep-text); border-radius: 28px; padding: 56px 20px 20px; margin: 0 12px; }
-    @media (min-width: 720px) { .toolkit { margin: 0 16px; padding: 64px 40px 40px; } }
+    .toolkit { background: var(--deep); color: var(--deep-text); border-radius: 28px; padding: calc(var(--nav-h) + 44px) 20px 20px; margin-left: 12px; margin-right: 12px; }
+    @media (min-width: 720px) { .toolkit { margin-left: 16px; margin-right: 16px; padding: calc(var(--nav-h) + 52px) 40px 40px; } }
     .toolkit-head { display: grid; gap: 18px; grid-template-columns: 1fr; align-items: end; max-width: 1100px; margin: 0 auto 36px; }
     @media (min-width: 860px) { .toolkit-head { grid-template-columns: 1.4fr 1fr; } }
     .toolkit-head h1 { font-size: clamp(34px, 5vw, 56px); }
@@ -469,13 +581,40 @@
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
       *, *::before, *::after { transition: none !important; animation: none !important; }
+      .btn.press.pressed { transform: none; }
+    }
+    /* Asked for less transparency, the glass turns to frosted solid; asked for
+       more contrast, it also gets a drawn edge. Neither loses the shape. */
+    @media (prefers-reduced-transparency: reduce) {
+      .glass, .btn-glass, header.site::before { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+      .glass { --g-tint: #f7f6f2; }
+      .glass[data-tone="dark"] { --g-tint: #16211c; }
+      .btn-glass { background: #1c4a3b; }
+    }
+    @media (prefers-reduced-transparency: reduce) and (prefers-color-scheme: dark) {
+      .glass:not([data-tone="light"]) { --g-tint: #16211c; }
+    }
+    @media (prefers-contrast: more) {
+      .glass, .btn-glass, header.site::before { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+      .glass { --g-tint: #fff; --g-ink-2: #0e1c17; box-shadow: 0 0 0 1.5px #0e1c17; }
+      .glass[data-tone="dark"] { --g-tint: #0b1410; --g-ink-2: #fff; box-shadow: 0 0 0 1.5px #fff; }
+      .btn-glass { background: #0b1410; box-shadow: 0 0 0 1.5px #fff; }
+    }
+    @media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+      .glass:not([data-tone="light"]) { --g-tint: #0b1410; --g-ink-2: #fff; box-shadow: 0 0 0 1.5px #fff; }
+    }
+    /* Forced colours repaint every background, the droplet included, so the
+       current tab and step are outlined instead. */
+    @media (forced-colors: active) {
+      .tabs a[aria-current="page"], .stepper [aria-selected="true"] { outline: 2px solid CanvasText; outline-offset: -2px; }
+      .glass { border: 1px solid CanvasText; }
     }
   </style>
   <script>document.documentElement.classList.add("js");</script>
 </head>
 <body>
   <header class="site">
-    <div class="wrap bar">
+    <div class="bar glass" data-tone="dark">
       <a class="brand" href="#home" data-tab="home">
         <img src="mark.png" alt="" width="30" height="30" />
         Dossierbuild
@@ -490,23 +629,25 @@
       </nav>
       <div class="bar-right">
         <a class="gh" href="https://github.com/aliakbarkhan21/Dossierbuild">GitHub</a>
-        <a class="btn btn-dark" href="https://github.com/aliakbarkhan21/Dossierbuild">Get it free</a>
+        <a class="btn btn-tone press" href="https://github.com/aliakbarkhan21/Dossierbuild">Get it free</a>
       </div>
     </div>
-    <nav class="tabs tabs-mobile" aria-label="Sections">
-      <a href="#home" data-tab="home">Home</a>
-      <a href="#how" data-tab="how">How it works</a>
-      <a href="#features" data-tab="features">Features</a>
-      <a href="#roadmap" data-tab="roadmap">Roadmap</a>
-      <a href="#faq" data-tab="faq">FAQ</a>
-      <a href="#about" data-tab="about">About</a>
+    <nav class="tabs-mobile glass" data-tone="dark" aria-label="Sections">
+      <div class="tabs strip">
+        <a href="#home" data-tab="home">Home</a>
+        <a href="#how" data-tab="how">How it works</a>
+        <a href="#features" data-tab="features">Features</a>
+        <a href="#roadmap" data-tab="roadmap">Roadmap</a>
+        <a href="#faq" data-tab="faq">FAQ</a>
+        <a href="#about" data-tab="about">About</a>
+      </div>
     </nav>
   </header>
 
   <main>
     <!-- ============================== HOME ============================== -->
     <section class="panel" id="tab-home" data-panel="home" aria-label="Home">
-      <div class="hero">
+      <div class="hero under-nav" data-backdrop="dark">
         <span class="pill"><b>✓</b><span>Free and open source<span class="pill-more"> · runs on your own machine</span></span></span>
         <h1>Tailored resumes that <span class="serif-i">check</span> the AI's&nbsp;work.</h1>
         <p class="lede">
@@ -516,7 +657,7 @@
         </p>
         <div class="cta">
           <a class="btn btn-light" href="https://github.com/aliakbarkhan21/Dossierbuild">Get Dossierbuild free</a>
-          <a class="btn btn-glass" href="#how" data-tab="how">See how it works</a>
+          <a class="btn btn-glass press" href="#how" data-tab="how">See how it works</a>
         </div>
         <ul class="proof">
           <li>No account</li>
@@ -524,7 +665,7 @@
           <li>Gemini or Claude for the AI steps</li>
         </ul>
 
-        <div class="stage" role="img" aria-label="Illustration: the worked example's resume, its match against a job posting, and the rewrite check flagging a suggestion that adds facts">
+        <div class="stage" data-backdrop="light" role="img" aria-label="Illustration: the worked example's resume, its match against a job posting, and the rewrite check flagging a suggestion that adds facts">
           <div class="paper keys">
             <div class="name">Priya Raman</div>
             <div class="role">Backend engineer — data platforms and the services on top of them</div>
@@ -603,7 +744,7 @@
           <h1>The AI suggests. <span class="serif-i">Your history decides.</span></h1>
         </div>
 
-        <div class="stepper" role="tablist" aria-label="Steps">
+        <div class="stepper glass" role="tablist" aria-label="Steps">
           <button type="button" role="tab" aria-selected="true" data-step="0"><i>01</i>Your profile</button>
           <button type="button" role="tab" aria-selected="false" data-step="1"><i>02</i>Read the job</button>
           <button type="button" role="tab" aria-selected="false" data-step="2"><i>03</i>Rewrite, checked</button>
@@ -614,7 +755,7 @@
 
         <div class="how-stage">
           <div class="stage" role="img" aria-label="Illustration of each step on the worked example">
-            <div class="paper" id="how-paper">
+            <div class="paper" id="how-paper" data-backdrop="light">
               <div class="name">Priya Raman</div>
               <div class="role">Backend engineer — data platforms and the services on top of them</div>
               <div class="contact">Manchester, UK · priya.raman@example.com · GitHub · LinkedIn</div>
@@ -661,7 +802,7 @@
             <span class="eyebrow">See it work</span>
             <h2>The real app, <span class="serif-i">in 25 seconds.</span></h2>
           </div>
-          <div class="frame">
+          <div class="frame" data-backdrop="light">
             <div class="bar-dots"><i></i><i></i><i></i><span>localhost:8000</span></div>
             <video muted loop playsinline preload="none" poster="media/demo-poster.webp" width="1280" height="800"
               aria-label="Screen recording: the Resume screen, a job posting analysed on the Tailor screen, then the Review screen">
@@ -676,8 +817,8 @@
 
     <!-- ============================== FEATURES ============================== -->
     <section class="panel" id="tab-features" data-panel="features" aria-label="Features">
-      <div style="padding-top:12px">
-        <div class="toolkit">
+      <div>
+        <div class="toolkit under-nav" data-backdrop="dark">
           <div class="toolkit-head">
             <div>
               <span class="eyebrow">The whole toolkit</span>
@@ -690,7 +831,7 @@
               <span class="n">01 · Tailor</span>
               <h3>See the gaps before you write a word.</h3>
               <p>A posting is read by rules into weighted requirements and scored against your profile, before any rewriting starts.</p>
-              <div class="shot"><picture><source type="image/webp" srcset="img/tailor-800.webp 800w, img/tailor-1280.webp 1280w, img/tailor-1920.webp 1920w" sizes="(min-width: 1040px) 720px, 92vw" /><img src="img/tailor.png" alt="The Tailor screen: a job posting read into weighted requirements and scored against the profile" width="3120" height="1880" loading="lazy" decoding="async" /></picture></div>
+              <div class="shot" data-backdrop="light"><picture><source type="image/webp" srcset="img/tailor-800.webp 800w, img/tailor-1280.webp 1280w, img/tailor-1920.webp 1920w" sizes="(min-width: 1040px) 720px, 92vw" /><img src="img/tailor.png" alt="The Tailor screen: a job posting read into weighted requirements and scored against the profile" width="3120" height="1880" loading="lazy" decoding="async" /></picture></div>
             </div>
             <div class="cell green">
               <span class="n">02 · The guard</span>
@@ -715,7 +856,7 @@
               <span class="n">05 · Review</span>
               <h3>A writing standard that's code.</h3>
               <p>Review reads the whole document, flags filler and vague claims, and points to the line worth fixing first. The same check scores the AI's rewrites.</p>
-              <div class="shot"><picture><source type="image/webp" srcset="img/health-800.webp 800w, img/health-1280.webp 1280w, img/health-1920.webp 1920w" sizes="(min-width: 1040px) 720px, 92vw" /><img src="img/health.png" alt="The Review screen: the document with each line scored against the writing standard" width="3120" height="1880" loading="lazy" decoding="async" /></picture></div>
+              <div class="shot" data-backdrop="light"><picture><source type="image/webp" srcset="img/health-800.webp 800w, img/health-1280.webp 1280w, img/health-1920.webp 1920w" sizes="(min-width: 1040px) 720px, 92vw" /><img src="img/health.png" alt="The Review screen: the document with each line scored against the writing standard" width="3120" height="1880" loading="lazy" decoding="async" /></picture></div>
             </div>
             <div class="cell">
               <span class="n">06 · Applications</span>
@@ -843,12 +984,12 @@
       </div>
     </section>
 
-    <div class="closer">
+    <div class="closer" data-backdrop="dark">
       <h2>Your next resume, <span class="serif-i">without the fiction.</span></h2>
       <p>Free, open source, and yours to run. Start with one profile and aim it at every job you want.</p>
       <div class="cta">
         <a class="btn btn-light" href="https://github.com/aliakbarkhan21/Dossierbuild">Get Dossierbuild free</a>
-        <a class="btn btn-glass" href="mailto:aliakbar@dossierbuild.lol">Talk to the founder</a>
+        <a class="btn btn-glass press" href="mailto:aliakbar@dossierbuild.lol">Talk to the founder</a>
       </div>
     </div>
   </main>
@@ -900,25 +1041,62 @@
     var panels = document.querySelectorAll("[data-panel]");
     var links = document.querySelectorAll("[data-tab]");
 
-    // ---------- The gliding highlight ----------
-    var bars = document.querySelectorAll(".tabs");
-    bars.forEach(function (bar) {
-      var thumb = document.createElement("span");
-      thumb.className = "thumb";
-      thumb.setAttribute("aria-hidden", "true");
-      bar.prepend(thumb);
-    });
-    function placeThumbs(animate) {
-      bars.forEach(function (bar) {
-        var thumb = bar.querySelector(".thumb");
-        var current = bar.querySelector("[aria-current]");
-        if (!current || !bar.offsetParent) return;      // hidden at this width
-        bar.classList.toggle("moving", !!animate && !still);
-        thumb.style.width = current.offsetWidth + "px";
-        thumb.style.height = current.offsetHeight + "px";
-        thumb.style.transform = "translate(" + current.offsetLeft + "px," + current.offsetTop + "px)";
-        bar.classList.add("glide");
-      });
+    // ---------- The liquid highlight ----------
+    // The highlight under the current tab moves like a drop of liquid rather
+    // than a block. Each of its four edges is its own spring, and the edge in
+    // front runs on a quicker spring than the edge behind, so it stretches
+    // toward where it is going and the back catches up. A spring keeps its
+    // position and velocity from frame to frame, so a second click mid-flight
+    // turns it from wherever it is instead of jumping or waiting. Springs are
+    // [response in seconds, damping ratio]: the front overshoots a hair, the
+    // back never does.
+    var LEAD = [0.28, 0.8], TRAIL = [0.4, 1];
+    function Spring(x) { this.x = this.to = x; this.v = 0; this.k = 0; this.c = 0; }
+    Spring.prototype.tune = function (p) { var w = 2 * Math.PI / p[0]; this.k = w * w; this.c = 2 * p[1] * w; };
+    function Droplet(track) {
+      this.el = document.createElement("span");
+      this.el.className = "thumb";
+      this.el.setAttribute("aria-hidden", "true");
+      track.prepend(this.el);
+      this.track = track; this.e = null; this.raf = 0; this.t = 0;
+      this.frame = this.frame.bind(this);
+    }
+    Droplet.prototype.to = function (target, animate) {
+      if (!target || !this.track.offsetParent) return;      // hidden at this width
+      var g = { l: target.offsetLeft, t: target.offsetTop, r: target.offsetLeft + target.offsetWidth, b: target.offsetTop + target.offsetHeight };
+      var e = this.e, k;
+      this.track.classList.add("glide");
+      if (!e || !animate || still) {
+        cancelAnimationFrame(this.raf); this.raf = 0;
+        this.e = { l: new Spring(g.l), t: new Spring(g.t), r: new Spring(g.r), b: new Spring(g.b) };
+        return this.paint();
+      }
+      var dx = g.l + g.r - e.l.x - e.r.x, dy = g.t + g.b - e.t.x - e.b.x;
+      e.r.tune(dx > 0 ? LEAD : TRAIL); e.l.tune(dx > 0 ? TRAIL : LEAD);
+      e.b.tune(dy > 0 ? LEAD : TRAIL); e.t.tune(dy > 0 ? TRAIL : LEAD);
+      for (k in g) e[k].to = g[k];
+      if (!this.raf) { this.t = performance.now(); this.raf = requestAnimationFrame(this.frame); }
+    };
+    Droplet.prototype.frame = function (now) {
+      // Small fixed substeps keep a stiff spring stable on a slow frame.
+      var e = this.e, dt = Math.max(0, Math.min(0.05, (now - this.t) / 1000)), n = Math.max(1, Math.ceil(dt * 240)), h = dt / n, k, s, busy = false;
+      this.t = now;
+      while (n--) for (k in e) { s = e[k]; s.v += (-s.k * (s.x - s.to) - s.c * s.v) * h; s.x += s.v * h; }
+      for (k in e) { s = e[k]; if (Math.abs(s.x - s.to) > 0.2 || Math.abs(s.v) > 4) busy = true; }
+      if (!busy) for (k in e) { e[k].x = e[k].to; e[k].v = 0; }
+      this.paint();
+      this.raf = busy ? requestAnimationFrame(this.frame) : 0;
+    };
+    Droplet.prototype.paint = function () {
+      var e = this.e, s = this.el.style;
+      s.transform = "translate(" + e.l.x + "px," + e.t.x + "px)";
+      s.width = Math.max(0, e.r.x - e.l.x) + "px";
+      s.height = Math.max(0, e.b.x - e.t.x) + "px";
+    };
+    var tabDrops = Array.prototype.map.call(document.querySelectorAll(".tabs"), function (t) { return new Droplet(t); });
+    var strip = document.querySelector(".tabs-mobile .strip");
+    function placeTabs(animate) {
+      tabDrops.forEach(function (d) { d.to(d.track.querySelector("[aria-current]"), animate); });
     }
 
     function show(name, scroll, animate) {
@@ -940,12 +1118,12 @@
       });
       // Centre the chosen tab in the phone strip by scrolling the strip alone;
       // scrollIntoView would nudge the whole page sideways as well.
-      var strip = document.querySelector(".tabs-mobile");
       var current = strip.querySelector("[aria-current]");
       if (current) strip.scrollTo({ left: current.offsetLeft - (strip.clientWidth - current.offsetWidth) / 2, behavior: animate && !still ? "smooth" : "instant" });
-      placeThumbs(animate);
+      placeTabs(animate);
       if (scroll) window.scrollTo({ top: 0, behavior: "instant" });
-      if (name === "how") startSteps(); else stopSteps();
+      if (name === "how") { stepDrop.to(stepBtns[step], false); startSteps(); } else stopSteps();
+      readTones();
     }
     function fromHash() {
       return ALIASES[location.hash.replace("#", "")] || "home";
@@ -960,11 +1138,135 @@
     });
     window.addEventListener("popstate", function () { show(fromHash(), true, true); });
     // Widths change when the web font arrives and when the window is resized;
-    // the highlight follows without animating.
-    window.addEventListener("resize", function () { placeThumbs(false); });
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { placeThumbs(false); });
+    // the highlights follow without animating.
+    function replace() { placeTabs(false); stepDrop.to(stepBtns[step], false); readTones(); }
+    window.addEventListener("resize", replace);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(replace);
     document.querySelectorAll(".panel").forEach(function (p) {
       p.addEventListener("animationend", function () { p.classList.remove("arriving"); });
+    });
+
+    // ---------- The glass reads what's under it ----------
+    // Like Apple's small glass, the bar flips between a light and a dark tint
+    // to match whatever is passing beneath it, so its labels stay legible over
+    // the green hero, the white resume and the dark toolkit alike. Regions say
+    // what they are with data-backdrop; anything unmarked is the page itself.
+    // The deepest marked region under the middle of each bar wins.
+    var surfaces = document.querySelectorAll("header.site .glass");
+    var zones = document.querySelectorAll("[data-backdrop]");
+    var darkPage = window.matchMedia("(prefers-color-scheme: dark)");
+    var toneQueued = false;
+    function readTones() {
+      toneQueued = false;
+      surfaces.forEach(function (s) {
+        var r = s.getBoundingClientRect();
+        if (!r.width) return;
+        var x = r.left + r.width / 2, y = r.top + r.height / 2, tone = darkPage.matches ? "dark" : "light";
+        zones.forEach(function (z) {
+          var b = z.getBoundingClientRect();
+          if (x >= b.left && x < b.right && y >= b.top && y < b.bottom) tone = z.dataset.backdrop;
+        });
+        if (s.dataset.tone !== tone) s.dataset.tone = tone;
+      });
+    }
+    function queueTones() { if (!toneQueued) { toneQueued = true; requestAnimationFrame(readTones); } }
+    window.addEventListener("scroll", queueTones, { passive: true });
+    if (darkPage.addEventListener) darkPage.addEventListener("change", queueTones);
+
+    // ---------- On phones the brand row steps aside while you read ----------
+    // Scrolling down tucks it away and leaves the tabs, which is the only
+    // part of the bar anyone needs mid-page. Scrolling back up, reaching the
+    // top, or tabbing into the header brings it straight back. The thresholds
+    // are hysteresis, so a thumb resting on the screen doesn't flicker it.
+    var header = document.querySelector("header.site");
+    var phone = window.matchMedia("(max-width: 920px)");
+    var tucked = false, anchor = 0;
+    function tuck(on) { if (on !== tucked) { tucked = on; header.classList.toggle("compact", on); } }
+    function onScroll() {
+      var y = Math.max(0, window.scrollY);
+      header.classList.toggle("scrolled", y > 4);
+      if (!phone.matches || y < 120) { anchor = y; return tuck(false); }
+      if (!tucked) { anchor = Math.min(anchor, y); if (y - anchor > 24) { tuck(true); anchor = y; } }
+      else { anchor = Math.max(anchor, y); if (anchor - y > 16) { tuck(false); anchor = y; } }
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    header.addEventListener("focusin", function () { tuck(false); });
+    header.addEventListener("transitionend", function (e) { if (e.target === header) queueTones(); });
+
+    // ---------- Refraction, where the browser can draw it ----------
+    // Only Chromium renders an SVG filter inside backdrop-filter, so only there
+    // does the bar bend what passes beneath it toward its rim, like the edge
+    // of a lens. Safari accepts the same declaration and then draws nothing --
+    // an unblurred bar -- and Firefox doesn't support it, so a feature query
+    // can't tell them apart: the engine is asked by name instead. Everywhere
+    // else the bar keeps the frosted glass the CSS already gives it.
+    var lensOk = !!(navigator.userAgentData && navigator.userAgentData.brands.some(function (b) { return b.brand === "Chromium"; }))
+      && !window.matchMedia("(prefers-reduced-transparency: reduce), (prefers-contrast: more)").matches
+      && "ResizeObserver" in window;
+    // Each pixel inside the rim samples the backdrop a little further in,
+    // most at the edge and none by the flat middle, so content magnifies as it
+    // nears the rim. The pull is held under the point where the image would
+    // fold back on itself: D(1 - t/B)^2 with D = 0.4B keeps its slope above -1.
+    function lensMap(w, h, bevel) {
+      var c = document.createElement("canvas"), r = h / 2, hx = w / 2, hy = h / 2, D = 0.4 * bevel;
+      c.width = w; c.height = h;
+      var ctx = c.getContext("2d"), img = ctx.createImageData(w, h), d = img.data;
+      for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+        var px = x + 0.5 - hx, py = y + 0.5 - hy, qx = Math.abs(px) - (hx - r), qy = Math.abs(py) - hy + r;
+        var t = -(Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r);
+        var nx = 0, ny = 0, l, m = t >= 0 && t < bevel ? Math.pow(1 - t / bevel, 2) : 0, i = (y * w + x) * 4;
+        if (qx > 0 && qy > 0) { l = Math.hypot(qx, qy); nx = qx / l; ny = qy / l; } else if (qx > qy) nx = 1; else ny = 1;
+        d[i] = Math.round(127.5 - (px < 0 ? -nx : nx) * m * 127.5);
+        d[i + 1] = Math.round(127.5 - (py < 0 ? -ny : ny) * m * 127.5);
+        d[i + 2] = 128; d[i + 3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      return { href: c.toDataURL(), scale: 2 * D };
+    }
+    if (lensOk) {
+      var SVG = "http://www.w3.org/2000/svg", lenses = document.createElementNS(SVG, "svg");
+      lenses.setAttribute("aria-hidden", "true");
+      lenses.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+      document.body.appendChild(lenses);
+      surfaces.forEach(function (s, n) {
+        var f = document.createElementNS(SVG, "filter"), img = document.createElementNS(SVG, "feImage"), dm = document.createElementNS(SVG, "feDisplacementMap");
+        f.id = "lens-" + n;
+        [["x", 0], ["y", 0], ["width", "100%"], ["height", "100%"], ["color-interpolation-filters", "sRGB"]].forEach(function (a) { f.setAttribute(a[0], a[1]); });
+        img.setAttribute("result", "map"); img.setAttribute("preserveAspectRatio", "none");
+        dm.setAttribute("in", "SourceGraphic"); dm.setAttribute("in2", "map");
+        dm.setAttribute("xChannelSelector", "R"); dm.setAttribute("yChannelSelector", "G");
+        f.appendChild(img); f.appendChild(dm); lenses.appendChild(f);
+        var size = "";
+        // A new map for every new size, drawn before the frame paints, so the
+        // lens never runs on a map stretched to the wrong shape.
+        new ResizeObserver(function () {
+          var w = s.offsetWidth, h = s.offsetHeight;
+          if (!w || !h || size === w + "x" + h) return;
+          size = w + "x" + h;
+          var map = lensMap(w, h, Math.min(16, h / 3));
+          img.setAttribute("href", map.href); img.setAttribute("width", w); img.setAttribute("height", h);
+          dm.setAttribute("scale", map.scale);
+          s.style.backdropFilter = "blur(var(--g-blur)) url(#lens-" + n + ") saturate(170%)";
+        }).observe(s);
+      });
+    }
+
+    // ---------- Glass lights up where you touch it ----------
+    // On press, not on release: the light comes from the point of contact,
+    // and follows a mouse that's merely hovering.
+    document.querySelectorAll(".press, .tabs a, .stepper button").forEach(function (el) {
+      el.classList.add("press");
+      function at(e) {
+        var r = el.getBoundingClientRect();
+        el.style.setProperty("--px", e.clientX - r.left + "px");
+        el.style.setProperty("--py", e.clientY - r.top + "px");
+      }
+      el.addEventListener("pointerdown", function (e) { at(e); el.classList.add("pressed"); });
+      el.addEventListener("pointermove", function (e) { if (e.pointerType === "mouse") at(e); });
+      ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) {
+        el.addEventListener(t, function () { el.classList.remove("pressed"); });
+      });
     });
 
     // ---------- How it works: the stepper ----------
@@ -976,6 +1278,7 @@
     ];
     var paperClass = ["", "keys", "keys rewrite", "keys saved"];
     var stepBtns = document.querySelectorAll(".stepper button");
+    var stepDrop = new Droplet(document.querySelector(".stepper"));
     var stepTitle = document.querySelector(".step-title");
     var stepCopy = document.querySelector(".step-copy");
     var howPaper = document.getElementById("how-paper");
@@ -988,6 +1291,7 @@
         b.setAttribute("aria-selected", String(n === i));
         b.classList.toggle("done", n < i);
       });
+      stepDrop.to(stepBtns[i], true);
       stepTitle.querySelectorAll("span").forEach(function (el, n) { el.classList.toggle("on", n === i); el.setAttribute("aria-hidden", String(n !== i)); });
       stepCopy.querySelectorAll("span").forEach(function (el, n) { el.classList.toggle("on", n === i); el.setAttribute("aria-hidden", String(n !== i)); });
       howPaper.className = "paper " + paperClass[i];
