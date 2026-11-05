@@ -12,6 +12,9 @@ here can touch the .env belonging to a real install.
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -123,3 +126,31 @@ def test_changing_the_key_drops_the_cached_client(accept, monkeypatch) -> None:
     monkeypatch.setattr(ai_client, "_last_good", "gemini-3.5-flash")
     client.put("/api/settings/key", json={"key": GOOD})
     assert ai_client._last_good is None
+
+
+def test_a_key_saved_to_dossier_env_file_is_there_after_a_restart(tmp_path) -> None:
+    """Settings writes the key where ``DOSSIER_ENV_FILE`` points, and the
+    container points it into the data volume -- so startup has to read it from
+    there too, or the key lasts exactly until the next launch.
+
+    A fresh interpreter, because the file is read once, when the app imports.
+    """
+    env_file = tmp_path / ".env"
+    env_file.write_text(f"GEMINI_API_KEY={GOOD}\n", encoding="utf-8")
+    env = {k: v for k, v in os.environ.items() if k not in ai_client.API_KEY_VARS}
+    env["DOSSIER_ENV_FILE"] = str(env_file)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import os, dossier.api.app; print(os.environ.get('GEMINI_API_KEY', ''))",
+        ],
+        cwd=Path(__file__).resolve().parents[1],
+        env=env,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip().splitlines()[-1:] == [GOOD]
