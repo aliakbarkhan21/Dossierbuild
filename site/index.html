@@ -270,7 +270,7 @@
     .btn-tone:hover { background: var(--g-cta-hover); color: var(--g-cta-ink); }
     .tabs-mobile { display: none; }
     @media (max-width: 1060px) { .bar-right .gh { display: none; } }
-    @media (max-width: 920px) {
+    @media (max-width: 1000px) {
       /* 12 above, the bar, 8 between, the tab strip, 8 below. */
       :root { --nav-h: 124px; }
       .bar { height: 52px; padding: 0 6px 0 10px; border-radius: 26px; }
@@ -540,6 +540,41 @@
     }
     @media (min-width: 720px) and (max-width: 1039px) { .templates { margin: 0 -40px; padding: 0 40px 8px; scroll-padding: 0 40px; } }
 
+    /* ---------- Install ---------- */
+    /* Every "get it" button lands here rather than on GitHub: a job seeker who
+       is not a developer can follow three numbered steps, and a repository
+       page loses them. The commands are the README's, word for word. */
+    .install { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); max-width: 1080px; margin: 0 auto; }
+    @media (min-width: 900px) { .install { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: start; } }
+    .way { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; min-width: 0; }
+    .way-main { border: 1.5px solid var(--accent); box-shadow: 0 0 0 5px var(--accent-soft); }
+    .way-side { display: grid; gap: 16px; min-width: 0; }
+    .way-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+    .way-top h2 { font-size: 22px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.2; }
+    .way p { color: var(--muted); font-size: 15.5px; }
+    .way .fine { font-size: 14.5px; margin-top: 16px; }
+    .way p code, .install-note code { font: 0.9em ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; background: var(--accent-soft); color: var(--text); padding: 1px 6px; border-radius: 6px; }
+    .steps-list { list-style: none; margin: 0; padding: 0; counter-reset: step; display: grid; gap: 18px; }
+    .steps-list li { counter-increment: step; display: grid; grid-template-columns: 28px minmax(0, 1fr); column-gap: 12px; font-size: 16px; }
+    .steps-list li::before { content: counter(step); grid-row: span 2; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+      font: 600 13px/1 var(--font); background: var(--accent-soft); color: var(--accent-strong); }
+    .steps-list .cmd { grid-column: 2; }
+    /* The copy button sits in a bar of its own above the command, so the
+       command gets the block's full width and wraps only where it must. */
+    .cmd { margin-top: 12px; background: #0d1a15; border-radius: 14px; }
+    .cmd-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 6px 0 16px; }
+    .cmd-bar span { font: 500 11px/1 ui-monospace, "SFMono-Regular", Menlo, monospace; letter-spacing: 0.1em; text-transform: uppercase; color: #8fa39a; }
+    .cmd code { display: block; padding: 6px 16px 14px; font: 13.5px/1.65 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; color: #dfe9e4; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .cmd .copy { font: 500 13px/1 var(--font); padding: 8px 13px; border: 0; border-radius: 999px; cursor: pointer; color: var(--g-ink); }
+    @media (max-width: 600px) {
+      .way { padding: 20px; }
+      .steps-list .cmd { grid-column: 1 / -1; }
+      .cmd code { font-size: 12.5px; padding: 6px 14px 12px; }
+    }
+    .more { margin-top: 14px; }
+    .more summary { cursor: pointer; color: var(--accent); font-size: 15px; width: max-content; max-width: 100%; }
+    .install-note { text-align: center; color: var(--muted); margin-top: 28px; font-size: 15px; }
+
     /* ---------- Roadmap ---------- */
     .roadmap { display: grid; gap: 16px; grid-template-columns: 1fr; max-width: 980px; margin: 0 auto; }
     @media (min-width: 820px) { .roadmap { grid-template-columns: 1fr 1fr; } }
@@ -653,13 +688,14 @@
         <a href="#home" data-tab="home">Home</a>
         <a href="#how" data-tab="how">How it works</a>
         <a href="#features" data-tab="features">Features</a>
+        <a href="#install" data-tab="install">Install</a>
         <a href="#roadmap" data-tab="roadmap">Roadmap</a>
         <a href="#faq" data-tab="faq">FAQ</a>
         <a href="#about" data-tab="about">About</a>
       </nav>
       <div class="bar-right">
         <a class="gh" href="https://github.com/aliakbarkhan21/Dossierbuild">GitHub</a>
-        <a class="btn btn-tone press" href="https://github.com/aliakbarkhan21/Dossierbuild">Get it free</a>
+        <a class="btn btn-tone press" href="#install" data-tab="install">Get it free</a>
       </div>
     </div>
     <nav class="tabs-mobile glass" data-tone="dark" aria-label="Sections">
@@ -667,6 +703,7 @@
         <a href="#home" data-tab="home">Home</a>
         <a href="#how" data-tab="how">How it works</a>
         <a href="#features" data-tab="features">Features</a>
+        <a href="#install" data-tab="install">Install</a>
         <a href="#roadmap" data-tab="roadmap">Roadmap</a>
         <a href="#faq" data-tab="faq">FAQ</a>
         <a href="#about" data-tab="about">About</a>
@@ -686,7 +723,7 @@
           you don't have, it says so.
         </p>
         <div class="cta">
-          <a class="btn btn-light" href="https://github.com/aliakbarkhan21/Dossierbuild">Get Dossierbuild free</a>
+          <a class="btn btn-light" href="#install" data-tab="install">Get Dossierbuild free</a>
           <a class="btn btn-glass press" href="#how" data-tab="how">See how it works</a>
         </div>
         <ul class="proof">
@@ -939,6 +976,56 @@
       </div>
     </section>
 
+    <!-- ============================== INSTALL ============================== -->
+    <section class="panel" id="tab-install" data-panel="install" aria-label="Install">
+      <div class="wrap">
+        <div class="page-head">
+          <span class="eyebrow">Install</span>
+          <h1>One command, <span class="serif-i">then it opens in your browser.</span></h1>
+          <p>Dossierbuild runs on your own computer, with no account to make. Docker is the easy way in: it carries everything the app needs.</p>
+        </div>
+        <div class="install">
+          <article class="way way-main">
+            <div class="way-top"><h2>With Docker</h2><span class="badge good">Easiest</span></div>
+            <ol class="steps-list">
+              <li><span>Install <a href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a>, free for personal use on Windows, macOS and Linux, and start it.</span></li>
+              <li><span>Paste this into a terminal (on Windows, PowerShell) and press Enter:</span>
+                <div class="cmd" data-backdrop="dark"><div class="cmd-bar"><span>Terminal</span><button type="button" class="copy glass press" data-tone="dark" aria-live="polite">Copy</button></div><code>docker run -d --name dossierbuild -p 127.0.0.1:8000:8000 -v dossierbuild:/data ghcr.io/aliakbarkhan21/dossierbuild</code></div></li>
+              <li><span>Open <a href="http://localhost:8000">localhost:8000</a>. The first run offers a worked example to start from.</span></li>
+            </ol>
+            <p class="fine">Your profile, saved versions and any key you add live in a Docker volume called <code>dossierbuild</code>, so upgrading never touches them. Only your own computer can reach the app: it listens on 127.0.0.1 alone, because there is no login.</p>
+            <details class="more">
+              <summary>Upgrading to a new version</summary>
+              <div class="cmd" data-backdrop="dark"><div class="cmd-bar"><span>Terminal</span><button type="button" class="copy glass press" data-tone="dark" aria-live="polite">Copy</button></div><code>docker pull ghcr.io/aliakbarkhan21/dossierbuild
+docker rm -f dossierbuild
+docker run -d --name dossierbuild -p 127.0.0.1:8000:8000 -v dossierbuild:/data ghcr.io/aliakbarkhan21/dossierbuild</code></div>
+            </details>
+          </article>
+          <div class="way-side">
+            <article class="way">
+              <div class="way-top"><h2>From source</h2><span class="badge none">For developers</span></div>
+              <p>Tested on Python 3.12. Node 20 is needed once, to build the interface.</p>
+              <div class="cmd" data-backdrop="dark"><div class="cmd-bar"><span>Terminal</span><button type="button" class="copy glass press" data-tone="dark" aria-live="polite">Copy</button></div><code>git clone https://github.com/aliakbarkhan21/Dossierbuild.git
+cd Dossierbuild
+pip install -r requirements.txt
+python -m playwright install chromium
+cd web
+npm install
+npm run build
+cd ..
+python -m uvicorn dossier.api:app --port 8000</code></div>
+              <p class="fine">Then open <a href="http://localhost:8000">localhost:8000</a>. On Windows, once that is set up, <code>scripts/launch.vbs</code> starts the app with no console window and opens your browser; a desktop shortcut pointed at it is the whole launcher. The app stops on its own a few seconds after you close its last tab.</p>
+            </article>
+            <article class="way">
+              <div class="way-top"><h2>An AI key, if you want one</h2><span class="badge none">Optional</span></div>
+              <p>A key adds three things: reading an imported resume, rewriting bullets for a posting, and drafting a line on request. Everything else works without one. Paste it on the Settings screen. A Gemini key is free at <a href="https://aistudio.google.com/apikey">aistudio.google.com</a>; a Claude key comes from <a href="https://platform.claude.com">platform.claude.com</a>.</p>
+            </article>
+          </div>
+        </div>
+        <p class="install-note">The same steps, and the code, are in the <a href="https://github.com/aliakbarkhan21/Dossierbuild#running-it">README on GitHub</a>.</p>
+      </div>
+    </section>
+
     <!-- ============================== ROADMAP ============================== -->
     <section class="panel" id="tab-roadmap" data-panel="roadmap" aria-label="Roadmap">
       <div class="wrap">
@@ -1042,7 +1129,7 @@
       <h2>Your next resume, <span class="serif-i">without the fiction.</span></h2>
       <p>Free, open source, and yours to run. Start with one profile and aim it at every job you want.</p>
       <div class="cta">
-        <a class="btn btn-light" href="https://github.com/aliakbarkhan21/Dossierbuild">Get Dossierbuild free</a>
+        <a class="btn btn-light" href="#install" data-tab="install">Get Dossierbuild free</a>
         <a class="btn btn-glass press" href="mailto:aliakbar@dossierbuild.lol">Talk to the founder</a>
       </div>
     </div>
@@ -1059,6 +1146,7 @@
         <ul>
           <li><a href="#how" data-tab="how">How it works</a></li>
           <li><a href="#features" data-tab="features">Features</a></li>
+          <li><a href="#install" data-tab="install">Install</a></li>
           <li><a href="#roadmap" data-tab="roadmap">Roadmap</a></li>
           <li><a href="#faq" data-tab="faq">FAQ</a></li>
         </ul>
@@ -1091,7 +1179,7 @@
     // and a shared link both land on the right one. Older links into the long
     // page still resolve to the tab that now holds what they pointed at.
     var ALIASES = { "": "home", home: "home", top: "home", how: "how", "demo-video": "how",
-      features: "features", roadmap: "roadmap", faq: "faq", about: "about", founder: "about" };
+      features: "features", install: "install", "get-started": "install", roadmap: "roadmap", faq: "faq", about: "about", founder: "about" };
     var panels = document.querySelectorAll("[data-panel]");
     var links = document.querySelectorAll("[data-tab]");
 
@@ -1233,7 +1321,7 @@
     // top, or tabbing into the header brings it straight back. The thresholds
     // are hysteresis, so a thumb resting on the screen doesn't flicker it.
     var header = document.querySelector("header.site");
-    var phone = window.matchMedia("(max-width: 920px)");
+    var phone = window.matchMedia("(max-width: 1000px)");
     var tucked = false, anchor = 0;
     function tuck(on) { if (on !== tucked) { tucked = on; header.classList.toggle("compact", on); } }
     function onScroll() {
@@ -1320,6 +1408,19 @@
       el.addEventListener("pointermove", function (e) { if (e.pointerType === "mouse") at(e); });
       ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) {
         el.addEventListener(t, function () { el.classList.remove("pressed"); });
+      });
+    });
+
+    // ---------- Copy buttons on the install commands ----------
+    // Copies exactly what is shown. Where the clipboard is out of reach the
+    // command is selected instead, so a keyboard copy is one keypress away.
+    document.querySelectorAll(".cmd .copy").forEach(function (b) {
+      var code = b.closest(".cmd").querySelector("code"), reset = 0;
+      function say(text) { b.textContent = text; clearTimeout(reset); reset = setTimeout(function () { b.textContent = "Copy"; }, 1800); }
+      function select() { var r = document.createRange(), s = window.getSelection(); r.selectNodeContents(code); s.removeAllRanges(); s.addRange(r); say("Selected"); }
+      b.addEventListener("click", function () {
+        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(code.textContent).then(function () { say("Copied"); }, select);
+        else select();
       });
     });
 
