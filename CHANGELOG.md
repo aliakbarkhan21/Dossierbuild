@@ -6,6 +6,54 @@ wrong for a while, it says that too.
 
 ---
 
+## 2.4.0 — 2026-11-05
+
+### Added
+
+- **Claude, beside Gemini.** Every AI step now calls one `generate` behind
+  `ai/provider.py`, and Settings chooses who answers: Gemini by default, or
+  Claude with a key of its own, checked before it is stored exactly as the
+  Gemini key is. Nothing a caller does with the answer changed, so the
+  fabrication audit runs on Claude's rewrites as it does on Gemini's. Claude
+  gets no fallback ladder, because Anthropic's SDK already retries rate limits
+  and overloads, and no `temperature`, because the current models refuse
+  sampling parameters; depth comes from effort instead. The provider is tested
+  against a fake client, so the suite still needs no key and no network.
+- **An image to pull, instead of a repository to build.**
+  `ghcr.io/aliakbarkhan21/dossierbuild`, for amd64 and arm64, published from
+  main as `latest` and from each version tag under its own number. Running
+  Dossierbuild in Docker used to start with a clone and a build; now it is one
+  `docker run`. The frontend stage builds on the runner's own architecture,
+  since its output is static files that any platform serves.
+- **A website.** dossierbuild.lol, published from `site/` to GitHub Pages: what
+  the app promises and how the code keeps the promise, a demo of the rewrite
+  check, a roadmap and an FAQ.
+
+### Changed
+
+- **The site says the app checks the AI's work.** It used to say the app
+  "never invents a fact", which promised more than the audit does. The audit
+  flags numbers, tools and employers that a rewrite adds and the profile does
+  not have, and it is a diff, not a fact-checker. The headline, the meta tags,
+  the footer and the link preview now make the narrower claim.
+- **Nothing says Gemini where either provider answers.** The sidebar, Import,
+  the cover letter and Tailor say "AI key" and "the model" now.
+- **The README caught up.** It still said Version 2.0, listed "Gemini only" as
+  a limitation, offered editing on the page as something to build next, and
+  called Review the Health screen. The screenshots in the README and on the
+  site are retaken from this version; the old ones still showed Health check.
+
+### Fixed
+
+- **A key saved to `DOSSIER_ENV_FILE` is still there after a restart.**
+  Settings wrote the key wherever that variable pointed, but startup only ever
+  read the project's own `.env`, so a copy of the app given its own key file
+  lost the key at the next launch. The container image keeps its key file in
+  the data volume, which is what made this matter: without the fix, pulling a
+  newer image would have forgotten the key.
+
+---
+
 ## 2.3.1 — 2026-09-16
 
 ### Changed
