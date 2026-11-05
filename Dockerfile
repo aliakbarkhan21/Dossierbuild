@@ -11,7 +11,10 @@
 # doing it in the same layer as the Python install keeps the two versions from
 # drifting apart on a rebuild.
 
-FROM node:22-slim AS web
+# The build stage runs on the builder's own architecture whatever the target:
+# its output is static files that any platform serves, so building it again
+# under emulation for each architecture would buy nothing but time.
+FROM --platform=$BUILDPLATFORM node:22-slim AS web
 
 WORKDIR /web
 
@@ -30,6 +33,10 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     # Everything the user owns lives here, mounted as a volume below.
     DOSSIER_DATA_DIR=/data \
+    # A key typed into Settings is written to this file. Left at its default
+    # it would be /app/.env, inside the container, and pulling a newer image
+    # would quietly forget it; in the volume it outlives the container.
+    DOSSIER_ENV_FILE=/data/.env \
     # The built frontend, copied from the stage above rather than built here.
     DOSSIER_WEB_DIR=/app/web/dist \
     # Playwright's browsers default to a per-user cache directory; pinning it
