@@ -149,19 +149,31 @@
       transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
     }
     .btn:hover { transform: translateY(-1px); }
-    .btn-light { background: #fff; color: #0e1c17; }
-    .btn-light:hover { background: #eef6f1; color: #0e1c17; }
-    .btn-line { border-color: var(--line-strong); color: var(--text); background: transparent; }
-    .btn-line:hover { border-color: var(--text); color: var(--text); }
+    /* Every button is glass. A primary one is "prominent" glass, the way
+       Apple tints its main actions: heavy enough a tint that its label reads
+       over anything, still clear enough to show the page through it. */
+    .btn-light, .btn-line, .btn-tone {
+      --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.25) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.55));
+      -webkit-backdrop-filter: blur(2px) saturate(170%); backdrop-filter: blur(2px) saturate(170%);
+    }
+    .btn-light { background: rgb(255 255 255 / 0.8); color: #0e1c17; box-shadow: 0 6px 18px rgb(4 16 11 / 0.14), inset 0 0 12px rgb(255 255 255 / 0.5); }
+    .btn-light:hover { background: rgb(255 255 255 / 0.9); color: #0e1c17; }
+    .btn-line { color: var(--text); background: color-mix(in srgb, var(--surface) 35%, transparent);
+      box-shadow: inset 0 0 0 1px var(--line-strong), 0 4px 14px rgb(14 28 23 / 0.08), inset 0 0 12px rgb(255 255 255 / 0.25); }
+    .btn-line:hover { color: var(--text); box-shadow: inset 0 0 0 1px var(--text), 0 4px 14px rgb(14 28 23 / 0.08), inset 0 0 12px rgb(255 255 255 / 0.25); }
     /* A glass button only ever sits on the green cards, so it is tinted dark
        rather than white: white labels on it measure 4.5:1 or better. */
     .btn-glass {
       --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.12) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.32));
-      color: #fff; background: rgb(8 26 19 / 0.28);
+      color: #fff; background: rgb(8 26 19 / 0.4);
       -webkit-backdrop-filter: blur(3px) saturate(160%); backdrop-filter: blur(3px) saturate(160%);
       box-shadow: 0 6px 18px rgb(4 16 11 / 0.14), inset 0 0 12px rgb(255 255 255 / 0.08);
     }
-    .btn-glass:hover { color: #fff; background: rgb(8 26 19 / 0.22); }
+    .btn-glass:hover { color: #fff; background: rgb(8 26 19 / 0.34); }
+    /* The closing card lightens toward its foot, where the phone layout puts
+       this button, so it needs more tint there to keep its label at 4.5:1. */
+    .closer .btn-glass { background: rgb(8 26 19 / 0.52); }
+    .closer .btn-glass:hover { background: rgb(8 26 19 / 0.46); }
 
     /* ---------- Liquid glass ----------
      * The controls float on a layer of glass over the page instead of sitting
@@ -228,7 +240,7 @@
     }
     /* The rim: light catching the bevel, brightest at the top left and
        answered faintly at the bottom right. */
-    .glass::after, .btn-glass::after {
+    .glass::after, .btn-glass::after, .btn-light::after, .btn-line::after, .btn-tone::after {
       content: ""; position: absolute; inset: 0; z-index: 2; border-radius: inherit; padding: 1px; pointer-events: none;
       background: var(--g-rim);
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -296,8 +308,9 @@
     .bar-right .gh { color: var(--g-ink-2); text-decoration: none; font-size: 15px; transition: color 0.3s ease; }
     .bar-right .gh:hover { color: var(--g-ink); }
     .bar-right .btn { padding: 10px 17px; font-size: 15px; }
-    .btn-tone { background: var(--g-cta); color: var(--g-cta-ink); }
-    .btn-tone:hover { background: var(--g-cta-hover); color: var(--g-cta-ink); }
+    /* The bar's own button: prominent glass in whichever tone the bar is in. */
+    .btn-tone { background: color-mix(in srgb, var(--g-cta) 84%, transparent); color: var(--g-cta-ink); box-shadow: 0 4px 14px rgb(0 0 0 / 0.14); }
+    .btn-tone:hover { background: color-mix(in srgb, var(--g-cta-hover) 90%, transparent); color: var(--g-cta-ink); }
     .tabs-mobile { display: none; }
     @media (max-width: 1060px) { .bar-right .gh { display: none; } }
     @media (max-width: 1000px) {
@@ -728,10 +741,13 @@
     /* Asked for less transparency, the glass turns to frosted solid; asked for
        more contrast, it also gets a drawn edge. Neither loses the shape. */
     @media (prefers-reduced-transparency: reduce) {
-      .glass, .btn-glass { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+      .glass, .btn { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
       .glass { --g-tint: #f7f6f2; }
       .glass[data-tone="dark"] { --g-tint: #16211c; }
       .btn-glass { background: #1c4a3b; }
+      .btn-light { background: #fff; }
+      .btn-tone { background: var(--g-cta); }
+      .btn-line { background: var(--surface); }
     }
     @media (prefers-reduced-transparency: reduce) and (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) .glass:not([data-tone="light"]) { --g-tint: #16211c; }
@@ -740,10 +756,13 @@
       :root[data-theme="dark"] .glass:not([data-tone="light"]) { --g-tint: #16211c; }
     }
     @media (prefers-contrast: more) {
-      .glass, .btn-glass { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+      .glass, .btn { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
       .glass { --g-tint: #fff; --g-ink-2: #0e1c17; box-shadow: 0 0 0 1.5px #0e1c17; }
       .glass[data-tone="dark"] { --g-tint: #0b1410; --g-ink-2: #fff; box-shadow: 0 0 0 1.5px #fff; }
       .btn-glass { background: #0b1410; box-shadow: 0 0 0 1.5px #fff; }
+      .btn-light { background: #fff; box-shadow: 0 0 0 1.5px #0e1c17; }
+      .btn-tone { background: var(--g-cta); }
+      .btn-line { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--text); }
     }
     @media (prefers-contrast: more) and (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) .glass:not([data-tone="light"]) { --g-tint: #0b1410; --g-ink-2: #fff; box-shadow: 0 0 0 1.5px #fff; }
@@ -1448,11 +1467,12 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
 
     // ---------- Refraction, where the browser can draw it ----------
     // Only Chromium renders an SVG filter inside backdrop-filter, so only there
-    // does the bar bend what passes beneath it toward its rim, like the edge
-    // of a lens. Safari accepts the same declaration and then draws nothing --
-    // an unblurred bar -- and Firefox doesn't support it, so a feature query
-    // can't tell them apart: the engine is asked by name instead. Everywhere
-    // else the bar keeps the frosted glass the CSS already gives it.
+    // does the glass -- every bar and button -- bend what passes beneath it
+    // toward its rim, like the edge of a lens. Safari accepts the same
+    // declaration and then draws nothing -- no blur at all -- and Firefox
+    // doesn't support it, so a feature query can't tell them apart: the engine
+    // is asked by name instead. Everywhere else the glass stays clear, without
+    // the bend.
     var lensOk = !!(navigator.userAgentData && navigator.userAgentData.brands.some(function (b) { return b.brand === "Chromium"; }))
       && !window.matchMedia("(prefers-reduced-transparency: reduce), (prefers-contrast: more)").matches
       && "ResizeObserver" in window;
@@ -1483,7 +1503,7 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
       lenses.setAttribute("aria-hidden", "true");
       lenses.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
       document.body.appendChild(lenses);
-      document.querySelectorAll("header.site .glass").forEach(function (s, n) {
+      document.querySelectorAll(".glass, .btn").forEach(function (s, n) {
         var f = document.createElementNS(SVG, "filter"), img = document.createElementNS(SVG, "feImage"), dm = document.createElementNS(SVG, "feDisplacementMap");
         f.id = "lens-" + n;
         [["x", 0], ["y", 0], ["width", "100%"], ["height", "100%"], ["color-interpolation-filters", "sRGB"]].forEach(function (a) { f.setAttribute(a[0], a[1]); });
@@ -1501,7 +1521,7 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
           var map = lensMap(w, h, Math.min(16, h * 0.26));
           img.setAttribute("href", map.href); img.setAttribute("width", w); img.setAttribute("height", h);
           dm.setAttribute("scale", map.scale);
-          s.style.backdropFilter = "blur(var(--g-blur)) url(#lens-" + n + ") saturate(170%)";
+          s.style.backdropFilter = "blur(var(--g-blur, 2px)) url(#lens-" + n + ") saturate(170%)";
         }).observe(s);
       });
     }
