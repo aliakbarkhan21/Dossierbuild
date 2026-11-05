@@ -12,10 +12,9 @@ and the two things that would be most tempting to hand a model — reading a job
 posting, and scoring your writing — are done by rules instead, so they work
 with no API key at all.
 
-**Version 2.0** — edit the resume on the resume itself, sections the app has
-no name for, bold/italic/underline, per-CV design, ten templates, and a Review
-screen that reads the document rather than one line at a time. See
-[CHANGELOG.md](CHANGELOG.md) for what changed and why.
+You edit the resume on the resume itself, in any of ten templates, and the AI
+steps run on Gemini or Claude, whichever you choose, through the same check.
+What changed in each release, and why, is in [CHANGELOG.md](CHANGELOG.md).
 
 > **This repository contains no one's resume.** `data/` and `.env` are ignored
 > by git — deny-by-default, not a list of filenames — so a clone starts empty
@@ -23,7 +22,15 @@ screen that reads the document rather than one line at a time. See
 > Your profile, portrait, saved versions, API key and database never leave
 > your own machine.
 
-![The Resume screen: ten templates, and a preview that is the printed document](docs/resume.png)
+![A 26-second tour: the Resume screen, a posting pasted into Tailor and read by rules, the entries that answer it, and Review reading the whole document](docs/demo.gif)
+
+**Try it** with Docker, then open <http://localhost:8000>:
+
+```bash
+docker run -d --name dossierbuild -p 127.0.0.1:8000:8000 -v dossierbuild:/data ghcr.io/aliakbarkhan21/dossierbuild
+```
+
+Other ways to run it, and how to add an AI key, are under [Running it](#running-it).
 
 ---
 
@@ -70,7 +77,7 @@ sheet inside Applications rather than a screen of its own.)
 | | |
 | --- | --- |
 | **Profile** | Every role, project, degree, skill, certification, honour and achievement. Drag or arrow-key to reorder entries, sections and bullets. Autosaves, with a timestamped backup on every write. |
-| **Resume** | Pick a look, watch the page, print it. The preview is the printed document, not an approximation of it. |
+| **Resume** | Pick a look, watch the page, print it. Type straight onto the page to edit it. The preview is the printed document, not an approximation of it. |
 | **Tailor** | Paste a posting. It is read by rules — no model — into weighted requirements, then scored against your profile. Only the rewrite step uses a model, and every rewrite is diffed against its source. |
 | **Applications** | Every posting you saved, what stage it is at, and — across all of them — which requirements you keep failing to evidence. |
 | **Import** | LinkedIn's data export, a PDF, a DOCX, or pasted text, all landing on the same review screen. |
@@ -80,11 +87,13 @@ sheet inside Applications rather than a screen of its own.)
 
 **Design, curated rather than open-ended.** Ten templates × four body
 layouts, six accent colours, nine type pairings, six paper sizes, three margin
-widths, three line spacings, five type sizes, two date formats, and per-resume
-section order and visibility. Six named looks apply four coherent
+widths, three line spacings, a type size from 88% to 115%, two date formats,
+and per-resume section order and visibility. Six named looks apply four coherent
 combinations each — twenty-four designs in two clicks. There is no colour
 picker, because the difference between a good resume and a bad one was never
 the particular blue.
+
+![The Resume screen: ten templates, and a preview that is the printed document](docs/resume.png)
 
 **More than one CV, when one genuinely will not do.** One master profile is
 still the default, and focus tags are still the right answer to "the same
@@ -122,12 +131,38 @@ without a second profile to keep in step.
 
 **Nothing to type on the first run.** An empty profile offers three ways out —
 import one, load a worked sample, or start clean. The sample is written to the
-standard the app teaches and scores 85% on the Health screen, with two
+standard the app teaches and scores 85% on the Review screen, with two
 deliberately weak bullets so the check has something real to catch.
 
 ---
 
 ## Running it
+
+### With Docker
+
+Nothing else to install: the image carries Python, Chromium and the built
+interface, for x86 and for 64-bit ARM (Apple Silicon, or a Raspberry Pi on a
+64-bit OS).
+
+```bash
+docker run -d --name dossierbuild -p 127.0.0.1:8000:8000 -v dossierbuild:/data ghcr.io/aliakbarkhan21/dossierbuild
+```
+
+Then open <http://localhost:8000>. The profile, the database and any key you
+save in Settings live in the `dossierbuild` volume rather than the container,
+so upgrading is a pull and a fresh container:
+
+```bash
+docker pull ghcr.io/aliakbarkhan21/dossierbuild
+docker rm -f dossierbuild
+docker run -d --name dossierbuild -p 127.0.0.1:8000:8000 -v dossierbuild:/data ghcr.io/aliakbarkhan21/dossierbuild
+```
+
+The port is bound to `127.0.0.1` because there is no login: anyone who can
+reach it can read the profile. `latest` follows `main`, and each version tag
+is also published as its own image tag (`2.4.0`, `2.4`) for pinning.
+
+### From source
 
 ```bash
 pip install -r requirements.txt
@@ -151,37 +186,45 @@ While working on the frontend, run Vite instead for hot reload:
 cd web && npm run dev      # 5173, proxying /api to 8000
 ```
 
-A Gemini key is optional and buys three things: parsing an imported resume,
+### An AI key, if you want one
+
+A key is optional and buys three things: parsing an imported resume,
 rewriting bullets for a posting, and drafting a single line on request.
 Everything else — the posting analysis, the coverage score, the writing
 standard, every template, the PDF — works without one.
 
+Gemini is the default and Claude is the alternative; every rewrite goes
+through the same check against your profile, whichever answers. Pick one and
+paste its key on the Settings screen, or set it in `.env`:
+
 ```bash
-cp .env.example .env      # then paste your key into it
+cp .env.example .env      # GEMINI_API_KEY, or DOSSIER_AI_PROVIDER=claude and ANTHROPIC_API_KEY
 ```
 
-Get a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+A Gemini key is free at [aistudio.google.com/apikey](https://aistudio.google.com/apikey);
+a Claude key comes from [platform.claude.com](https://platform.claude.com). In
+Docker, Settings is the easy route, or pass the same variables with `-e`.
 
-### In a container
+### Building the image yourself
 
 ```bash
 docker build -t dossierbuild .
-docker run -p 8000:8000 -v "$PWD/data:/data" -e GEMINI_API_KEY=... dossierbuild
+docker run -p 127.0.0.1:8000:8000 -v "$PWD/data:/data" dossierbuild
 ```
 
 ### Checks
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                            # 213 checks, about 90 seconds (real PDFs)
-cd web && npm test                # 25 checks on the undo stack and the API client
+pytest                            # 414 checks, about a minute (real PDFs)
+cd web && npm test                # 32 checks on the undo stack and the API client
 ```
 
 Or without pytest — each script runs on the app's own dependencies:
 
 ```bash
-python scripts/check_phase1.py    # schema, storage, id stability, migration   (20)
-python scripts/check_import.py    # LinkedIn export, extraction, merge         (21)
+python scripts/check_phase1.py    # schema, storage, id stability, migration   (22)
+python scripts/check_import.py    # LinkedIn export, extraction, merge         (22)
 python scripts/check_phase2.py    # design, templates, PDF and its text layer  (20)
 python scripts/check_db.py        # the schema, its constraints, its queries   (19)
 python scripts/check_tailor.py    # the posting reader and the audit           (29)
@@ -210,7 +253,9 @@ dossier/
     cvs.py           more than one CV in one data directory
   ingest/    PDF · DOCX · LinkedIn -> profile, plus the merge review. No AI.
   ai/        every call that leaves this machine for a model
-    client.py        the key, the model fallback ladder, the retry budget
+    provider.py      which provider answers, Gemini or Claude, behind one call
+    client.py        Gemini: the key, the model fallback ladder, the retry budget
+    claude.py        Claude: the key and the call, behind the same interface
     parse.py         resume text -> profile. Transcribes, never composes.
     tailor.py        profile + posting -> rewrites keyed by block id, each audited
     suggest.py       one drafted bullet or summary, from facts you supply
@@ -293,9 +338,9 @@ Privacy → Get a copy of your data**. Upload that ZIP. Parsing is
 deterministic, so nothing is guessed at.
 
 **Resume file.** PDF, DOCX or text. Extraction is exact; structuring the
-result uses Gemini, told to transcribe rather than rewrite. The extracted text
-is shown before parsing, so an extraction failure stays distinguishable from a
-parsing failure.
+result uses the model you chose, told to transcribe rather than rewrite. The
+extracted text is shown before parsing, so an extraction failure stays
+distinguishable from a parsing failure.
 
 **Paste text.** For when a PDF will not extract cleanly.
 
@@ -314,7 +359,8 @@ a claim that it does everything.
 - **No DOCX export.** PDF, self-contained HTML, and plain text.
 - **Single user, local only.** No auth, no multi-device sync. Your data lives
   in `data/` on your machine and is gitignored by default.
-- **Gemini only.** The model ladder in `ai/client.py` is Gemini-specific.
+- **Hosted models only.** The AI steps run on Gemini or Claude, so the text
+  you send them leaves your machine. Nothing runs them on a local model yet.
 - **The fabrication audit is a diff, not a fact-checker.** It catches numbers
   and named technologies a rewrite introduced. It cannot tell you that a claim
   already in your profile is untrue.
@@ -324,20 +370,16 @@ a claim that it does everything.
 ## What I would build next
 
 Not a promise, and not a list of things I ran out of time for — these are the
-four I would pick up first, and why.
+three I would pick up first, and why.
 
-- **Editing in the preview.** Rendered blocks already carry `data-block-id`,
-  which is what the Health screen's jump-to-bullet uses, so the mapping from a
-  node back to a fact already exists. The invariant that makes it hard is the
-  one worth keeping: the printed document must not change by a pixel.
 - **A snippet library.** The same three sentences get retyped across
   applications. They belong in a table, the way saved versions are.
 - **Bulk actions on bullets.** Multi-select, then delete, move to another
   entry, or improve as a batch. Today every bullet is handled one at a time.
-- **Beyond Gemini.** The ladder in `ai/client.py` is Gemini-specific, and the
-  three prompts behind it are not. An interface over the call would let this
-  run against a local model, which suits an app whose whole argument is that
-  your history stays on your machine.
+- **A local model.** `ai/provider.py` already puts every AI step behind one
+  call, which is how Claude arrived beside Gemini. A model running on your own
+  machine is one more provider behind it, and it suits an app whose whole
+  argument is that your history stays on your machine.
 
 ---
 
