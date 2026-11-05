@@ -510,6 +510,36 @@
     .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
     .tags span { font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--deep-line); color: var(--deep-text); background: rgb(255 255 255 / 0.04); }
 
+    /* ---------- Features: the templates, in full ----------
+     * Real renders, not mock-ups: page one of the worked example in each
+     * template, the way the app draws it. The five ATS-safe templates fill the
+     * first row and the five two-column ones the second; narrower screens get
+     * a strip you swipe instead of pages too small to read. */
+    .gallery { max-width: 1100px; margin: 56px auto 0; }
+    .gallery-head { display: grid; gap: 10px; margin-bottom: 28px; }
+    .gallery-head h2 { font-size: clamp(30px, 4.2vw, 44px); }
+    .gallery-head p { color: var(--deep-muted); font-size: 16px; max-width: 48em; }
+    .gallery .n { font: 500 11px/1 ui-monospace, Menlo, monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--deep-muted); }
+    .templates { list-style: none; margin: 0; padding: 0; display: grid; gap: 28px 16px; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .templates li { min-width: 0; }
+    .templates a { display: block; border-radius: 4px; overflow: hidden; background: #fff;
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 14px 34px rgb(0 0 0 / 0.38); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .templates a:hover { transform: translateY(-3px); box-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 20px 44px rgb(0 0 0 / 0.45); }
+    .templates img { width: 100%; height: auto; }
+    .templates b { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; font-weight: 500; font-size: 16px; letter-spacing: -0.01em; }
+    .templates b .badge { font-size: 11px; padding: 2px 7px; }
+    .templates li > span { display: block; margin-top: 4px; color: var(--deep-muted); font-size: 13.5px; line-height: 1.45; }
+    @media (max-width: 1039px) {
+      .templates {
+        grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: clamp(140px, 37vw, 240px);
+        overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+        margin: 0 -20px; padding: 0 20px 8px; scroll-padding: 0 20px;
+      }
+      .templates::-webkit-scrollbar { display: none; }
+      .templates li { scroll-snap-align: start; }
+    }
+    @media (min-width: 720px) and (max-width: 1039px) { .templates { margin: 0 -40px; padding: 0 40px 8px; scroll-padding: 0 40px; } }
+
     /* ---------- Roadmap ---------- */
     .roadmap { display: grid; gap: 16px; grid-template-columns: 1fr; max-width: 980px; margin: 0 auto; }
     @media (min-width: 820px) { .roadmap { grid-template-columns: 1fr 1fr; } }
@@ -885,6 +915,26 @@
               <div class="tags"><span>Runs locally</span><span>No account</span><span>Open source, MIT</span></div>
             </div>
           </div>
+
+          <section class="gallery" aria-labelledby="templates-title">
+            <div class="gallery-head">
+              <span class="n">04 · Templates, in full</span>
+              <h2 id="templates-title">Ten templates. <span class="serif-i">One profile.</span></h2>
+              <p>Page one of each, rendered by the app itself from the worked example, each in one of its built-in looks. ATS-safe templates keep to one column, so an application portal reads them in the order they were written; a two-column page is best sent straight to a person.</p>
+            </div>
+            <ul class="templates">
+              <li><a href="img/templates/classic-1200.webp" data-backdrop="light"><img src="img/templates/classic-480.webp" width="480" height="679" alt="Page one of the worked example in the Classic template" loading="lazy" decoding="async" /></a><b>Classic <span class="badge good">ATS-safe</span></b><span>Centred header, ruled section headings, serif throughout.</span></li>
+              <li><a href="img/templates/minimal-1200.webp" data-backdrop="light"><img src="img/templates/minimal-480.webp" width="480" height="679" alt="Page one of the worked example in the Minimalist template" loading="lazy" decoding="async" /></a><b>Minimalist <span class="badge good">ATS-safe</span></b><span>Dates in a left gutter, no rules, generous air.</span></li>
+              <li><a href="img/templates/compact-1200.webp" data-backdrop="light"><img src="img/templates/compact-480.webp" width="480" height="679" alt="Page one of the worked example in the Compact template" loading="lazy" decoding="async" /></a><b>Compact <span class="badge good">ATS-safe</span></b><span>Tight leading and paired skill columns, for fitting a lot on one page.</span></li>
+              <li><a href="img/templates/executive-1200.webp" data-backdrop="light"><img src="img/templates/executive-480.webp" width="480" height="679" alt="Page one of the worked example in the Executive template" loading="lazy" decoding="async" /></a><b>Executive <span class="badge good">ATS-safe</span></b><span>Name set large in the accent, ruled headings, skills in a grid.</span></li>
+              <li><a href="img/templates/gazette-1200.webp" data-backdrop="light"><img src="img/templates/gazette-480.webp" width="480" height="679" alt="Page one of the worked example in the Gazette template" loading="lazy" decoding="async" /></a><b>Gazette <span class="badge good">ATS-safe</span></b><span>Centred masthead, banded headings, dotted leaders to the dates.</span></li>
+              <li><a href="img/templates/modern-1200.webp" data-backdrop="light"><img src="img/templates/modern-480.webp" width="480" height="679" alt="Page one of the worked example in the Modern template" loading="lazy" decoding="async" /></a><b>Modern <span class="badge fair">Two-column</span></b><span>Accent header band with a side column for contact, skills and study.</span></li>
+              <li><a href="img/templates/sidebar-1200.webp" data-backdrop="light"><img src="img/templates/sidebar-480.webp" width="480" height="679" alt="Page one of the worked example in the Sidebar template" loading="lazy" decoding="async" /></a><b>Sidebar <span class="badge fair">Two-column</span></b><span>Full-height accent column carrying the portrait, contact and skills.</span></li>
+              <li><a href="img/templates/boardroom-1200.webp" data-backdrop="light"><img src="img/templates/boardroom-480.webp" width="480" height="679" alt="Page one of the worked example in the Boardroom template" loading="lazy" decoding="async" /></a><b>Boardroom <span class="badge fair">Two-column</span></b><span>Name set large over a rule, two columns divided by a hairline, no colour.</span></li>
+              <li><a href="img/templates/atelier-1200.webp" data-backdrop="light"><img src="img/templates/atelier-480.webp" width="480" height="679" alt="Page one of the worked example in the Atelier template" loading="lazy" decoding="async" /></a><b>Atelier <span class="badge fair">Two-column</span></b><span>Tracked name between two rules, even columns, a disc behind each heading.</span></li>
+              <li><a href="img/templates/editorial-1200.webp" data-backdrop="light"><img src="img/templates/editorial-480.webp" width="480" height="679" alt="Page one of the worked example in the Editorial template" loading="lazy" decoding="async" /></a><b>Editorial <span class="badge fair">Two-column</span></b><span>Centred portrait, small-caps side column, entries on a dotted rail.</span></li>
+            </ul>
+          </section>
         </div>
       </div>
     </section>
