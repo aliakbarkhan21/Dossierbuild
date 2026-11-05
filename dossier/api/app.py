@@ -24,7 +24,12 @@ from fastapi.middleware.cors import CORSMiddleware
 # Before the routers import, because they read the key at import time. An API
 # that reported "no AI key" while .env sat beside it would send someone hunting
 # for a bug that is really a missing line here.
-load_dotenv()
+#
+# DOSSIER_ENV_FILE moves where Settings writes a key (`ai/parse.ENV_PATH`), so
+# it has to move where startup reads one as well; otherwise a key saved there
+# works until the next launch and is then gone. The container image points it
+# into the data volume, so a key survives pulling a newer image.
+load_dotenv(os.environ.get("DOSSIER_ENV_FILE") or None)
 
 from . import errors, lifetime, static  # noqa: E402
 from .routes import (  # noqa: E402
