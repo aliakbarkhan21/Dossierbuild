@@ -744,13 +744,15 @@
           <h1>The AI suggests. <span class="serif-i">Your history decides.</span></h1>
         </div>
 
+        <div class="steps">
         <div class="stepper glass" role="tablist" aria-label="Steps">
-          <button type="button" role="tab" aria-selected="true" data-step="0"><i>01</i>Your profile</button>
-          <button type="button" role="tab" aria-selected="false" data-step="1"><i>02</i>Read the job</button>
-          <button type="button" role="tab" aria-selected="false" data-step="2"><i>03</i>Rewrite, checked</button>
-          <button type="button" role="tab" aria-selected="false" data-step="3"><i>04</i>Print and file</button>
+          <button type="button" role="tab" id="step-tab-0" aria-controls="step-panel" aria-selected="true" tabindex="0" data-step="0"><i>01</i>Your profile</button>
+          <button type="button" role="tab" id="step-tab-1" aria-controls="step-panel" aria-selected="false" tabindex="-1" data-step="1"><i>02</i>Read the job</button>
+          <button type="button" role="tab" id="step-tab-2" aria-controls="step-panel" aria-selected="false" tabindex="-1" data-step="2"><i>03</i>Rewrite, checked</button>
+          <button type="button" role="tab" id="step-tab-3" aria-controls="step-panel" aria-selected="false" tabindex="-1" data-step="3"><i>04</i>Print and file</button>
         </div>
-        <h2 class="step-title" aria-live="polite">One profile holds everything you've done.</h2>
+        <div id="step-panel" role="tabpanel" aria-labelledby="step-tab-0">
+        <h2 class="step-title">One profile holds everything you've done.</h2>
         <p class="step-copy">Import it from a LinkedIn export, a PDF, a DOCX or pasted text, or start from the worked example.</p>
 
         <div class="how-stage">
@@ -794,6 +796,8 @@
               </div>
             </div>
           </div>
+        </div>
+        </div>
         </div>
         <p class="illustration-note">An illustration on the worked example that ships with the app. The rewrites shown are examples of what the check does.</p>
 
@@ -1283,14 +1287,17 @@
     var stepCopy = document.querySelector(".step-copy");
     var howPaper = document.getElementById("how-paper");
     var floats = document.querySelectorAll("#tab-how [data-show]");
+    var stepPanel = document.getElementById("step-panel");
     var step = 0, timer = null, userPicked = false;
 
     function setStep(i) {
       step = i;
       stepBtns.forEach(function (b, n) {
         b.setAttribute("aria-selected", String(n === i));
+        b.tabIndex = n === i ? 0 : -1;
         b.classList.toggle("done", n < i);
       });
+      stepPanel.setAttribute("aria-labelledby", stepBtns[i].id);
       stepDrop.to(stepBtns[i], true);
       stepTitle.querySelectorAll("span").forEach(function (el, n) { el.classList.toggle("on", n === i); el.setAttribute("aria-hidden", String(n !== i)); });
       stepCopy.querySelectorAll("span").forEach(function (el, n) { el.classList.toggle("on", n === i); el.setAttribute("aria-hidden", String(n !== i)); });
@@ -1309,10 +1316,19 @@
     });
 
     // The steps advance by themselves only while you are looking at them. Left
-    // running off-screen they would be changing the page under your thumb.
-    var onScreen = false, tabOpen = false;
+    // running off-screen they would be changing the page under your thumb. They
+    // also hold still while a pointer rests on them or focus is inside them --
+    // a step you are reading should not turn over mid-sentence -- and stop for
+    // good once you pick one. Nothing is announced when they turn over by
+    // themselves; a step you choose is announced as the tab you landed on.
+    var onScreen = false, tabOpen = false, held = { pointer: false, focus: false };
+    var steps = document.querySelector(".steps");
+    steps.addEventListener("pointerenter", function (e) { if (e.pointerType === "mouse") { held.pointer = true; syncTimer(); } });
+    steps.addEventListener("pointerleave", function () { held.pointer = false; syncTimer(); });
+    steps.addEventListener("focusin", function () { held.focus = true; syncTimer(); });
+    steps.addEventListener("focusout", function (e) { if (!steps.contains(e.relatedTarget)) { held.focus = false; syncTimer(); } });
     function syncTimer() {
-      var run = onScreen && tabOpen && !still && !userPicked && !document.hidden;
+      var run = onScreen && tabOpen && !still && !userPicked && !document.hidden && !held.pointer && !held.focus;
       if (run && !timer) timer = setInterval(function () { setStep((step + 1) % STEPS.length); }, 4500);
       if (!run && timer) { clearInterval(timer); timer = null; }
     }
@@ -1327,6 +1343,16 @@
     }
     stepBtns.forEach(function (b) {
       b.addEventListener("click", function () { userPicked = true; syncTimer(); setStep(+b.dataset.step); });
+    });
+    // The step picker is a set of tabs, so it moves the way tabs do: one stop
+    // in the Tab order, arrows between steps, Home and End to either end.
+    document.querySelector(".stepper").addEventListener("keydown", function (e) {
+      var to = { ArrowRight: step + 1, ArrowDown: step + 1, ArrowLeft: step - 1, ArrowUp: step - 1, Home: 0, End: STEPS.length - 1 }[e.key];
+      if (to === undefined) return;
+      e.preventDefault();
+      to = (to + STEPS.length) % STEPS.length;
+      userPicked = true; syncTimer(); setStep(to);
+      stepBtns[to].focus();
     });
     setStep(0);
 
