@@ -220,8 +220,19 @@ While working on the frontend, run Vite instead — `cd web && npm run dev` on
 5173, proxying `/api` to 8000 — for hot reload. The static mount stays out of
 the way when `web/dist` does not exist.
 
-Environment: `GEMINI_API_KEY`, optional `GEMINI_MODEL`, optional
-`DOSSIER_DATA_DIR`. Nothing else. No secrets in the repo.
+Environment: `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) and optional
+`GEMINI_MODEL`; `DOSSIER_AI_PROVIDER=claude` with `ANTHROPIC_API_KEY` and
+optional `CLAUDE_MODEL`; optional `DOSSIER_DATA_DIR`, `DOSSIER_ENV_FILE`
+(where Settings writes a key, and where startup reads it back),
+`DOSSIER_WEB_DIR`, `DOSSIER_CORS_ORIGINS` and `DOSSIER_EXIT_WHEN_IDLE`. No
+secrets in the repo.
+
+The container image is built by `.github/workflows/image.yml` on every push
+that changes what goes into it, and published to
+`ghcr.io/aliakbarkhan21/dossierbuild` from main (`latest`) and from version
+tags (`2.4.0`, `2.4`), for amd64 and arm64. It sets
+`DOSSIER_ENV_FILE=/data/.env`, so a key saved in Settings lives in the data
+volume and survives pulling a newer image.
 
 ---
 
