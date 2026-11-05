@@ -75,8 +75,12 @@
       --font: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
       --serif: "Source Serif 4", Georgia, serif;
     }
+    /* A saved choice on <html data-theme> beats the device setting; with no
+       choice saved, the device decides, as it always has. */
+    :root { color-scheme: light; }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
+        color-scheme: dark;
         --bg: #0e1210;
         --surface: #161b19;
         --text: #e8ecea;
@@ -97,6 +101,28 @@
         --deep-2: #121a16;
         --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 18px 48px rgb(0 0 0 / 0.45);
       }
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0e1210;
+      --surface: #161b19;
+      --text: #e8ecea;
+      --muted: #a5b0ab;
+      --faint: #8a9690;
+      --line: #252c29;
+      --line-strong: #353e3a;
+      --accent: #5fbe96;
+      --accent-strong: #7bd0ab;
+      --accent-soft: #17281f;
+      --good: #6cc39b;
+      --good-soft: #16241d;
+      --fair: #d3a45c;
+      --fair-soft: #241d10;
+      --poor: #e0847c;
+      --poor-soft: #2a1715;
+      --deep: #0a110e;
+      --deep-2: #121a16;
+      --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 18px 48px rgb(0 0 0 / 0.45);
     }
 
     * { box-sizing: border-box; }
@@ -174,7 +200,7 @@
       --g-cta: #fff; --g-cta-ink: #0e1c17; --g-cta-hover: #e3f2ea;
     }
     @media (prefers-color-scheme: dark) {
-      .glass:not([data-tone="light"]) {
+      :root:not([data-theme="light"]) .glass:not([data-tone="light"]) {
         --g-tint: rgb(14 24 19 / 0.6);
         --g-ink: #f3f8f5;
         --g-ink-2: rgb(243 248 245 / 0.86);
@@ -185,6 +211,17 @@
         --g-shadow: 0 10px 30px rgb(0 0 0 / 0.26), 0 1px 3px rgb(0 0 0 / 0.2), inset 0 0 16px rgb(255 255 255 / 0.06);
         --g-cta: #fff; --g-cta-ink: #0e1c17; --g-cta-hover: #e3f2ea;
       }
+    }
+    :root[data-theme="dark"] .glass:not([data-tone="light"]) {
+      --g-tint: rgb(14 24 19 / 0.6);
+      --g-ink: #f3f8f5;
+      --g-ink-2: rgb(243 248 245 / 0.86);
+      --g-glow: rgb(255 255 255 / 0.22);
+      --g-thumb: rgb(255 255 255 / 0.16);
+      --g-thumb-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.2), 0 2px 8px rgb(0 0 0 / 0.18);
+      --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.1) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.26));
+      --g-shadow: 0 10px 30px rgb(0 0 0 / 0.26), 0 1px 3px rgb(0 0 0 / 0.2), inset 0 0 16px rgb(255 255 255 / 0.06);
+      --g-cta: #fff; --g-cta-ink: #0e1c17; --g-cta-hover: #e3f2ea;
     }
     /* The rim: light catching the bevel, brightest at the top left and
        answered faintly at the bottom right. */
@@ -297,6 +334,44 @@
       header.site.compact { transform: translateY(-60px); }
       header.site.compact .bar { opacity: 0; }
     }
+
+    /* ---------- Appearance: a glass control in the corner ----------
+     * Closed, it is a round button showing the current mode. Pressed, the same
+     * piece of glass stretches left into a capsule of three choices -- it
+     * grows out of the button rather than a menu appearing beside it -- and
+     * shrinks back once one is picked. It sits above Safari's floating bottom
+     * bar on iPhone (the safe-area inset), steps aside while you scroll down,
+     * and reads its tone from the page under it, like the top bar. */
+    .appearance {
+      position: fixed; z-index: 40; right: calc(16px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom));
+      width: 44px; height: 44px; border-radius: 22px; overflow: hidden;
+      transition: width 0.45s cubic-bezier(0.32, 0.72, 0, 1), transform 0.45s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease,
+        background-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease;
+    }
+    .appearance.open { width: 238px; }
+    .appearance.away:not(.open) { transform: translateY(calc(100% + 24px + env(safe-area-inset-bottom))); opacity: 0; }
+    .appearance svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+    .appearance-toggle {
+      position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; border: 0; padding: 0; border-radius: inherit;
+      background: none; color: var(--g-ink); cursor: pointer; transition: opacity 0.2s ease;
+    }
+    .appearance-toggle svg { grid-area: 1 / 1; display: none; }
+    :root:not([data-theme]) .appearance-toggle .i-auto, :root[data-theme="light"] .appearance-toggle .i-light, :root[data-theme="dark"] .appearance-toggle .i-dark { display: block; }
+    .appearance-options {
+      position: absolute; top: 0; right: 0; height: 100%; width: 238px; display: flex; align-items: center; gap: 2px; padding: 4px;
+      opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+    }
+    .appearance.open .appearance-toggle { opacity: 0; visibility: hidden; }
+    .appearance.open .appearance-options { opacity: 1; visibility: visible; transition: opacity 0.25s ease 0.12s, visibility 0s; }
+    .appearance-options button {
+      position: relative; z-index: 1; flex: 1; height: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+      border: 0; border-radius: 999px; background: none; color: var(--g-ink-2); font: 500 13.5px/1 var(--font); cursor: pointer; padding: 0 6px;
+    }
+    .appearance-options button svg { width: 16px; height: 16px; }
+    .appearance-options [aria-checked="true"] { color: var(--g-ink); background: var(--g-thumb); box-shadow: var(--g-thumb-shadow); }
+    @media (forced-colors: active) { .appearance-options [aria-checked="true"] { outline: 2px solid CanvasText; outline-offset: -2px; } }
+    /* The page crossfades into a new appearance instead of snapping. */
+    ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.35s; }
 
     /* ---------- Panels ---------- */
     .js .panel:not(.active) { display: none; }
@@ -666,7 +741,10 @@
       .btn-glass { background: #1c4a3b; }
     }
     @media (prefers-reduced-transparency: reduce) and (prefers-color-scheme: dark) {
-      .glass:not([data-tone="light"]) { --g-tint: #16211c; }
+      :root:not([data-theme="light"]) .glass:not([data-tone="light"]) { --g-tint: #16211c; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      :root[data-theme="dark"] .glass:not([data-tone="light"]) { --g-tint: #16211c; }
     }
     @media (prefers-contrast: more) {
       .glass, .btn-glass, header.site::before { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
@@ -675,7 +753,10 @@
       .btn-glass { background: #0b1410; box-shadow: 0 0 0 1.5px #fff; }
     }
     @media (prefers-contrast: more) and (prefers-color-scheme: dark) {
-      .glass:not([data-tone="light"]) { --g-tint: #0b1410; --g-ink-2: #fff; box-shadow: 0 0 0 1.5px #fff; }
+      :root:not([data-theme="light"]) .glass:not([data-tone="light"]) { --g-tint: #0b1410; --g-ink-2: #fff; box-shadow: 0 0 0 1.5px #fff; }
+    }
+    @media (prefers-contrast: more) {
+      :root[data-theme="dark"] .glass:not([data-tone="light"]) { --g-tint: #0b1410; --g-ink-2: #fff; box-shadow: 0 0 0 1.5px #fff; }
     }
     /* Forced colours repaint every background, the droplet included, so the
        current tab and step are outlined instead. */
@@ -684,7 +765,12 @@
       .glass { border: 1px solid CanvasText; }
     }
   </style>
-  <script>document.documentElement.classList.add("js");</script>
+  <script>
+    document.documentElement.classList.add("js");
+    // A saved appearance is applied here, before the first paint, so a page
+    // chosen dark never flashes light on the way in.
+    try { var saved = localStorage.getItem("appearance"); if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved; } catch (e) {}
+  </script>
 </head>
 <body>
   <header class="site">
@@ -1179,6 +1265,19 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
     </div>
   </footer>
 
+  <div class="appearance glass" id="appearance" data-tone="light">
+    <button type="button" class="appearance-toggle press" aria-expanded="false" aria-controls="appearance-options" aria-label="Appearance: Auto">
+      <svg class="i-auto" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="M12 3.75a8.25 8.25 0 0 1 0 16.5z" fill="currentColor" stroke="none"/></svg>
+      <svg class="i-light" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.55 1.55M17.15 17.15l1.55 1.55M5.3 18.7l1.55-1.55M17.15 6.85l1.55-1.55"/></svg>
+      <svg class="i-dark" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.25 8.25 0 0 1 9.5 4a8.25 8.25 0 1 0 10.5 10.5z"/></svg>
+    </button>
+    <div class="appearance-options" id="appearance-options" role="radiogroup" aria-label="Appearance">
+      <button type="button" role="radio" class="press" data-set="auto" aria-checked="true" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="M12 3.75a8.25 8.25 0 0 1 0 16.5z" fill="currentColor" stroke="none"/></svg>Auto</button>
+      <button type="button" role="radio" class="press" data-set="light" aria-checked="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.55 1.55M17.15 17.15l1.55 1.55M5.3 18.7l1.55-1.55M17.15 6.85l1.55-1.55"/></svg>Light</button>
+      <button type="button" role="radio" class="press" data-set="dark" aria-checked="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.25 8.25 0 0 1 9.5 4a8.25 8.25 0 1 0 10.5 10.5z"/></svg>Dark</button>
+    </div>
+  </div>
+
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
     var still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1313,7 +1412,7 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
     // the green hero, the white resume and the dark toolkit alike. Regions say
     // what they are with data-backdrop; anything unmarked is the page itself.
     // The deepest marked region under the middle of each bar wins.
-    var surfaces = document.querySelectorAll("header.site .glass");
+    var surfaces = document.querySelectorAll("header.site .glass, #appearance");
     var zones = document.querySelectorAll("[data-backdrop]");
     var darkPage = window.matchMedia("(prefers-color-scheme: dark)");
     var toneQueued = false;
@@ -1322,7 +1421,7 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
       surfaces.forEach(function (s) {
         var r = s.getBoundingClientRect();
         if (!r.width) return;
-        var x = r.left + r.width / 2, y = r.top + r.height / 2, tone = darkPage.matches ? "dark" : "light";
+        var x = r.left + r.width / 2, y = r.top + r.height / 2, tone = pageIsDark() ? "dark" : "light";
         zones.forEach(function (z) {
           var b = z.getBoundingClientRect();
           if (x >= b.left && x < b.right && y >= b.top && y < b.bottom) tone = z.dataset.backdrop;
@@ -1390,7 +1489,7 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
       lenses.setAttribute("aria-hidden", "true");
       lenses.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
       document.body.appendChild(lenses);
-      surfaces.forEach(function (s, n) {
+      document.querySelectorAll("header.site .glass").forEach(function (s, n) {
         var f = document.createElementNS(SVG, "filter"), img = document.createElementNS(SVG, "feImage"), dm = document.createElementNS(SVG, "feDisplacementMap");
         f.id = "lens-" + n;
         [["x", 0], ["y", 0], ["width", "100%"], ["height", "100%"], ["color-interpolation-filters", "sRGB"]].forEach(function (a) { f.setAttribute(a[0], a[1]); });
@@ -1442,6 +1541,74 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
         else select();
       });
     });
+
+    // ---------- Appearance ----------
+    // Auto follows the device, as the site always has; Light and Dark are
+    // saved on this browser and win over it. The head script has already
+    // applied a saved choice before the first paint.
+    var appearance = document.getElementById("appearance");
+    var appToggle = appearance.querySelector(".appearance-toggle");
+    var appOptions = appearance.querySelectorAll("[role=radio]");
+    var MODE_NAMES = { auto: "Auto", light: "Light", dark: "Dark" };
+    function currentMode() { return document.documentElement.dataset.theme || "auto"; }
+    function pageIsDark() { var t = document.documentElement.dataset.theme; return t ? t === "dark" : darkPage.matches; }
+    function markMode() {
+      var m = currentMode();
+      appToggle.setAttribute("aria-label", "Appearance: " + MODE_NAMES[m]);
+      appOptions.forEach(function (b) { b.setAttribute("aria-checked", String(b.dataset.set === m)); });
+    }
+    function setMode(mode) {
+      try { if (mode === "auto") localStorage.removeItem("appearance"); else localStorage.setItem("appearance", mode); } catch (e) {}
+      var willBeDark = mode === "auto" ? darkPage.matches : mode === "dark";
+      function swap() {
+        if (mode === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = mode;
+        markMode(); readTones();
+      }
+      // A crossfade rather than a snap, where the browser can draw one; a
+      // switch that changes nothing on screen (Auto on a dark device to Dark)
+      // just updates the control.
+      if (document.startViewTransition && !still && willBeDark !== pageIsDark()) document.startViewTransition(swap); else swap();
+    }
+    function openMenu(open, focus) {
+      appearance.classList.toggle("open", open);
+      appToggle.setAttribute("aria-expanded", String(open));
+      appOptions.forEach(function (b) { b.tabIndex = open && b.dataset.set === currentMode() ? 0 : -1; });
+      if (focus) (open ? appearance.querySelector('[aria-checked="true"]') : appToggle).focus();
+    }
+    appToggle.addEventListener("click", function () { openMenu(true, true); });
+    appOptions.forEach(function (b) {
+      b.addEventListener("click", function () {
+        setMode(b.dataset.set);
+        // Long enough to see the choice land before the glass closes on it.
+        setTimeout(function () { openMenu(false, appearance.contains(document.activeElement)); }, 260);
+      });
+    });
+    // A radio group: arrows move the choice, Escape closes, Tab leaves.
+    appearance.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && appearance.classList.contains("open")) { e.preventDefault(); openMenu(false, true); return; }
+      var i = ["auto", "light", "dark"].indexOf(currentMode()), step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+      if (!step || !appearance.classList.contains("open")) return;
+      e.preventDefault();
+      var next = appOptions[(i + step + 3) % 3];
+      setMode(next.dataset.set);
+      appOptions.forEach(function (b) { b.tabIndex = b === next ? 0 : -1; });
+      next.focus();
+    });
+    appearance.addEventListener("focusout", function (e) { if (!appearance.contains(e.relatedTarget)) openMenu(false, false); });
+    document.addEventListener("pointerdown", function (e) { if (!appearance.contains(e.target)) openMenu(false, false); });
+    // It steps aside while you scroll down, and comes back on a scroll up or
+    // once the page has been still for a moment.
+    var appY = 0, appIdle = 0;
+    window.addEventListener("scroll", function () {
+      var y = Math.max(0, window.scrollY);
+      if (y > appY + 4 && y > 200) appearance.classList.add("away");
+      else if (y < appY - 4 || y <= 200) appearance.classList.remove("away");
+      appY = y;
+      clearTimeout(appIdle);
+      appIdle = setTimeout(function () { appearance.classList.remove("away"); }, 900);
+    }, { passive: true });
+    appearance.addEventListener("transitionend", function (e) { if (e.target === appearance) queueTones(); });
+    markMode();
 
     // ---------- How it works: the stepper ----------
     var STEPS = [
