@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..600&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    position: relative; font-family: "Geist", system-ui, sans-serif; color: #eef3f0; -webkit-font-smoothing: antialiased;
+    background: linear-gradient(160deg, #143a2f 0%, #10261f 55%, #0b1813 100%);
+  }
+  .copy { position: absolute; left: 72px; top: 72px; bottom: 64px; width: 540px; display: flex; flex-direction: column; }
+  .brand { display: flex; align-items: center; gap: 16px; font-size: 28px; font-weight: 600; letter-spacing: 0.01em; }
+  .brand img { width: 48px; height: 48px; padding: 6px; border-radius: 12px; background: #fff; }
+  h1 { margin-top: 64px; font-size: 68px; line-height: 1.04; font-weight: 500; letter-spacing: -0.035em; text-wrap: balance; }
+  .flagged { white-space: nowrap; text-decoration: underline solid #f6b6ae; text-decoration-thickness: 0.075em; text-underline-offset: 0.16em; }
+  p { margin-top: 28px; font-size: 26px; line-height: 1.35; color: #c9d6d0; }
+  .url { margin-top: auto; font-size: 24px; color: #7fd1ae; }
+  .shot {
+    position: absolute; left: 672px; top: 96px; width: 760px; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 24px 60px rgb(0 0 0 / 0.45); border: 1px solid rgb(255 255 255 / 0.12);
+  }
+  .shot img { display: block; width: 100%; }
+</style>
+</head>
+<body>
+  <div class="copy">
+    <div class="brand"><img src="../site/mark.png" alt="" />Dossierbuild</div>
+    <h1>{{HEADLINE}}</h1>
+    <p>Every AI rewrite is checked against your own history</p>
+    <div class="url">dossierbuild.lol</div>
+  </div>
+  <div class="shot"><img src="../site/img/resume-1280.webp" alt="" /></div>
+</body>
+</html>

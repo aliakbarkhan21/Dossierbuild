@@ -48,9 +48,9 @@ model, and it is handed the analysis rather than the advert.
 
 ![Tailor: a posting read by rules into weighted requirements, scored against the profile](docs/tailor.png)
 
-**A rewrite cannot add facts, and the check is a diff rather than a prompt.**
-Every suggestion is compared against the bullet it came from: any number, tool
-or employer that appears in neither the source nor anywhere else in your
+**New numbers and tools arrive unticked, and the check is a diff rather than a prompt.**
+Every suggestion is compared against the bullet it came from: any number or
+named tool that appears in neither the source nor anywhere else in your
 profile is flagged, and flagged suggestions arrive **unticked**. The posting's
 own vocabulary is deliberately excluded from what counts as known — a letter
 that picks up "Kubernetes" from the advert gets caught rather than waved
@@ -232,6 +232,8 @@ python scripts/check_tailor.py    # the posting reader and the audit           (
 
 The render checks print real PDFs, so they need Chromium.
 
+`python scripts/og.py` redraws `site/og.png`, the website's link preview, from the hero headline in `site/index.html`.
+
 ---
 
 ## How it is built
@@ -362,7 +364,7 @@ a claim that it does everything.
 - **Hosted models only.** The AI steps run on Gemini or Claude, so the text
   you send them leaves your machine. Nothing runs them on a local model yet.
 - **The fabrication audit is a diff, not a fact-checker.** It catches numbers
-  and named technologies a rewrite introduced. It cannot tell you that a claim
+  and named tools a rewrite introduced. It cannot tell you that a claim
   already in your profile is untrue.
 
 ---
