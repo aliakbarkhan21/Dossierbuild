@@ -4,14 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dossierbuild — tailored resumes that check the AI's work</title>
-  <meta name="description" content="Dossierbuild tailors your resume to every job and checks each AI rewrite against your own history, flagging any number, tool or employer that isn't in it. Free, open source, and runs on your own machine." />
+  <meta name="description" content="Dossierbuild tailors your resume to every job and checks each AI rewrite against your own history, flagging any number or named tool that isn't in it. Free, open source, and runs on your own machine." />
   <meta name="theme-color" content="#f4f2ed" />
   <link rel="canonical" href="https://dossierbuild.lol/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Dossierbuild" />
   <meta property="og:url" content="https://dossierbuild.lol/" />
   <meta property="og:title" content="Dossierbuild — tailored resumes that check the AI's work" />
-  <meta property="og:description" content="A tailored resume for every job. Every AI rewrite is checked against your own history, and any number, tool or employer that isn't in it is flagged." />
+  <meta property="og:description" content="A tailored resume for every job. Every AI rewrite is checked against your own history, and any number or named tool that isn't in it is flagged." />
   <meta property="og:image" content="https://dossierbuild.lol/og.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -26,7 +26,7 @@
       "@type": "SoftwareApplication",
       "name": "Dossierbuild",
       "url": "https://dossierbuild.lol/",
-      "description": "An AI-assisted resume builder that runs on your own machine. It tailors your resume to each job and checks every AI rewrite against your own history, flagging any number, tool or employer that isn't in it.",
+      "description": "An AI-assisted resume builder that runs on your own machine. It tailors your resume to each job and checks every AI rewrite against your own history, flagging any number or named tool that isn't in it.",
       "applicationCategory": "BusinessApplication",
       "license": "https://github.com/aliakbarkhan21/Dossierbuild/blob/main/LICENSE",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
@@ -826,8 +826,8 @@
         <h1>Tailored resumes that <span class="serif-i">check</span> the AI's&nbsp;work.</h1>
         <p class="lede">
           Dossierbuild aims your resume at every job you apply for, and checks every AI rewrite
-          against your own history. It can sharpen a line, and if it slips in a number or a tool
-          you don't have, it says so.
+          against your own history. It can sharpen a line, and if it slips in a number or a named
+          tool you don't have, it says so.
         </p>
         <div class="cta">
           <a class="btn btn-light" href="#install" data-tab="install">Get Dossierbuild free</a>
@@ -860,10 +860,10 @@
               <div class="k">Job match <span class="badge good">Good</span></div>
               <div class="big">73%</div>
               <div class="meter"><i style="width:73%"></i></div>
-              <div class="lbl">Evidenced</div>
+              <div class="lbl">Evidenced, 4 of 7 shown</div>
               <div class="chips"><span class="chip">PostgreSQL</span><span class="chip">Python</span><span class="chip">Airflow</span><span class="chip">APIs</span></div>
-              <div class="lbl">Missing</div>
-              <div class="chips"><span class="chip miss">Kubernetes</span><span class="chip miss">Terraform</span></div>
+              <div class="lbl">Missing, 2 of 3 shown</div>
+              <div class="chips"><span class="chip miss">Kubernetes</span><span class="chip miss">data pipeline</span></div>
             </div>
             <div class="float check">
               <div class="k">Rewrite check <span class="badge poor">1 flagged</span></div>
@@ -894,7 +894,7 @@
             <ul>
               <li>The advert is read by rules, so the analysis is repeatable</li>
               <li>Every rewrite is diffed against the line it came from</li>
-              <li>New numbers, tools or employers arrive flagged and unticked</li>
+              <li>New numbers and named tools arrive flagged and unticked</li>
               <li>Each application keeps the exact version you sent</li>
             </ul>
           </div>
@@ -927,7 +927,7 @@
         </div>
         <div id="step-panel" role="tabpanel" aria-labelledby="step-tab-0">
         <h2 class="step-title">One profile holds everything you've done.</h2>
-        <p class="step-copy">Import it from a LinkedIn export, a PDF, a DOCX or pasted text, or start from the worked example.</p>
+        <p class="step-copy">Import a LinkedIn export with no AI key, or a PDF, a DOCX or pasted text with one. Or start from the worked example.</p>
 
         <div class="how-stage">
           <div class="stage" role="img" aria-label="Illustration of each step on the worked example">
@@ -945,7 +945,7 @@
               <ul>
                 <li>Built the REST <mark>API</mark> behind the customer dashboard in FastAPI, serving 40 endpoints and 1.2 million requests a day</li>
                 <li>Migrated 380GB from MySQL to <mark>Postgres</mark> over four weekends with no downtime, using logical replication and a read-only cutover window</li>
-                <li class="swap"><span class="old">Responsible for various tasks across the backend team.</span><span class="new">Kept the backend team's FastAPI services and Postgres migrations running, from review to release.</span></li>
+                <li class="swap"><span class="old">Responsible for various tasks across the backend team.</span><span class="new">Worked across the backend team on the customer dashboard service and the Postgres migration</span></li>
               </ul>
               <div class="fade"></div>
             </div>
@@ -955,11 +955,11 @@
                 <div class="big">73%</div>
                 <div class="meter"><i style="width:73%"></i></div>
                 <div class="lbl">7 evidenced · 3 listed only · 3 missing</div>
-                <div class="chips"><span class="chip">PostgreSQL</span><span class="chip">Python</span><span class="chip">Airflow</span><span class="chip">APIs</span><span class="chip miss">Kubernetes</span><span class="chip miss">Terraform</span></div>
+                <div class="chips"><span class="chip">PostgreSQL</span><span class="chip">Python</span><span class="chip">Airflow</span><span class="chip">APIs</span><span class="chip miss">Kubernetes</span><span class="chip miss">data pipeline</span></div>
               </div>
               <div class="float check" data-show="2">
                 <div class="k">Rewrite check <span class="badge poor">1 flagged</span></div>
-                <div class="sug ok"><span class="box"></span><div>Kept the backend team's FastAPI services and Postgres migrations running, from review to release.<small>Backed by your profile · ticked</small></div></div>
+                <div class="sug ok"><span class="box"></span><div>Worked across the backend team on the customer dashboard service and the Postgres migration<small>Backed by your profile · ticked</small></div></div>
                 <div class="sug flag"><span class="box"></span><div>Ran the backend's services on <u>Kubernetes</u>, cutting incidents by <u>40%</u>.<small>Not in your profile · left unticked</small></div></div>
               </div>
               <div class="float check" data-show="3">
@@ -1014,7 +1014,7 @@
             <div class="cell green">
               <span class="n">02 · The guard</span>
               <h3>Rewrites can't add facts.</h3>
-              <p>Every AI suggestion is diffed against the line it came from. A number, tool or employer your profile doesn't contain arrives flagged and unticked, whichever provider wrote it.</p>
+              <p>Every AI suggestion is diffed against the line it came from. A number or named tool your profile doesn't contain arrives flagged and unticked, whichever provider wrote it.</p>
             </div>
             <div class="stack">
               <div class="cell">
@@ -1181,11 +1181,11 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
           </details>
           <details>
             <summary>Does the AI make things up?</summary>
-            <p>It can try, which is why every rewrite is diffed against the line it came from. A number, tool or employer that isn't already in your profile is flagged, and flagged suggestions arrive unticked. Words lifted from the job advert don't count as known.</p>
+            <p>It can try, which is why every rewrite is diffed against the line it came from. A number or named tool that isn't already in your profile is flagged, and flagged suggestions arrive unticked. Words lifted from the job advert don't count as known.</p>
           </details>
           <details>
             <summary>Can the check still miss something?</summary>
-            <p>It catches numbers and named technologies a rewrite added. It's a diff against your profile, not a fact-checker, so it can't tell you whether something already in your profile is true. That part stays your job.</p>
+            <p>It catches numbers and named tools a rewrite added. It's a diff against your profile, not a fact-checker, so it can't tell you whether something already in your profile is true. That part stays your job.</p>
           </details>
           <details>
             <summary>Where does my data go?</summary>
@@ -1626,9 +1626,9 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
 
     // ---------- How it works: the stepper ----------
     var STEPS = [
-      ["One profile holds everything you've done.", "Import it from a LinkedIn export, a PDF, a DOCX or pasted text, or start from the worked example."],
+      ["One profile holds everything you've done.", "Import a LinkedIn export with no AI key, or a PDF, a DOCX or pasted text with one. Or start from the worked example."],
       ["The job is read by rules, not a model.", "Paste a posting. It's read into weighted requirements and scored against your profile, with no API key needed."],
-      ["Rewrites are checked against your history.", "Only this step uses AI. A suggestion that adds a number, tool or employer your profile doesn't have arrives flagged and unticked."],
+      ["Rewrites are checked against your history.", "This step uses AI. A suggestion that adds a number or named tool your profile doesn't have arrives flagged and unticked."],
       ["Print it, and keep what you sent.", "A real PDF, saved against the posting it went to, so you can reprint exactly what the employer saw."]
     ];
     var paperClass = ["", "keys", "keys rewrite", "keys saved"];
