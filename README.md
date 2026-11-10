@@ -48,7 +48,7 @@ model, and it is handed the analysis rather than the advert.
 
 ![Tailor: a posting read by rules into weighted requirements, scored against the profile](docs/tailor.png)
 
-**A rewrite cannot add facts, and the check is a diff rather than a prompt.**
+**New numbers and tools arrive unticked, and the check is a diff rather than a prompt.**
 Every suggestion is compared against the bullet it came from: any number or
 named tool that appears in neither the source nor anywhere else in your
 profile is flagged, and flagged suggestions arrive **unticked**. The posting's
@@ -231,6 +231,8 @@ python scripts/check_tailor.py    # the posting reader and the audit           (
 ```
 
 The render checks print real PDFs, so they need Chromium.
+
+`python scripts/og.py` redraws `site/og.png`, the website's link preview, from the hero headline in `site/index.html`.
 
 ---
 
