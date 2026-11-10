@@ -1,0 +1,60 @@
+# Exact versions for the container image, applied as constraints:
+#   pip install -r requirements.txt -c requirements.lock
+#
+# requirements.txt says what Dossierbuild needs; this file says which release
+# of each the image is built from, so a new upstream release cannot change the
+# image without a commit. It was resolved inside python:3.12-slim on linux,
+# where uvicorn[standard] pulls in uvloop and httptools, so it is not meant
+# for installing on Windows or macOS.
+#
+# To refresh it, build the image and run `pip freeze --exclude pip` inside it.
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anthropic==2.7.0
+anyio==4.16.0
+certifi==2026.10.23
+cffi==2.1.1
+charset-normalizer==3.5.2
+click==8.5.1
+cryptography==50.0.2
+distro==1.9.0
+docstring_parser==0.18.0
+fastapi==0.162.3
+google-auth==2.62.1
+google-genai==3.0.0
+greenlet==3.5.6
+h11==0.16.0
+httpcore2==2.16.0
+httptools==0.9.0
+httpx2==2.16.0
+idna==3.20
+Jinja2==3.1.6
+jiter==0.19.0
+lxml==6.1.3
+MarkupSafe==3.0.4
+opentelemetry-api==1.45.2
+pillow==13.0.0
+playwright==1.64.1
+pyasn1==0.6.5
+pyasn1_modules==0.4.2
+pycparser==3.12
+pydantic==2.14.3
+pydantic_core==2.50.4
+pyee==14.0.0
+pypdf==7.0.1
+python-docx==1.2.0
+python-dotenv==1.2.4
+python-multipart==0.0.33
+PyYAML==6.0.3
+requests==2.34.2
+sniffio==1.3.1
+starlette==1.10.0
+tenacity==9.1.4
+truststore==0.10.5
+typing-inspection==0.4.5
+typing_extensions==4.16.0
+urllib3==2.8.0
+uvicorn==0.54.0
+uvloop==0.23.0
+watchfiles==1.3.0
+websockets==17.4

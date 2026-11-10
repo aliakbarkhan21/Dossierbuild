@@ -26,7 +26,10 @@ COPY web/ ./
 RUN npm run build
 
 
-FROM python:3.12-slim
+# Pinned by digest: the 3.12-slim tag is rebuilt in place, so an unpinned
+# FROM can change under an unchanged Dockerfile. This is Python 3.12.16 on
+# Debian 13 (trixie), published 2026-11-05.
+FROM python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -48,8 +51,11 @@ WORKDIR /app
 
 # Dependencies first, so editing application code does not re-download
 # Chromium on every build.
-COPY requirements.txt ./
-RUN pip install -r requirements.txt \
+# requirements.lock pins every package to the release the image was last built
+# and checked with, so a new upstream release cannot change the image without
+# a commit.
+COPY requirements.txt requirements.lock ./
+RUN pip install -r requirements.txt -c requirements.lock \
     && python -m playwright install --with-deps chromium
 
 COPY dossier/ ./dossier/

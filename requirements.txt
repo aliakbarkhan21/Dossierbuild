@@ -25,7 +25,9 @@ python-dotenv>=1.0
 
 # Rendering: profile -> HTML -> PDF.
 jinja2>=3.1
-playwright>=1.44
+# Below 1.65: from 1.65 Playwright's bundled Node needs libatomic.so.1, which
+# python:3.12-slim does not ship, so `playwright install` exits 127 in the image.
+playwright>=1.44,<1.65
 
 # The resume portrait: normalised on upload, embedded as a data URI.
 pillow>=10.0
