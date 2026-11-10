@@ -71,7 +71,12 @@
       --deep-muted: #9fb0a8;
       --mint: #7fd1ae;
       --shadow: 0 1px 2px rgb(14 28 23 / 0.05), 0 18px 48px rgb(14 28 23 / 0.10);
-      --radius: 18px;
+      /* Corners nest: a thing inside another takes the smaller step. Marks 4,
+         tags and tiles 8, blocks inside cards 12, cards 16, panels 24, the
+         full-width cards 28. Controls are pills. */
+      --r-1: 4px; --r-2: 8px; --r-3: 12px; --r-4: 16px; --r-5: 24px; --r-6: 28px; --r-pill: 999px;
+      /* The flag mark's red where it sits on a green card. */
+      --flag-on-green: #ffc4bc;
       --font: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
       --serif: "Source Serif 4", Georgia, serif;
     }
@@ -134,7 +139,7 @@
     }
     img, video { max-width: 100%; height: auto; display: block; }
     a { color: var(--accent); }
-    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-2); }
     h1, h2, h3 { margin: 0; font-weight: 450; letter-spacing: -0.035em; line-height: 1.06; }
     p { margin: 0; }
 
@@ -144,7 +149,7 @@
     /* ---------- Buttons ---------- */
     .btn {
       position: relative; isolation: isolate;
-      display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px;
+      display: inline-flex; align-items: center; gap: 8px; padding: 13px 20px; border-radius: var(--r-pill);
       font: 500 16px/1 var(--font); text-decoration: none; border: 1px solid transparent; cursor: pointer;
       transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
     }
@@ -184,14 +189,15 @@
      * page under it changes without any other rule knowing.
      */
     .glass {
-      /* Clear, not frosted: what is under the glass stays nearly sharp, and
-         the glass is told apart by its rim, its thickness and, in Chromium,
-         the way it bends things at the edge. */
-      --g-blur: 2px;
-      --g-tint: rgb(255 255 255 / 0.14);
+      /* Frosted, not clear. Clear glass let the page read straight through
+         the bar and fight its labels. The tint is heavy enough that a label
+         keeps 4.5:1 over anything passing beneath it, and the blur turns
+         what is left of the page into colour. The rim and, in Chromium, the
+         bend at the edge still say glass. */
+      --g-blur: 16px;
+      --g-tint: rgb(246 244 239 / 0.8);
       --g-ink: #0e1c17;
       --g-ink-2: #36433d;
-      --g-glow: rgb(44 106 84 / 0.16);
       --g-thumb: rgb(255 255 255 / 0.92);
       --g-thumb-shadow: 0 1px 2px rgb(14 28 23 / 0.08), 0 3px 10px rgb(14 28 23 / 0.06), inset 0 0 0 0.5px rgb(14 28 23 / 0.07);
       --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.2) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.5));
@@ -204,10 +210,9 @@
       transition: background-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease;
     }
     .glass[data-tone="dark"] {
-      --g-tint: rgb(8 14 11 / 0.4); --g-blur: 3px;
+      --g-tint: rgb(9 20 15 / 0.76);
       --g-ink: #f3f8f5;
       --g-ink-2: rgb(243 248 245 / 0.86);
-      --g-glow: rgb(255 255 255 / 0.22);
       --g-thumb: rgb(255 255 255 / 0.16);
       --g-thumb-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.2), 0 2px 8px rgb(0 0 0 / 0.18);
       --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.1) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.26));
@@ -216,10 +221,9 @@
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) .glass:not([data-tone="light"]) {
-        --g-tint: rgb(8 14 11 / 0.4); --g-blur: 3px;
+        --g-tint: rgb(9 20 15 / 0.76);
         --g-ink: #f3f8f5;
         --g-ink-2: rgb(243 248 245 / 0.86);
-        --g-glow: rgb(255 255 255 / 0.22);
         --g-thumb: rgb(255 255 255 / 0.16);
         --g-thumb-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.2), 0 2px 8px rgb(0 0 0 / 0.18);
         --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.1) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.26));
@@ -228,10 +232,9 @@
       }
     }
     :root[data-theme="dark"] .glass:not([data-tone="light"]) {
-      --g-tint: rgb(8 14 11 / 0.4); --g-blur: 3px;
+      --g-tint: rgb(9 20 15 / 0.76);
       --g-ink: #f3f8f5;
       --g-ink-2: rgb(243 248 245 / 0.86);
-      --g-glow: rgb(255 255 255 / 0.22);
       --g-thumb: rgb(255 255 255 / 0.16);
       --g-thumb-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.2), 0 2px 8px rgb(0 0 0 / 0.18);
       --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.1) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.26));
@@ -246,18 +249,9 @@
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       -webkit-mask-composite: xor; mask-composite: exclude;
     }
-    /* Glass lights up from the point you touch, and a button swells under the
-       press and settles back with a little give once you let go. */
-    .press::before {
-      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
-      background: radial-gradient(circle at var(--px, 50%) var(--py, 50%), var(--g-glow, rgb(255 255 255 / 0.3)), transparent 70%);
-      opacity: 0; transition: opacity 0.4s ease;
-    }
-    .btn.press::before { --g-glow: rgb(255 255 255 / 0.3); }
-    .btn-glass.press:hover::before { opacity: 0.55; }
-    .press.pressed::before { opacity: 1; transition-duration: 0.08s; }
-    .btn.press { transition: transform 0.55s cubic-bezier(0.3, 1.45, 0.5, 1), background-color 0.35s ease, color 0.35s ease; }
-    .btn.press.pressed { transform: scale(1.05); transition-duration: 0.16s, 0.35s, 0.35s; transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1), ease, ease; }
+    /* A glass button gives a little under the press. */
+    .btn.press { transition: transform 0.15s ease, background-color 0.35s ease, color 0.35s ease; }
+    .btn.press.pressed { transform: scale(0.98); }
 
     /* ---------- Header: floating glass ---------- */
     /* The header's own height, which the green cards reach up behind:
@@ -271,31 +265,25 @@
     header.site > * { pointer-events: auto; }
     .bar {
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
-      max-width: 1116px; height: 56px; margin: 0 auto; padding: 0 9px 0 12px; border-radius: 28px;
+      max-width: 1116px; height: 56px; margin: 0 auto; padding: 0 9px 0 12px; border-radius: var(--r-pill);
     }
-    .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none;
+    .brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; color: var(--text); text-decoration: none;
       font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 15px; }
     .bar .brand { color: var(--g-ink); transition: color 0.35s ease; }
-    .brand img { width: 30px; height: 30px; border-radius: 8px; background: #fff; padding: 3px; border: 1px solid var(--line); }
+    .brand img { width: 30px; height: 30px; border-radius: var(--r-2); background: #fff; padding: 3px; border: 1px solid var(--line); }
     .tabs { display: flex; gap: 2px; position: relative; }
     .tabs a {
       position: relative; z-index: 1;
-      color: var(--g-ink-2); text-decoration: none; font-size: 15px; padding: 8px 13px; border-radius: 999px;
+      color: var(--g-ink-2); text-decoration: none; font-size: 15px; padding: 8px 13px; border-radius: var(--r-pill);
       white-space: nowrap; transition: color 0.3s ease;
     }
     .tabs a:hover, .tabs a[aria-current="page"] { color: var(--g-ink); }
-    /* Vibrancy, roughly: clear glass leaves the page readable underneath, so
-       each label carries a halo in its tone's background colour -- tight for
-       the edge of each letter, wide to quiet whatever passes behind it. */
-    header.site .glass, .appearance { text-shadow: 0 0 3px rgb(255 255 255 / 0.95), 0 0 10px rgb(255 255 255 / 0.8); }
-    header.site .glass[data-tone="dark"], .appearance[data-tone="dark"] { text-shadow: 0 0 3px rgb(0 0 0 / 0.6), 0 0 10px rgb(0 0 0 / 0.45); }
-    header.site .btn { text-shadow: none; }
     /* One droplet of highlight moves between tabs. Until the script has
        placed it, a highlight on the current tab stands in. */
     .tabs a[aria-current="page"], .stepper [aria-selected="true"] { background: var(--g-thumb); box-shadow: var(--g-thumb-shadow); }
     .glide > a[aria-current="page"], .glide > [aria-selected="true"] { background: none; box-shadow: none; }
     .thumb {
-      position: absolute; z-index: 0; top: 0; left: 0; width: 0; height: 0; border-radius: 999px;
+      position: absolute; z-index: 0; top: 0; left: 0; width: 0; height: 0; border-radius: var(--r-pill);
       background: var(--g-thumb); box-shadow: var(--g-thumb-shadow); pointer-events: none; opacity: 0;
       transition: background-color 0.35s ease, box-shadow 0.35s ease;
     }
@@ -314,11 +302,13 @@
     .tabs-mobile { display: none; }
     @media (max-width: 1060px) { .bar-right .gh { display: none; } }
     @media (max-width: 1000px) {
-      /* 12 above, the bar, 8 between, the tab strip, 8 below. */
-      :root { --nav-h: 124px; }
-      .bar { height: 52px; padding: 0 6px 0 10px; border-radius: 26px; }
+      /* 12 above, the bar, 8 between, the tab strip, 8 below. The strip is
+         50 tall so each tab inside it is a 44px target. */
+      :root { --nav-h: 130px; }
+      .bar { height: 52px; padding: 0 4px 0 10px; }
       .bar .tabs { display: none; }
-      .tabs-mobile { display: block; max-width: 1116px; height: 44px; margin: 8px auto 0; padding: 3px; border-radius: 22px; }
+      .bar-right .btn { min-height: 44px; padding-top: 0; padding-bottom: 0; }
+      .tabs-mobile { display: block; max-width: 1116px; height: 50px; margin: 8px auto 0; padding: 3px; border-radius: var(--r-pill); }
       .tabs-mobile .strip {
         /* Sideways only. overflow-x: auto quietly makes the other axis
            scrollable too, and the tabs stood 2px taller than the strip, so a
@@ -332,7 +322,7 @@
         mask-image: linear-gradient(90deg, transparent, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent);
       }
       .tabs-mobile .strip::-webkit-scrollbar { display: none; }
-      .tabs-mobile .strip a { padding-top: 7px; padding-bottom: 7px; }
+      .tabs-mobile .strip a { padding-top: 10px; padding-bottom: 10px; }
       .tabs-mobile .strip.more-l { --fade-l: 36px; }
       .tabs-mobile .strip.more-r { --fade-r: 36px; }
       /* While you read, the brand row steps aside and leaves the tabs. */
@@ -350,7 +340,7 @@
      * and reads its tone from the page under it, like the top bar. */
     .appearance {
       position: fixed; z-index: 40; right: calc(16px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom));
-      width: 44px; height: 44px; border-radius: 22px; overflow: hidden;
+      width: 44px; height: 44px; border-radius: var(--r-pill); overflow: hidden;
       transition: width 0.45s cubic-bezier(0.32, 0.72, 0, 1), transform 0.45s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease,
         background-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease;
     }
@@ -371,8 +361,10 @@
     .appearance.open .appearance-options { opacity: 1; visibility: visible; transition: opacity 0.25s ease 0.12s, visibility 0s; }
     .appearance-options button {
       position: relative; z-index: 1; flex: 1; height: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
-      border: 0; border-radius: 999px; background: none; color: var(--g-ink-2); font: 500 13.5px/1 var(--font); cursor: pointer; padding: 0 6px;
+      border: 0; border-radius: var(--r-pill); background: none; color: var(--g-ink-2); font: 500 13.5px/1 var(--font); cursor: pointer; padding: 0 6px;
     }
+    /* The choices look 36 tall and take a touch across the capsule's full 44. */
+    .appearance-options button::before { content: ""; position: absolute; inset: -4px 0; }
     .appearance-options button svg { width: 16px; height: 16px; }
     .appearance-options [aria-checked="true"] { color: var(--g-ink); background: var(--g-thumb); box-shadow: var(--g-thumb-shadow); }
     @media (forced-colors: active) { .appearance-options [aria-checked="true"] { outline: 2px solid CanvasText; outline-offset: -2px; } }
@@ -387,9 +379,24 @@
     .page-head { text-align: center; max-width: 46rem; margin: 0 auto; padding: 64px 0 48px; }
     .page-head h1, .page-head h2 { font-size: clamp(36px, 5.6vw, 60px); }
     .page-head p { color: var(--muted); font-size: clamp(17px, 1.9vw, 20px); margin-top: 18px; }
-    .eyebrow { display: inline-block; font: 500 12px/1 ui-monospace, "SFMono-Regular", Menlo, monospace;
-      letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
-    .serif-i { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -0.02em; }
+    .eyebrow { display: inline-block; font: 500 13px/1 ui-monospace, "SFMono-Regular", Menlo, monospace;
+      color: var(--accent); margin-bottom: 16px; }
+
+    /* ---------- The flag mark ----------
+     * What the check leaves on a claim it cannot find in your profile: a red
+     * underline and a box left unticked. It marks things the check catches
+     * and nothing else. The two shapes carry it, not the colour: the words
+     * keep the colour of the line they sit in. */
+    .flagged {
+      --flag: var(--poor); white-space: nowrap;
+      text-decoration: underline solid var(--flag); text-decoration-thickness: 0.075em;
+      text-underline-offset: 0.16em; text-decoration-skip-ink: none;
+    }
+    .flagged::before {
+      content: ""; display: inline-block; width: 0.44em; height: 0.44em; margin-right: 0.18em; vertical-align: 0.08em;
+      border: 0.065em solid var(--flag); border-radius: 0.1em;
+    }
+    .closer .flagged { --flag: var(--flag-on-green); }
 
     /* ---------- Hero ---------- */
     /* The green cards start 4px from the top of the page and run up behind the
@@ -397,27 +404,25 @@
        sitting in a band of its own above them. */
     .under-nav { margin-top: calc(4px - var(--nav-h)); }
     .hero {
-      margin-left: 12px; margin-right: 12px; border-radius: 28px; overflow: hidden; position: relative; isolation: isolate;
+      margin-left: 12px; margin-right: 12px; border-radius: var(--r-6); overflow: hidden; position: relative; isolation: isolate;
       background: linear-gradient(172deg, #143a2f 0%, #1f5846 28%, #3b876b 56%, #95ccb4 80%, #dcebe2 100%);
       color: #fff; text-align: center; padding: calc(var(--nav-h) + 56px) 16px 0;
     }
     .hero::before {
       content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0.5;
-      background: radial-gradient(60% 50% at 20% 10%, rgb(127 209 174 / 0.35), transparent 70%),
-                  radial-gradient(50% 40% at 85% 30%, rgb(196 210 255 / 0.25), transparent 70%);
+      background: radial-gradient(60% 50% at 20% 10%, rgb(127 209 174 / 0.35), transparent 70%);
     }
     @media (min-width: 720px) { .hero { margin-left: 16px; margin-right: 16px; padding-top: calc(var(--nav-h) + 76px); } }
     .pill {
       display: inline-flex; align-items: center; gap: 8px; background: #fff; color: #0e1c17;
-      font-size: 14px; padding: 6px 14px 6px 6px; border-radius: 999px; margin-bottom: 28px;
+      font-size: 14px; padding: 6px 14px 6px 6px; border-radius: var(--r-pill); margin-bottom: 28px;
       box-shadow: 0 6px 20px rgb(0 0 0 / 0.12);
     }
     @media (max-width: 480px) { .pill-more { display: none; } }
     .pill b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
       background: #2c6a54; color: #fff; font-size: 12px; }
     .hero h1 { font-size: clamp(40px, 7vw, 76px); max-width: 14ch; margin: 0 auto; text-wrap: balance; }
-    .hero h1 .serif-i { color: #c9f0dd; }
-    .hero .lede { font-size: clamp(17px, 2vw, 20px); color: rgb(255 255 255 / 0.85); max-width: 34em; margin: 22px auto 0; }
+    .hero .lede { font-size: clamp(17px, 2vw, 20px); color: rgb(255 255 255 / 0.85); max-width: 34em; margin: 22px auto 0; text-wrap: pretty; }
     .hero .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 32px; }
     .proof { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; margin: 22px 0 0; padding: 0;
       list-style: none; font-size: 14px; color: rgb(255 255 255 / 0.85); }
@@ -426,12 +431,12 @@
     /* The resume page, and the cards that float over it */
     .stage { position: relative; max-width: 940px; margin: 56px auto 0; text-align: left; }
     .paper {
-      background: #fff; color: #1b1d1c; border-radius: 10px 10px 0 0; padding: 36px 40px 28px;
+      background: #fff; color: #1b1d1c; border-radius: var(--r-2) var(--r-2) 0 0; padding: 36px 40px 28px;
       box-shadow: 0 -10px 60px rgb(0 0 0 / 0.18); font-family: var(--serif); max-width: 720px; margin: 0 auto;
       position: relative;
     }
     .paper::before, .paper::after {
-      content: ""; position: absolute; left: 4%; right: 4%; top: -12px; height: 12px; border-radius: 10px 10px 0 0;
+      content: ""; position: absolute; left: 4%; right: 4%; top: -12px; height: 12px; border-radius: var(--r-2) var(--r-2) 0 0;
       background: rgb(255 255 255 / 0.55);
     }
     .paper::after { left: 8%; right: 8%; top: -22px; background: rgb(255 255 255 / 0.3); }
@@ -445,13 +450,13 @@
     .paper .job b { font-weight: 600; }
     .paper .job span { color: #555; white-space: nowrap; }
     .paper ul { margin: 4px 0 0; padding-left: 16px; }
-    .paper li { margin: 2px 0; transition: background 0.35s ease, color 0.35s ease; border-radius: 3px; }
-    .paper mark { background: none; color: inherit; transition: background 0.35s ease; border-radius: 3px; padding: 0 1px; }
+    .paper li { margin: 2px 0; transition: background 0.35s ease, color 0.35s ease; border-radius: var(--r-1); }
+    .paper mark { background: none; color: inherit; transition: background 0.35s ease; border-radius: var(--r-1); padding: 0 1px; }
     .paper.keys mark { background: #d8efe3; }
     /* Old and new wording occupy the same cell, so the list is as tall as the
        longer of the two in every state and nothing below it moves. */
     .paper li.swap { display: grid; }
-    .paper li.swap > span { grid-area: 1 / 1; transition: opacity 0.3s ease, background 0.35s ease, color 0.35s ease; border-radius: 3px; }
+    .paper li.swap > span { grid-area: 1 / 1; transition: opacity 0.3s ease, background 0.35s ease, color 0.35s ease; border-radius: var(--r-1); }
     .paper li.swap .new { opacity: 0; visibility: hidden; background: #e7f3ec; }
     .paper.rewrite li.swap .old { background: #fbeceb; color: #9a3f3a; text-decoration: line-through; text-decoration-color: rgb(164 68 63 / 0.5); }
     .paper.saved li.swap .old { opacity: 0; visibility: hidden; }
@@ -460,29 +465,29 @@
       background: linear-gradient(transparent, #fff); border-radius: 0; }
 
     .float {
-      position: absolute; background: #fff; color: #0e1c17; border-radius: 16px; padding: 16px 18px;
+      position: absolute; background: #fff; color: #0e1c17; border-radius: var(--r-4); padding: 16px 18px;
       box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 22px 50px rgb(0 0 0 / 0.18); font-size: 14px; width: 260px;
       transition: opacity 0.4s ease, transform 0.4s ease;
     }
     .float .k { display: flex; justify-content: space-between; align-items: center; color: #6f6b62; font-size: 13px; }
-    .badge { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 6px; }
+    .badge { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: var(--r-1); }
     .badge.good { background: #e2efe7; color: #2f7355; }
     .badge.fair { background: #f6eddb; color: #8a6318; }
     .badge.poor { background: #f7e5e3; color: #a4443f; }
-    .badge.none { background: #f0eee9; color: #8a8a82; }
+    .badge.none { background: #f0eee9; color: #6f6b62; }
     .float .big { font-size: 46px; font-weight: 400; letter-spacing: -0.04em; line-height: 1; margin: 12px 0 10px; }
-    .meter { height: 5px; border-radius: 5px; background: #ecebe6; overflow: hidden; }
-    .meter i { display: block; height: 100%; background: #2f7355; border-radius: 5px; transition: width 0.6s ease; }
-    .float .lbl { margin: 14px 0 8px; font: 500 11px/1 ui-monospace, Menlo, monospace; letter-spacing: 0.1em; text-transform: uppercase; color: #8a8a82; }
+    .meter { height: 5px; border-radius: var(--r-pill); background: #ecebe6; overflow: hidden; }
+    .meter i { display: block; height: 100%; background: #2f7355; border-radius: var(--r-pill); transition: width 0.6s ease; }
+    .float .lbl { margin: 14px 0 8px; font: 500 12px/1.3 var(--font); color: #6f6b62; }
     .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-    .chip { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; background: #e2efe7; color: #2f7355; }
+    .chip { font-size: 12.5px; padding: 3px 9px; border-radius: var(--r-pill); background: #e2efe7; color: #2f7355; }
     .chip.miss { background: #f7e5e3; color: #a4443f; }
     .chip::before { content: "✓ "; }
     .chip.miss::before { content: "✕ "; }
     .float.match { right: -28px; top: 120px; }
     .float.check { left: -36px; bottom: 36px; width: 290px; }
-    .sug { display: grid; grid-template-columns: 18px 1fr; gap: 10px; padding: 10px; border-radius: 10px; border: 1px solid #ebe8e1; margin-top: 8px; font-size: 13px; line-height: 1.45; }
-    .sug .box { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid #cfcbc2; margin-top: 2px; display: grid; place-items: center; }
+    .sug { display: grid; grid-template-columns: 18px 1fr; gap: 10px; padding: 10px; border-radius: var(--r-2); border: 1px solid #ebe8e1; margin-top: 8px; font-size: 13px; line-height: 1.45; }
+    .sug .box { width: 16px; height: 16px; border-radius: var(--r-1); border: 1.5px solid #cfcbc2; margin-top: 2px; display: grid; place-items: center; }
     .sug.ok .box { background: #2c6a54; border-color: #2c6a54; }
     .sug.ok .box::after { content: ""; width: 8px; height: 4px; border: 2px solid #fff; border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px); }
     .sug.flag { background: #fbeceb; border-color: #efcfcc; }
@@ -490,12 +495,21 @@
     .sug small { display: block; margin-top: 4px; font-weight: 600; font-size: 12px; }
     .sug.ok small { color: #2f7355; }
     .sug.flag small { color: #a4443f; }
-    @media (max-width: 1040px) { .float.match { right: 8px; } .float.check { left: 8px; } }
+    /* Below desktop width there is no room beside the page, and cards laid
+       over it hid half the resume. They sit under it instead: side by side
+       on a tablet, stacked on a phone. */
+    @media (max-width: 1040px) {
+      .stage-floats > .float { position: static; width: auto; margin: 12px 0 0; }
+      .stage-floats { display: grid; gap: 12px; max-width: 720px; margin: 0 auto; padding: 0 0 16px; }
+    }
+    @media (min-width: 641px) and (max-width: 1040px) {
+      .stage-floats { grid-template-columns: 1fr 1fr; align-items: start; }
+      .stage-floats > .float.check { grid-area: 1 / 1; }
+      .stage-floats > .float.match { grid-area: 1 / 2; }
+    }
     @media (max-width: 760px) {
       .paper { padding: 26px 20px 20px; }
       .paper .job { flex-direction: column; gap: 0; }
-      .float { position: static; width: auto; margin: 12px 0 0; }
-      .stage-floats { display: grid; gap: 12px; padding: 0 0 16px; }
     }
     .illustration-note { font-size: 13px; color: var(--faint); text-align: center; margin: 14px auto 0; max-width: 40em; }
 
@@ -506,11 +520,11 @@
     .section-head p { color: var(--muted); font-size: 18px; margin-top: 14px; }
     .versus { display: grid; gap: 16px; grid-template-columns: 1fr; max-width: 920px; margin: 0 auto; }
     @media (min-width: 820px) { .versus { grid-template-columns: 1fr 1fr; } }
-    .vs { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; }
+    .vs { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-4); padding: 26px; }
     .vs.us { border: 1.5px solid var(--accent); box-shadow: 0 0 0 5px var(--accent-soft); }
     .vs-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
     .vs-top h3 { font-size: 20px; letter-spacing: -0.02em; font-weight: 500; }
-    .vs-top span { font: 500 11px/1 ui-monospace, Menlo, monospace; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+    .vs-top span { font: 500 12px/1 ui-monospace, Menlo, monospace; color: var(--faint); }
     .vs ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
     .vs li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 16px; color: var(--muted); }
     .vs li::before { content: "✕"; color: var(--poor); font-weight: 700; }
@@ -521,7 +535,7 @@
     @media (min-width: 760px) { .explore { grid-template-columns: repeat(3, 1fr); } }
     .explore a {
       display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: var(--text);
-      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-4); padding: 24px;
       transition: border-color 0.15s ease, transform 0.15s ease;
     }
     .explore a:hover { border-color: var(--line-strong); transform: translateY(-2px); }
@@ -534,49 +548,56 @@
        tab bar slides under the current step. */
     .stepper {
       display: flex; gap: 2px; justify-content: center; margin: 0 auto; width: max-content; max-width: 100%;
-      border-radius: 999px; padding: 4px; overflow-x: auto; scrollbar-width: none;
+      border-radius: var(--r-pill); padding: 4px; overflow-x: auto; scrollbar-width: none;
     }
     .stepper::-webkit-scrollbar { display: none; }
     .stepper button {
       position: relative; z-index: 1;
       font: 500 14px/1 var(--font); color: var(--muted); background: none; border: 0; cursor: pointer;
-      padding: 10px 14px; border-radius: 999px; white-space: nowrap; transition: color 0.3s ease;
+      padding: 10px 14px; border-radius: var(--r-pill); white-space: nowrap; transition: color 0.3s ease;
     }
-    .stepper button i { font: 500 11px/1 ui-monospace, Menlo, monospace; font-style: normal; opacity: 0.7; margin-right: 6px; }
+    .stepper button i { font: 500 12px/1 ui-monospace, Menlo, monospace; font-style: normal; margin-right: 6px; }
     .stepper button[aria-selected="true"], .stepper button.done { color: var(--text); }
     .stepper button.done i::before { content: "✓ "; }
     .step-title { text-align: center; font-size: clamp(28px, 4.4vw, 46px); margin: 28px auto 8px; }
     .step-copy { text-align: center; color: var(--muted); max-width: 38em; margin: 0 auto; font-size: 17px; }
-    .how-stage { margin-top: 36px; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 40px 16px 0; overflow: hidden; }
+    .how-stage { margin-top: 36px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-5); padding: 40px 16px 0; overflow: hidden; }
     .how-stage .stage { margin-top: 0; }
     .how-stage .paper { box-shadow: 0 -4px 40px rgb(14 28 23 / 0.10); border: 1px solid #ece9e2; border-bottom: 0; }
     .how-stage .paper::before, .how-stage .paper::after { display: none; }
+    /* The last line on this page is the one the steps rewrite, so the page
+       fades out below it rather than through it, and the card that checks
+       it sits clear of it. */
+    .how-stage .paper .fade { height: 28px; }
+    .how-stage .float.check { bottom: 88px; }
     [data-show] { opacity: 0; visibility: hidden; transform: translateY(8px); pointer-events: none; }
     [data-show].on { opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
     /* On phones the cards sit under the page rather than over it. All of them
        share one grid cell, so the space is reserved for the tallest and the
        page is the same height at every step. */
-    @media (max-width: 760px) { .how-stage .stage-floats > .float { grid-area: 1 / 1; } }
+    @media (max-width: 640px) { .how-stage .stage-floats > .float { grid-area: 1 / 1; } }
 
     /* The heading and paragraph for every step share one cell for the same reason. */
     .step-title, .step-copy { display: grid; min-height: 0; }
     .step-title > span, .step-copy > span { grid-area: 1 / 1; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
     .step-title > span.on, .step-copy > span.on { opacity: 1; visibility: visible; }
+    /* Where the steps are picked by touch, each one is a 44px target. */
+    @media (max-width: 1000px) { .stepper button { padding-top: 15px; padding-bottom: 15px; } }
     /* A 2x2 grid on phones, instead of a strip that scrolls sideways. */
     @media (max-width: 640px) {
-      .stepper { display: grid; grid-template-columns: 1fr 1fr; width: 100%; border-radius: 22px; overflow: visible; }
-      .stepper button { padding: 11px 10px; text-align: center; }
+      .stepper { display: grid; grid-template-columns: 1fr 1fr; width: 100%; border-radius: var(--r-5); overflow: visible; }
+      .stepper button { padding: 15px 10px; text-align: center; }
     }
 
     .video-card { margin: 72px auto 0; max-width: 1040px; }
-    .video-card .frame { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); background: #121815; }
+    .video-card .frame { border-radius: var(--r-4); overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); background: #121815; }
     .video-card .bar-dots { display: flex; align-items: center; gap: 7px; padding: 11px 14px; border-bottom: 1px solid rgb(255 255 255 / 0.08); }
     .video-card .bar-dots i { width: 10px; height: 10px; border-radius: 50%; background: rgb(255 255 255 / 0.16); }
     .video-card .bar-dots span { margin: 0 auto; font-size: 12px; color: #9fb0a8; }
     .video-card figcaption { color: var(--faint); font-size: 14px; text-align: center; margin-top: 14px; }
 
     /* ---------- Features: the dark toolkit ---------- */
-    .toolkit { background: var(--deep); color: var(--deep-text); border-radius: 28px; padding: calc(var(--nav-h) + 44px) 20px 20px; margin-left: 12px; margin-right: 12px; }
+    .toolkit { background: var(--deep); color: var(--deep-text); border-radius: var(--r-6); padding: calc(var(--nav-h) + 44px) 20px 20px; margin-left: 12px; margin-right: 12px; }
     @media (min-width: 720px) { .toolkit { margin-left: 16px; margin-right: 16px; padding: calc(var(--nav-h) + 52px) 40px 40px; } }
     .toolkit-head { display: grid; gap: 18px; grid-template-columns: 1fr; align-items: end; max-width: 1100px; margin: 0 auto 36px; }
     @media (min-width: 860px) { .toolkit-head { grid-template-columns: 1.4fr 1fr; } }
@@ -586,19 +607,23 @@
     .bento { display: grid; gap: 12px; grid-template-columns: 1fr; max-width: 1100px; margin: 0 auto; }
     @media (min-width: 760px) { .bento { grid-template-columns: repeat(2, 1fr); } }
     @media (min-width: 1040px) { .bento { grid-template-columns: repeat(3, 1fr); } .w2 { grid-column: span 2; } }
-    .cell { background: var(--deep-2); border: 1px solid var(--deep-line); border-radius: 18px; padding: 24px; overflow: hidden;
+    .cell { background: var(--deep-2); border: 1px solid var(--deep-line); border-radius: var(--r-4); padding: 24px; overflow: hidden;
       display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-    .cell .n { font: 500 11px/1 ui-monospace, Menlo, monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--deep-muted); }
+    .cell .n { font: 500 12px/1 ui-monospace, Menlo, monospace; color: var(--deep-muted); }
     .cell h3 { font-size: 22px; letter-spacing: -0.025em; }
     .cell p { color: var(--deep-muted); font-size: 15px; }
-    .cell .shot { margin: 14px -24px -24px; border-top: 1px solid var(--deep-line); }
+    /* A screenshot, or the guard's mark, sits at the foot of its card however
+       tall the row makes it. */
+    .cell .shot { margin: auto -24px -24px; border-top: 1px solid var(--deep-line); }
+    .cell > .sug { margin-top: auto; color: #0e1c17; }
+    .cell p:has(+ .shot), .cell p:has(+ .sug) { margin-bottom: 14px; }
     .cell .stat { font-size: 64px; font-weight: 300; letter-spacing: -0.05em; line-height: 1; color: var(--mint); margin: 6px 0; }
     .stack { display: grid; gap: 12px; min-width: 0; }
     .cell.green { background: linear-gradient(160deg, #1f5846, #2c6a54 60%, #3b876b); border-color: transparent; }
     .cell.green p { color: rgb(255 255 255 / 0.8); }
-    .cell.green .n { color: rgb(255 255 255 / 0.7); }
+    .cell.green .n { color: rgb(255 255 255 / 0.9); }
     .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-    .tags span { font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--deep-line); color: var(--deep-text); background: rgb(255 255 255 / 0.04); }
+    .tags span { font-size: 13px; padding: 4px 10px; border-radius: var(--r-pill); border: 1px solid var(--deep-line); color: var(--deep-text); background: rgb(255 255 255 / 0.04); }
 
     /* ---------- Features: the templates, in full ----------
      * Real renders, not mock-ups: page one of the worked example in each
@@ -609,10 +634,10 @@
     .gallery-head { display: grid; gap: 10px; margin-bottom: 28px; }
     .gallery-head h2 { font-size: clamp(30px, 4.2vw, 44px); }
     .gallery-head p { color: var(--deep-muted); font-size: 16px; max-width: 48em; }
-    .gallery .n { font: 500 11px/1 ui-monospace, Menlo, monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--deep-muted); }
+    .gallery .n { font: 500 12px/1 ui-monospace, Menlo, monospace; color: var(--deep-muted); }
     .templates { list-style: none; margin: 0; padding: 0; display: grid; gap: 28px 16px; grid-template-columns: repeat(5, minmax(0, 1fr)); }
     .templates li { min-width: 0; }
-    .templates a { display: block; border-radius: 4px; overflow: hidden; background: #fff;
+    .templates a { display: block; border-radius: var(--r-1); overflow: hidden; background: #fff;
       box-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 14px 34px rgb(0 0 0 / 0.38); transition: transform 0.2s ease, box-shadow 0.2s ease; }
     .templates a:hover { transform: translateY(-3px); box-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 20px 44px rgb(0 0 0 / 0.45); }
     .templates img { width: 100%; height: auto; }
@@ -636,14 +661,14 @@
        page loses them. The commands are the README's, word for word. */
     .install { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); max-width: 1080px; margin: 0 auto; }
     @media (min-width: 900px) { .install { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: start; } }
-    .way { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; min-width: 0; }
+    .way { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-4); padding: 26px; min-width: 0; }
     .way-main { border: 1.5px solid var(--accent); box-shadow: 0 0 0 5px var(--accent-soft); }
     .way-side { display: grid; gap: 16px; min-width: 0; }
     .way-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
     .way-top h2 { font-size: 22px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.2; }
     .way p { color: var(--muted); font-size: 15.5px; }
     .way .fine { font-size: 14.5px; margin-top: 16px; }
-    .way p code, .install-note code { font: 0.9em ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; background: var(--accent-soft); color: var(--text); padding: 1px 6px; border-radius: 6px; }
+    .way p code, .install-note code { font: 0.9em ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; background: var(--accent-soft); color: var(--text); padding: 1px 6px; border-radius: var(--r-1); }
     .steps-list { list-style: none; margin: 0; padding: 0; counter-reset: step; display: grid; gap: 18px; }
     .steps-list li { counter-increment: step; display: grid; grid-template-columns: 28px minmax(0, 1fr); column-gap: 12px; font-size: 16px; }
     .steps-list li::before { content: counter(step); grid-row: span 2; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
@@ -651,24 +676,26 @@
     .steps-list .cmd { grid-column: 2; }
     /* The copy button sits in a bar of its own above the command, so the
        command gets the block's full width and wraps only where it must. */
-    .cmd { margin-top: 12px; background: #0d1a15; border-radius: 14px; }
+    .cmd { margin-top: 12px; background: #0d1a15; border-radius: var(--r-3); }
     .cmd-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 6px 0 16px; }
-    .cmd-bar span { font: 500 11px/1 ui-monospace, "SFMono-Regular", Menlo, monospace; letter-spacing: 0.1em; text-transform: uppercase; color: #8fa39a; }
+    .cmd-bar span { font: 500 12px/1 ui-monospace, "SFMono-Regular", Menlo, monospace; color: #8fa39a; }
     .cmd code { display: block; padding: 6px 16px 14px; font: 13.5px/1.65 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; color: #dfe9e4; white-space: pre-wrap; overflow-wrap: anywhere; }
-    .cmd .copy { font: 500 13px/1 var(--font); padding: 8px 13px; border: 0; border-radius: 999px; cursor: pointer; color: var(--g-ink); }
+    .cmd .copy { font: 500 13px/1 var(--font); padding: 8px 13px; border: 0; border-radius: var(--r-pill); cursor: pointer; color: var(--g-ink); }
+    /* The button stays small; the area that takes a touch is 44 tall. */
+    .cmd .copy::before { content: ""; position: absolute; inset: -8px -4px; }
     @media (max-width: 600px) {
       .way { padding: 20px; }
       .steps-list .cmd { grid-column: 1 / -1; }
       .cmd code { font-size: 12.5px; padding: 6px 14px 12px; }
     }
-    .more { margin-top: 14px; }
-    .more summary { cursor: pointer; color: var(--accent); font-size: 15px; width: max-content; max-width: 100%; }
+    .more { margin-top: 4px; }
+    .more summary { cursor: pointer; color: var(--accent); font-size: 15px; width: max-content; max-width: 100%; padding: 10px 0; }
     .install-note { text-align: center; color: var(--muted); margin-top: 28px; font-size: 15px; }
 
     /* ---------- Roadmap ---------- */
     .roadmap { display: grid; gap: 16px; grid-template-columns: 1fr; max-width: 980px; margin: 0 auto; }
     @media (min-width: 820px) { .roadmap { grid-template-columns: 1fr 1fr; } }
-    .road { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
+    .road { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-4); padding: 28px; }
     .road h3 { font-size: 21px; font-weight: 500; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
     .road ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
     .road li { padding: 14px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 15.5px; }
@@ -694,11 +721,11 @@
     /* ---------- About ---------- */
     .about { display: grid; gap: 16px; grid-template-columns: 1fr; max-width: 1000px; margin: 0 auto; }
     @media (min-width: 880px) { .about { grid-template-columns: 1.5fr 1fr; } }
-    .note { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px; }
+    .note { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-4); padding: 32px; }
     .note blockquote { margin: 0; }
     .note blockquote p { font-family: var(--serif); font-size: clamp(19px, 2.2vw, 23px); line-height: 1.55; margin-bottom: 16px; }
     .signed { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
-    .signed img { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: #fff; padding: 4px; }
+    .signed img { width: 40px; height: 40px; border-radius: var(--r-2); border: 1px solid var(--line); background: #fff; padding: 4px; }
     .signed strong { display: block; font-weight: 500; }
     .signed span span { font-size: 14px; color: var(--faint); }
     .side-cards { display: grid; gap: 16px; align-content: start; }
@@ -709,7 +736,7 @@
 
     /* ---------- Closing card and footer ---------- */
     .closer {
-      margin: 72px 12px 0; border-radius: 28px; padding: 56px 24px; text-align: center; color: #fff;
+      margin: 72px 12px 0; border-radius: var(--r-6); padding: 56px 24px; text-align: center; color: #fff;
       background: linear-gradient(160deg, #143a2f 0%, #23604c 45%, #4c977a 75%, #a9d6c1 100%);
     }
     @media (min-width: 720px) { .closer { margin: 88px 16px 0; padding: 72px 32px; } }
@@ -723,7 +750,7 @@
     .foot .about-col { grid-column: 1 / -1; }
     @media (min-width: 860px) { .foot .about-col { grid-column: auto; } }
     .foot .about-col p { margin-top: 12px; max-width: 26em; }
-    .foot h4 { margin: 0 0 12px; font: 500 11px/1 ui-monospace, Menlo, monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
+    .foot h4 { margin: 0 0 12px; font: 500 12px/1 ui-monospace, Menlo, monospace; color: var(--faint); }
     .foot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
     .foot a { color: var(--muted); text-decoration: none; }
     .foot a:hover { color: var(--text); }
@@ -732,6 +759,13 @@
     @media (min-width: 860px) { .foot .contact-col { grid-column: auto; } }
     .foot .contact-col .mail-line { display: block; margin-top: 2px; }
     .copy { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 20px; font-size: 14px; color: var(--faint); }
+    /* On a phone or tablet each footer link is a 44px row. */
+    @media (max-width: 859px) {
+      .foot h4 { margin-bottom: 4px; }
+      .foot ul { gap: 0; }
+      .foot li > a, .foot .mail { display: inline-block; min-width: 44px; padding: 10px 0; }
+      .foot .contact-col .mail-line { margin-top: 0; }
+    }
 
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
@@ -823,7 +857,7 @@
     <section class="panel" id="tab-home" data-panel="home" aria-label="Home">
       <div class="hero under-nav" data-backdrop="dark">
         <span class="pill"><b>✓</b><span>Free and open source<span class="pill-more"> · runs on your own machine</span></span></span>
-        <h1>Tailored resumes that <span class="serif-i">check</span> the AI's&nbsp;work.</h1>
+        <h1>Tailored resumes that check the AI's&nbsp;work</h1>
         <p class="lede">
           Dossierbuild aims your resume at every job you apply for, and checks every AI rewrite
           against your own history. It can sharpen a line, and if it slips in a number or a named
@@ -839,7 +873,7 @@
           <li>Gemini or Claude for the AI steps</li>
         </ul>
 
-        <div class="stage" data-backdrop="light" role="img" aria-label="Illustration: the worked example's resume, its match against a job posting, and the rewrite check flagging a suggestion that adds facts">
+        <div class="stage" data-backdrop="light" role="img" aria-label="Illustration: the worked example's resume, its match against a job posting, and the rewrite check ticking one suggestion and flagging one that adds facts">
           <div class="paper keys">
             <div class="name">Priya Raman</div>
             <div class="role">Backend engineer — data platforms and the services on top of them</div>
@@ -867,6 +901,7 @@
             </div>
             <div class="float check">
               <div class="k">Rewrite check <span class="badge poor">1 flagged</span></div>
+              <div class="sug ok"><span class="box"></span><div>Worked across the backend team on the customer dashboard service and the Postgres migration<small>Backed by your profile · ticked</small></div></div>
               <div class="sug flag"><span class="box"></span><div>Ran the backend's services on <u>Kubernetes</u>, cutting incidents by <u>40%</u>.<small>Not in your profile · left unticked</small></div></div>
             </div>
           </div>
@@ -877,7 +912,7 @@
       <div class="wrap section">
         <div class="section-head">
           <span class="eyebrow">Same prompt, different result</span>
-          <h2>Other AI tools give you text. <span class="serif-i">Dossierbuild checks it.</span></h2>
+          <h2>Other AI tools give you <span class="flagged">text</span>. Dossierbuild checks it</h2>
         </div>
         <div class="versus">
           <div class="vs">
@@ -915,7 +950,7 @@
       <div class="wrap">
         <div class="page-head" style="padding-bottom:32px">
           <span class="eyebrow">How it works</span>
-          <h1>The AI suggests. <span class="serif-i">Your history decides.</span></h1>
+          <h1>The AI suggests. Your history decides</h1>
         </div>
 
         <div class="steps">
@@ -926,7 +961,7 @@
           <button type="button" role="tab" id="step-tab-3" aria-controls="step-panel" aria-selected="false" tabindex="-1" data-step="3"><i>04</i>Print and file</button>
         </div>
         <div id="step-panel" role="tabpanel" aria-labelledby="step-tab-0">
-        <h2 class="step-title">One profile holds everything you've done.</h2>
+        <h2 class="step-title">One profile holds everything you've done</h2>
         <p class="step-copy">Import a LinkedIn export with no AI key, or a PDF, a DOCX or pasted text with one. Or start from the worked example.</p>
 
         <div class="how-stage">
@@ -978,7 +1013,7 @@
         <figure class="video-card" id="demo-video">
           <div class="section-head" style="margin-bottom:28px">
             <span class="eyebrow">See it work</span>
-            <h2>The real app, <span class="serif-i">in 25 seconds.</span></h2>
+            <h2>The real app, in 25 seconds</h2>
           </div>
           <div class="frame" data-backdrop="light">
             <div class="bar-dots"><i></i><i></i><i></i><span>localhost:8000</span></div>
@@ -1000,61 +1035,62 @@
           <div class="toolkit-head">
             <div>
               <span class="eyebrow">The whole toolkit</span>
-              <h1>Everything a job search needs. <span class="serif-i">Nothing it doesn't.</span></h1>
+              <h1>Everything a job search needs. Nothing it doesn't</h1>
             </div>
             <p>The analysis, the writing checks, the templates and the PDF all run on your machine without an AI key. A Gemini or Claude key adds import parsing, rewrites and line drafting.</p>
           </div>
           <div class="bento">
             <div class="cell w2">
               <span class="n">01 · Tailor</span>
-              <h3>See the gaps before you write a word.</h3>
+              <h3>See the gaps before you write a word</h3>
               <p>A posting is read by rules into weighted requirements and scored against your profile, before any rewriting starts.</p>
               <div class="shot" data-backdrop="light"><picture><source type="image/webp" srcset="img/tailor-800.webp 800w, img/tailor-1280.webp 1280w, img/tailor-1920.webp 1920w" sizes="(min-width: 1040px) 720px, 92vw" /><img src="img/tailor.png" alt="The Tailor screen: a job posting read into weighted requirements and scored against the profile" width="3120" height="1880" loading="lazy" decoding="async" /></picture></div>
             </div>
             <div class="cell green">
               <span class="n">02 · The guard</span>
-              <h3>Rewrites can't add facts.</h3>
+              <h3>Rewrites can't add facts</h3>
               <p>Every AI suggestion is diffed against the line it came from. A number or named tool your profile doesn't contain arrives flagged and unticked, whichever provider wrote it.</p>
+              <div class="sug flag" role="img" aria-label="A flagged suggestion: Kubernetes and 40% are underlined in red and its box is left unticked"><span class="box"></span><div>Ran the backend's services on <u>Kubernetes</u>, cutting incidents by <u>40%</u>.<small>Not in your profile · left unticked</small></div></div>
             </div>
             <div class="stack">
               <div class="cell">
                 <span class="n">03 · No key needed</span>
                 <div class="stat">0</div>
-                <h3>API keys to analyse a job.</h3>
+                <h3>API keys to analyse a job</h3>
                 <p>Reading postings, the coverage score, the writing checks, every template and the PDF work without one.</p>
               </div>
               <div class="cell">
                 <span class="n">04 · Templates</span>
                 <div class="stat">10</div>
-                <h3>Templates, one true preview.</h3>
+                <h3>Templates, one true preview</h3>
                 <p>The preview is the printed PDF. Export to PDF, self-contained HTML or plain text.</p>
               </div>
             </div>
             <div class="cell w2">
               <span class="n">05 · Review</span>
-              <h3>A writing standard that's code.</h3>
+              <h3>A writing standard that's code</h3>
               <p>Review reads the whole document, flags filler and vague claims, and points to the line worth fixing first. The same check scores the AI's rewrites.</p>
               <div class="shot" data-backdrop="light"><picture><source type="image/webp" srcset="img/health-800.webp 800w, img/health-1280.webp 1280w, img/health-1920.webp 1920w" sizes="(min-width: 1040px) 720px, 92vw" /><img src="img/health.png" alt="The Review screen: the document with each line scored against the writing standard" width="3120" height="1880" loading="lazy" decoding="async" /></picture></div>
             </div>
             <div class="cell">
               <span class="n">06 · Applications</span>
-              <h3>Every posting, tracked.</h3>
+              <h3>Every posting, tracked</h3>
               <p>Each application's stage, the exact version you sent, and the requirements you keep missing across all of them.</p>
             </div>
             <div class="cell">
               <span class="n">07 · Letters and interviews</span>
-              <h3>Cover letters and interview briefs.</h3>
+              <h3>Cover letters and interview briefs</h3>
               <p>Letters drafted from what your profile can evidence. Briefs listing what you can and can't back up, and the questions each invites.</p>
             </div>
             <div class="cell">
               <span class="n">08 · Real job hunts</span>
-              <h3>Several CVs, one history.</h3>
+              <h3>Several CVs, one history</h3>
               <p>Separate CVs for different careers, focus tags for job families, saved versions and full undo.</p>
               <div class="tags"><span>Multiple CVs</span><span>Focus tags</span><span>Undo</span></div>
             </div>
             <div class="cell w2">
               <span class="n">09 · Private by default</span>
-              <h3>Your history stays on your machine.</h3>
+              <h3>Your history stays on your machine</h3>
               <p>Your profile, portrait, saved versions and API key live locally. The only thing that leaves is text you choose to send to the AI provider you picked: Gemini or Claude.</p>
               <div class="tags"><span>Runs locally</span><span>No account</span><span>Open source, MIT</span></div>
             </div>
@@ -1063,20 +1099,20 @@
           <section class="gallery" aria-labelledby="templates-title">
             <div class="gallery-head">
               <span class="n">04 · Templates, in full</span>
-              <h2 id="templates-title">Ten templates. <span class="serif-i">One profile.</span></h2>
+              <h2 id="templates-title">Ten templates. One profile</h2>
               <p>Page one of each, rendered by the app itself from the worked example, each in one of its built-in looks. ATS-safe templates keep to one column, so an application portal reads them in the order they were written; a two-column page is best sent straight to a person.</p>
             </div>
             <ul class="templates">
-              <li><a href="img/templates/classic-1200.webp" data-backdrop="light"><img src="img/templates/classic-480.webp" width="480" height="679" alt="Page one of the worked example in the Classic template" loading="lazy" decoding="async" /></a><b>Classic <span class="badge good">ATS-safe</span></b><span>Centred header, ruled section headings, serif throughout.</span></li>
-              <li><a href="img/templates/minimal-1200.webp" data-backdrop="light"><img src="img/templates/minimal-480.webp" width="480" height="679" alt="Page one of the worked example in the Minimalist template" loading="lazy" decoding="async" /></a><b>Minimalist <span class="badge good">ATS-safe</span></b><span>Dates in a left gutter, no rules, generous air.</span></li>
-              <li><a href="img/templates/compact-1200.webp" data-backdrop="light"><img src="img/templates/compact-480.webp" width="480" height="679" alt="Page one of the worked example in the Compact template" loading="lazy" decoding="async" /></a><b>Compact <span class="badge good">ATS-safe</span></b><span>Tight leading and paired skill columns, for fitting a lot on one page.</span></li>
-              <li><a href="img/templates/executive-1200.webp" data-backdrop="light"><img src="img/templates/executive-480.webp" width="480" height="679" alt="Page one of the worked example in the Executive template" loading="lazy" decoding="async" /></a><b>Executive <span class="badge good">ATS-safe</span></b><span>Name set large in the accent, ruled headings, skills in a grid.</span></li>
-              <li><a href="img/templates/gazette-1200.webp" data-backdrop="light"><img src="img/templates/gazette-480.webp" width="480" height="679" alt="Page one of the worked example in the Gazette template" loading="lazy" decoding="async" /></a><b>Gazette <span class="badge good">ATS-safe</span></b><span>Centred masthead, banded headings, dotted leaders to the dates.</span></li>
-              <li><a href="img/templates/modern-1200.webp" data-backdrop="light"><img src="img/templates/modern-480.webp" width="480" height="679" alt="Page one of the worked example in the Modern template" loading="lazy" decoding="async" /></a><b>Modern <span class="badge fair">Two-column</span></b><span>Accent header band with a side column for contact, skills and study.</span></li>
-              <li><a href="img/templates/sidebar-1200.webp" data-backdrop="light"><img src="img/templates/sidebar-480.webp" width="480" height="679" alt="Page one of the worked example in the Sidebar template" loading="lazy" decoding="async" /></a><b>Sidebar <span class="badge fair">Two-column</span></b><span>Full-height accent column carrying the portrait, contact and skills.</span></li>
-              <li><a href="img/templates/boardroom-1200.webp" data-backdrop="light"><img src="img/templates/boardroom-480.webp" width="480" height="679" alt="Page one of the worked example in the Boardroom template" loading="lazy" decoding="async" /></a><b>Boardroom <span class="badge fair">Two-column</span></b><span>Name set large over a rule, two columns divided by a hairline, no colour.</span></li>
-              <li><a href="img/templates/atelier-1200.webp" data-backdrop="light"><img src="img/templates/atelier-480.webp" width="480" height="679" alt="Page one of the worked example in the Atelier template" loading="lazy" decoding="async" /></a><b>Atelier <span class="badge fair">Two-column</span></b><span>Tracked name between two rules, even columns, a disc behind each heading.</span></li>
-              <li><a href="img/templates/editorial-1200.webp" data-backdrop="light"><img src="img/templates/editorial-480.webp" width="480" height="679" alt="Page one of the worked example in the Editorial template" loading="lazy" decoding="async" /></a><b>Editorial <span class="badge fair">Two-column</span></b><span>Centred portrait, small-caps side column, entries on a dotted rail.</span></li>
+              <li><a href="img/templates/classic-1200.webp" data-backdrop="light"><img src="img/templates/classic-480.webp" width="480" height="679" alt="Page one of the worked example in the Classic template" loading="lazy" decoding="async" /></a><b>Classic <span class="badge good">ATS-safe</span></b><span>Centred header, ruled section headings, serif throughout</span></li>
+              <li><a href="img/templates/minimal-1200.webp" data-backdrop="light"><img src="img/templates/minimal-480.webp" width="480" height="679" alt="Page one of the worked example in the Minimalist template" loading="lazy" decoding="async" /></a><b>Minimalist <span class="badge good">ATS-safe</span></b><span>Dates in a left gutter, no rules, generous air</span></li>
+              <li><a href="img/templates/compact-1200.webp" data-backdrop="light"><img src="img/templates/compact-480.webp" width="480" height="679" alt="Page one of the worked example in the Compact template" loading="lazy" decoding="async" /></a><b>Compact <span class="badge good">ATS-safe</span></b><span>Tight leading and paired skill columns, for fitting a lot on one page</span></li>
+              <li><a href="img/templates/executive-1200.webp" data-backdrop="light"><img src="img/templates/executive-480.webp" width="480" height="679" alt="Page one of the worked example in the Executive template" loading="lazy" decoding="async" /></a><b>Executive <span class="badge good">ATS-safe</span></b><span>Name set large in the accent, ruled headings, skills in a grid</span></li>
+              <li><a href="img/templates/gazette-1200.webp" data-backdrop="light"><img src="img/templates/gazette-480.webp" width="480" height="679" alt="Page one of the worked example in the Gazette template" loading="lazy" decoding="async" /></a><b>Gazette <span class="badge good">ATS-safe</span></b><span>Centred masthead, banded headings, dotted leaders to the dates</span></li>
+              <li><a href="img/templates/modern-1200.webp" data-backdrop="light"><img src="img/templates/modern-480.webp" width="480" height="679" alt="Page one of the worked example in the Modern template" loading="lazy" decoding="async" /></a><b>Modern <span class="badge fair">Two-column</span></b><span>Accent header band with a side column for contact, skills and study</span></li>
+              <li><a href="img/templates/sidebar-1200.webp" data-backdrop="light"><img src="img/templates/sidebar-480.webp" width="480" height="679" alt="Page one of the worked example in the Sidebar template" loading="lazy" decoding="async" /></a><b>Sidebar <span class="badge fair">Two-column</span></b><span>Full-height accent column carrying the portrait, contact and skills</span></li>
+              <li><a href="img/templates/boardroom-1200.webp" data-backdrop="light"><img src="img/templates/boardroom-480.webp" width="480" height="679" alt="Page one of the worked example in the Boardroom template" loading="lazy" decoding="async" /></a><b>Boardroom <span class="badge fair">Two-column</span></b><span>Name set large over a rule, two columns divided by a hairline, no colour</span></li>
+              <li><a href="img/templates/atelier-1200.webp" data-backdrop="light"><img src="img/templates/atelier-480.webp" width="480" height="679" alt="Page one of the worked example in the Atelier template" loading="lazy" decoding="async" /></a><b>Atelier <span class="badge fair">Two-column</span></b><span>Tracked name between two rules, even columns, a disc behind each heading</span></li>
+              <li><a href="img/templates/editorial-1200.webp" data-backdrop="light"><img src="img/templates/editorial-480.webp" width="480" height="679" alt="Page one of the worked example in the Editorial template" loading="lazy" decoding="async" /></a><b>Editorial <span class="badge fair">Two-column</span></b><span>Centred portrait, small-caps side column, entries on a dotted rail</span></li>
             </ul>
           </section>
         </div>
@@ -1088,7 +1124,7 @@
       <div class="wrap">
         <div class="page-head">
           <span class="eyebrow">Install</span>
-          <h1>One command, <span class="serif-i">then it opens in your browser.</span></h1>
+          <h1>One command, then it opens in your browser</h1>
           <p>Dossierbuild runs on your own computer, with no account to make. Docker is the easy way in: it carries everything the app needs.</p>
         </div>
         <div class="install">
@@ -1097,13 +1133,13 @@
             <ol class="steps-list">
               <li><span>Install <a href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a>, free for personal use on Windows, macOS and Linux, and start it.</span></li>
               <li><span>Paste this into a terminal (on Windows, PowerShell) and press Enter:</span>
-                <div class="cmd" data-backdrop="dark"><div class="cmd-bar"><span>Terminal</span><button type="button" class="copy glass press" data-tone="dark" aria-live="polite">Copy</button></div><code>docker run -d --name dossierbuild -p 127.0.0.1:8000:8000 -v dossierbuild:/data ghcr.io/aliakbarkhan21/dossierbuild</code></div></li>
+                <div class="cmd" data-backdrop="dark"><div class="cmd-bar"><span>Terminal</span><button type="button" class="copy glass" data-tone="dark" aria-live="polite">Copy</button></div><code>docker run -d --name dossierbuild -p 127.0.0.1:8000:8000 -v dossierbuild:/data ghcr.io/aliakbarkhan21/dossierbuild</code></div></li>
               <li><span>Open <a href="http://localhost:8000">localhost:8000</a>. The first run offers a worked example to start from.</span></li>
             </ol>
             <p class="fine">Your profile, saved versions and any key you add live in a Docker volume called <code>dossierbuild</code>, so upgrading never touches them. Only your own computer can reach the app: it listens on 127.0.0.1 alone, because there is no login.</p>
             <details class="more">
               <summary>Upgrading to a new version</summary>
-              <div class="cmd" data-backdrop="dark"><div class="cmd-bar"><span>Terminal</span><button type="button" class="copy glass press" data-tone="dark" aria-live="polite">Copy</button></div><code>docker pull ghcr.io/aliakbarkhan21/dossierbuild
+              <div class="cmd" data-backdrop="dark"><div class="cmd-bar"><span>Terminal</span><button type="button" class="copy glass" data-tone="dark" aria-live="polite">Copy</button></div><code>docker pull ghcr.io/aliakbarkhan21/dossierbuild
 docker rm -f dossierbuild
 docker run -d --name dossierbuild -p 127.0.0.1:8000:8000 -v dossierbuild:/data ghcr.io/aliakbarkhan21/dossierbuild</code></div>
             </details>
@@ -1112,7 +1148,7 @@ docker run -d --name dossierbuild -p 127.0.0.1:8000:8000 -v dossierbuild:/data g
             <article class="way">
               <div class="way-top"><h2>From source</h2><span class="badge none">For developers</span></div>
               <p>Tested on Python 3.12. Node 20 is needed once, to build the interface.</p>
-              <div class="cmd" data-backdrop="dark"><div class="cmd-bar"><span>Terminal</span><button type="button" class="copy glass press" data-tone="dark" aria-live="polite">Copy</button></div><code>git clone https://github.com/aliakbarkhan21/Dossierbuild.git
+              <div class="cmd" data-backdrop="dark"><div class="cmd-bar"><span>Terminal</span><button type="button" class="copy glass" data-tone="dark" aria-live="polite">Copy</button></div><code>git clone https://github.com/aliakbarkhan21/Dossierbuild.git
 cd Dossierbuild
 pip install -r requirements.txt
 python -m playwright install chromium
@@ -1138,8 +1174,8 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
       <div class="wrap">
         <div class="page-head">
           <span class="eyebrow">Roadmap</span>
-          <h1>What shipped, <span class="serif-i">and what's next.</span></h1>
-          <p>The next column is a plan, not a promise.</p>
+          <h1>What shipped, and what's next</h1>
+          <p>The next column is a plan, not a promise</p>
         </div>
         <div class="roadmap">
           <div class="road">
@@ -1167,7 +1203,7 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
       <div class="wrap faq-grid">
         <div class="side">
           <span class="eyebrow">FAQ</span>
-          <h1>Questions, <span class="serif-i">answered.</span></h1>
+          <h1>Questions, answered</h1>
           <p>Still unsure? Email <a href="mailto:aliakbar@dossierbuild.lol">aliakbar@dossierbuild.lol</a>.</p>
         </div>
         <div class="faq">
@@ -1204,7 +1240,7 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
       <div class="wrap">
         <div class="page-head">
           <span class="eyebrow">About</span>
-          <h1>Why I'm <span class="serif-i">building this.</span></h1>
+          <h1>Why I'm building this</h1>
         </div>
         <div class="about">
           <figure class="note" id="founder" style="margin:0">
@@ -1233,7 +1269,7 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
     </section>
 
     <div class="closer" data-backdrop="dark">
-      <h2>Your next resume, <span class="serif-i">without the fiction.</span></h2>
+      <h2>Your next resume, without <span class="flagged">the fiction</span></h2>
       <p>Free, open source, and yours to run. Start with one profile and aim it at every job you want.</p>
       <div class="cta">
         <a class="btn btn-light" href="#install" data-tab="install">Get Dossierbuild free</a>
@@ -1246,7 +1282,7 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
     <div class="wrap foot">
       <div class="about-col">
         <a class="brand" href="#home" data-tab="home"><img src="mark.png" alt="" width="30" height="30" />Dossierbuild</a>
-        <p>The resume builder that tailors to every job and checks the AI's work.</p>
+        <p>The resume builder that tailors to every job and checks the AI's work</p>
       </div>
       <div>
         <h4>Product</h4>
@@ -1278,15 +1314,15 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
   </footer>
 
   <div class="appearance glass" id="appearance" data-tone="light">
-    <button type="button" class="appearance-toggle press" aria-expanded="false" aria-controls="appearance-options" aria-label="Appearance: Auto">
+    <button type="button" class="appearance-toggle" aria-expanded="false" aria-controls="appearance-options" aria-label="Appearance: Auto">
       <svg class="i-auto" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="M12 3.75a8.25 8.25 0 0 1 0 16.5z" fill="currentColor" stroke="none"/></svg>
       <svg class="i-light" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.55 1.55M17.15 17.15l1.55 1.55M5.3 18.7l1.55-1.55M17.15 6.85l1.55-1.55"/></svg>
       <svg class="i-dark" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.25 8.25 0 0 1 9.5 4a8.25 8.25 0 1 0 10.5 10.5z"/></svg>
     </button>
     <div class="appearance-options" id="appearance-options" role="radiogroup" aria-label="Appearance">
-      <button type="button" role="radio" class="press" data-set="auto" aria-checked="true" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="M12 3.75a8.25 8.25 0 0 1 0 16.5z" fill="currentColor" stroke="none"/></svg>Auto</button>
-      <button type="button" role="radio" class="press" data-set="light" aria-checked="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.55 1.55M17.15 17.15l1.55 1.55M5.3 18.7l1.55-1.55M17.15 6.85l1.55-1.55"/></svg>Light</button>
-      <button type="button" role="radio" class="press" data-set="dark" aria-checked="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.25 8.25 0 0 1 9.5 4a8.25 8.25 0 1 0 10.5 10.5z"/></svg>Dark</button>
+      <button type="button" role="radio" data-set="auto" aria-checked="true" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="M12 3.75a8.25 8.25 0 0 1 0 16.5z" fill="currentColor" stroke="none"/></svg>Auto</button>
+      <button type="button" role="radio" data-set="light" aria-checked="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.55 1.55M17.15 17.15l1.55 1.55M5.3 18.7l1.55-1.55M17.15 6.85l1.55-1.55"/></svg>Light</button>
+      <button type="button" role="radio" data-set="dark" aria-checked="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.25 8.25 0 0 1 9.5 4a8.25 8.25 0 1 0 10.5 10.5z"/></svg>Dark</button>
     </div>
   </div>
 
@@ -1526,18 +1562,10 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
       });
     }
 
-    // ---------- Glass lights up where you touch it ----------
-    // On press, not on release: the light comes from the point of contact,
-    // and follows a mouse that's merely hovering.
-    document.querySelectorAll(".press, .tabs a, .stepper button").forEach(function (el) {
-      el.classList.add("press");
-      function at(e) {
-        var r = el.getBoundingClientRect();
-        el.style.setProperty("--px", e.clientX - r.left + "px");
-        el.style.setProperty("--py", e.clientY - r.top + "px");
-      }
-      el.addEventListener("pointerdown", function (e) { at(e); el.classList.add("pressed"); });
-      el.addEventListener("pointermove", function (e) { if (e.pointerType === "mouse") at(e); });
+    // ---------- Glass buttons give under the press ----------
+    // On press, not on release, so the response comes with the touch.
+    document.querySelectorAll(".btn.press").forEach(function (el) {
+      el.addEventListener("pointerdown", function () { el.classList.add("pressed"); });
       ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) {
         el.addEventListener(t, function () { el.classList.remove("pressed"); });
       });
@@ -1626,10 +1654,10 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
 
     // ---------- How it works: the stepper ----------
     var STEPS = [
-      ["One profile holds everything you've done.", "Import a LinkedIn export with no AI key, or a PDF, a DOCX or pasted text with one. Or start from the worked example."],
-      ["The job is read by rules, not a model.", "Paste a posting. It's read into weighted requirements and scored against your profile, with no API key needed."],
-      ["Rewrites are checked against your history.", "This step uses AI. A suggestion that adds a number or named tool your profile doesn't have arrives flagged and unticked."],
-      ["Print it, and keep what you sent.", "A real PDF, saved against the posting it went to, so you can reprint exactly what the employer saw."]
+      ["One profile holds everything you've done", "Import a LinkedIn export with no AI key, or a PDF, a DOCX or pasted text with one. Or start from the worked example."],
+      ["The job is read by rules, not a model", "Paste a posting. It's read into weighted requirements and scored against your profile, with no API key needed."],
+      ["Rewrites are checked against your history", "This step uses AI. A suggestion that adds a number or named tool your profile doesn't have arrives flagged and unticked."],
+      ["Print it, and keep what you sent", "A real PDF, saved against the posting it went to, so you can reprint exactly what the employer saw."]
     ];
     var paperClass = ["", "keys", "keys rewrite", "keys saved"];
     var stepBtns = document.querySelectorAll(".stepper button");
