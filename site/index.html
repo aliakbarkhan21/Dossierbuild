@@ -84,7 +84,7 @@
       --i-plus: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M12 5v14'/%3E%3C/svg%3E");
       /* The flag mark's red where it sits on a green card. */
       --flag-on-green: #ffc4bc;
-      --font: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font: "Geist", "Geist Fallback", system-ui, -apple-system, "Segoe UI", sans-serif;
       --serif: "Source Serif 4", Georgia, serif;
     }
     /* A saved choice on <html data-theme> beats the device setting; with no
@@ -137,6 +137,9 @@
       --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 18px 48px rgb(0 0 0 / 0.45);
     }
 
+    /* Arial sized to Geist's width, so a line wraps the same before and
+       after the web font arrives and nothing on the first screen moves. */
+    @font-face { font-family: "Geist Fallback"; src: local("Arial"), local("Helvetica"); size-adjust: 103%; ascent-override: 95%; descent-override: 24%; line-gap-override: 0%; }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
@@ -208,6 +211,7 @@
       --g-ink-2: #36433d;
       --g-thumb: rgb(255 255 255 / 0.92);
       --g-thumb-shadow: 0 1px 2px rgb(14 28 23 / 0.08), 0 3px 10px rgb(14 28 23 / 0.06), inset 0 0 0 0.5px rgb(14 28 23 / 0.07);
+      --g-thumb-ring: rgb(14 28 23 / 0.07); --g-thumb-drop: drop-shadow(0 1px 2px rgb(14 28 23 / 0.08)) drop-shadow(0 3px 8px rgb(14 28 23 / 0.06));
       --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.2) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.5));
       --g-shadow: 0 10px 30px rgb(14 28 23 / 0.1), 0 1px 3px rgb(14 28 23 / 0.07), inset 0 0 0 0.5px rgb(14 28 23 / 0.08), inset 0 0 14px rgb(255 255 255 / 0.25);
       --g-cta: #0e1c17; --g-cta-ink: #f4f2ed; --g-cta-hover: #1f5442;
@@ -223,6 +227,7 @@
       --g-ink-2: rgb(243 248 245 / 0.86);
       --g-thumb: rgb(255 255 255 / 0.16);
       --g-thumb-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.2), 0 2px 8px rgb(0 0 0 / 0.18);
+      --g-thumb-ring: rgb(255 255 255 / 0.2); --g-thumb-drop: drop-shadow(0 2px 6px rgb(0 0 0 / 0.18));
       --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.1) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.26));
       --g-shadow: 0 10px 30px rgb(0 0 0 / 0.26), 0 1px 3px rgb(0 0 0 / 0.2), inset 0 0 16px rgb(255 255 255 / 0.06);
       --g-cta: #fff; --g-cta-ink: #0e1c17; --g-cta-hover: #e3f2ea;
@@ -234,6 +239,7 @@
         --g-ink-2: rgb(243 248 245 / 0.86);
         --g-thumb: rgb(255 255 255 / 0.16);
         --g-thumb-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.2), 0 2px 8px rgb(0 0 0 / 0.18);
+      --g-thumb-ring: rgb(255 255 255 / 0.2); --g-thumb-drop: drop-shadow(0 2px 6px rgb(0 0 0 / 0.18));
         --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.1) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.26));
         --g-shadow: 0 10px 30px rgb(0 0 0 / 0.26), 0 1px 3px rgb(0 0 0 / 0.2), inset 0 0 16px rgb(255 255 255 / 0.06);
         --g-cta: #fff; --g-cta-ink: #0e1c17; --g-cta-hover: #e3f2ea;
@@ -245,6 +251,7 @@
       --g-ink-2: rgb(243 248 245 / 0.86);
       --g-thumb: rgb(255 255 255 / 0.16);
       --g-thumb-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.2), 0 2px 8px rgb(0 0 0 / 0.18);
+      --g-thumb-ring: rgb(255 255 255 / 0.2); --g-thumb-drop: drop-shadow(0 2px 6px rgb(0 0 0 / 0.18));
       --g-rim: linear-gradient(160deg, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.1) 32%, rgb(255 255 255 / 0) 52%, rgb(255 255 255 / 0.26));
       --g-shadow: 0 10px 30px rgb(0 0 0 / 0.26), 0 1px 3px rgb(0 0 0 / 0.2), inset 0 0 16px rgb(255 255 255 / 0.06);
       --g-cta: #fff; --g-cta-ink: #0e1c17; --g-cta-hover: #e3f2ea;
@@ -260,6 +267,12 @@
     /* A glass button gives a little under the press. */
     .btn.press { transition: transform 0.15s var(--ease), background-color 0.25s var(--ease), color 0.25s var(--ease); }
     .btn.press.pressed { transform: scale(0.98); }
+    /* Every other control gives a little as it is pressed, and springs back
+       from wherever it got to if the press is let go early. */
+    .tap.tap { transition: transform 0.15s var(--ease), color 0.25s var(--ease), background-color 0.25s var(--ease), border-color 0.15s var(--ease), box-shadow 0.15s var(--ease); }
+    .tap.tap.pressed { transform: scale(0.97); }
+    /* Rows and template pages are wide, so they give less. */
+    .faq summary.tap.pressed, .templates a.tap.pressed, .explore a.tap.pressed { transform: scale(0.99); }
 
     /* ---------- Header: floating glass ---------- */
     /* The header's own height, which the green cards reach up behind:
@@ -296,10 +309,17 @@
       transition: background-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
     }
     .glide > .thumb { opacity: 1; }
+    /* The tab bar's highlight is a capsule in three parts: two round ends and
+       a middle that stretches. Each part moves by transform alone, so the
+       highlight glides and stretches without the browser laying anything out. */
+    .thumb.capsule { width: 0; height: 0; background: none; box-shadow: none; filter: var(--g-thumb-drop); transition: opacity 0.15s var(--ease); }
+    .thumb.capsule > i { position: absolute; top: 0; left: 0; height: var(--h, 38px); background: var(--g-thumb); transform-origin: 0 0;
+      border: 0.5px solid var(--g-thumb-ring); will-change: transform; transition: background-color 0.25s var(--ease), border-color 0.25s var(--ease); }
+    .thumb.capsule > i:nth-child(1) { width: calc(var(--h, 38px) / 2); border-right: 0; border-radius: 999px 0 0 999px; }
+    .thumb.capsule > i:nth-child(2) { width: 100px; border-left: 0; border-right: 0; }
+    .thumb.capsule > i:nth-child(3) { width: calc(var(--h, 38px) / 2); border-left: 0; border-radius: 0 999px 999px 0; }
 
     /* The tab you switch to fades up into place. */
-    @keyframes arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-    .js .panel.arriving { animation: arrive 0.25s var(--ease); }
     .bar-right { display: flex; align-items: center; gap: 16px; }
     .bar-right .gh { color: var(--g-ink-2); text-decoration: none; font-size: 15px; transition: color 0.25s var(--ease); }
     .bar-right .gh:hover { color: var(--g-ink); }
@@ -346,17 +366,33 @@
      * shrinks back once one is picked. It sits above Safari's floating bottom
      * bar on iPhone (the safe-area inset), steps aside while you scroll down,
      * and reads its tone from the page under it, like the top bar. */
+    /* The box is always the open width and is itself invisible; what you see
+       is three pieces of glass (two round ends and a stretching middle) that
+       a spring opens leftward from the button and closes back into it. No
+       width is ever animated. Only the button, and the choices once open,
+       take the pointer, so the empty part of the box never blocks the page. */
     .appearance {
       position: fixed; z-index: 40; right: calc(16px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom));
-      width: 44px; height: 44px; border-radius: var(--r-pill); overflow: hidden;
-      transition: width 0.4s var(--ease), transform 0.4s var(--ease), opacity 0.25s var(--ease),
-        background-color 0.25s var(--ease), color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+      width: 238px; height: 44px; pointer-events: none; color: var(--g-ink);
+      transition: transform 0.4s var(--ease), opacity 0.25s var(--ease), color 0.25s var(--ease);
     }
-    .appearance.open { width: 238px; }
+    .appearance.glass { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+    .appearance.glass::after { display: none; }
+    .ap-glass { position: absolute; top: 0; left: 0; height: 44px; background: var(--g-tint); transform-origin: 0 0; will-change: transform;
+      -webkit-backdrop-filter: blur(var(--g-blur)) saturate(170%); backdrop-filter: blur(var(--g-blur)) saturate(170%);
+      border: 1px solid var(--g-edge); box-shadow: 0 10px 22px -12px rgb(0 0 0 / 0.35);
+      transition: background-color 0.25s var(--ease), border-color 0.25s var(--ease); }
+    .ap-glass:nth-child(1) { width: 22px; border-right: 0; border-radius: 22px 0 0 22px; }
+    .ap-glass:nth-child(2) { width: 100px; border-left: 0; border-right: 0; }
+    .ap-glass:nth-child(3) { width: 22px; border-left: 0; border-radius: 0 22px 22px 0; transform: translateX(216px); }
+    .glass { --g-edge: rgb(255 255 255 / 0.55); }
+    .glass[data-tone="dark"] { --g-edge: rgb(255 255 255 / 0.18); }
+    .appearance-toggle, .appearance-options { pointer-events: auto; }
+    .appearance:not(.open) .appearance-options { pointer-events: none; }
     .appearance.away:not(.open) { transform: translateY(calc(100% + 24px + env(safe-area-inset-bottom))); opacity: 0; }
     .appearance svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
     .appearance-toggle {
-      position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; border: 0; padding: 0; border-radius: inherit;
+      position: absolute; top: 0; right: 0; width: 44px; height: 44px; z-index: 1; display: grid; place-items: center; border: 0; padding: 0; border-radius: 22px;
       background: none; color: var(--g-ink); cursor: pointer; transition: opacity 0.15s var(--ease);
     }
     .appearance-toggle svg { grid-area: 1 / 1; display: none; }
@@ -380,7 +416,19 @@
     ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.25s; animation-timing-function: var(--ease); }
 
     /* ---------- Panels ---------- */
-    .js .panel:not(.active) { display: none; }
+    /* Tab panels share one grid cell, so the panel you leave can fade out in
+       place while the one you chose fades in over it. */
+    main { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; }
+    main > .panel { grid-area: 1 / 1; min-width: 0; }
+    main > .closer { grid-row: 2; }
+    /* A panel you are not on is skipped, not removed: content-visibility keeps
+       its layout from the last time it was shown, so going back to it costs
+       a paint rather than a full layout. Hidden this way it takes no height,
+       is out of the tab order and out of the accessibility tree. */
+    .js .panel:not(.active):not(.leaving) { content-visibility: hidden; }
+    .js .panel.warm { content-visibility: visible; height: 0; overflow: clip; visibility: hidden; }
+    .panel.leaving { pointer-events: none; z-index: 0; }
+    .panel.active { z-index: 1; }
     .panel { padding-bottom: 24px; }
     .panel + .panel { border-top: 1px solid var(--line); }
     .js .panel + .panel { border-top: 0; }
@@ -421,13 +469,47 @@
       background: radial-gradient(60% 50% at 20% 10%, rgb(127 209 174 / 0.35), transparent 70%);
     }
     @media (min-width: 720px) { .hero { margin-left: 16px; margin-right: 16px; padding-top: calc(var(--nav-h) + 104px); } }
-    .hero h1 { font-size: clamp(40px, 7vw, 76px); max-width: 14ch; margin: 0 auto; text-wrap: balance; }
+    .hero h1 { font-size: clamp(40px, 7vw, 76px); max-width: 9.35em; margin: 0 auto; text-wrap: balance; }
     .hero .lede { font-size: clamp(17px, 2vw, 20px); color: #fff; max-width: 34em; margin: 22px auto 0; text-wrap: pretty; }
     .hero .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 32px; }
     /* The facts that used to sit in a badge above the headline and a row of
        ticks below the buttons, as one quiet line. */
     .facts { margin: 24px auto 0; max-width: 46em; font-size: 14px; color: #fff; text-wrap: balance; }
     .facts span { white-space: nowrap; }
+
+    /* Under the pitch: a capture of the app beside the founder's note. The
+       capture rises from the foot of the green card the way the drawn page
+       used to; the note sits on a sheet of light glass over the gradient. */
+    .proof { max-width: 1000px; margin: 48px auto 0; text-align: left; }
+    .capture { margin: 0; }
+    .capture .mat { background: #faf9f7; border-radius: var(--r-4) var(--r-4) 0 0; padding: 12px 12px 0; box-shadow: 0 -10px 60px rgb(0 0 0 / 0.18); }
+    .capture .mat picture, .capture .mat img { display: block; width: 100%; height: auto; border-radius: var(--r-2) var(--r-2) 0 0; }
+    .capture figcaption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .cap-dark { display: none !important; }
+    :root[data-theme="dark"] .cap-light { display: none !important; }
+    :root[data-theme="dark"] .cap-dark { display: block !important; }
+    :root[data-theme="dark"] .capture .mat { background: #0f1211; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .cap-light { display: none !important; }
+      :root:not([data-theme="light"]) .cap-dark { display: block !important; }
+      :root:not([data-theme="light"]) .capture .mat { background: #0f1211; }
+    }
+    @media (max-width: 720px) { .proof { margin-top: 40px; } }
+
+    /* Under the capture: the founder's note beside the project in plain
+       facts and the one command that starts it. */
+    .project { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 24px; align-items: stretch; padding-top: 16px; }
+    .signed-note { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-4); padding: 24px; }
+    .signed-note blockquote { margin: 0; display: grid; gap: 12px; font-size: 16px; line-height: 1.6; }
+    .signed-note figcaption { margin-top: 16px; font-size: 14px; color: var(--muted); }
+    .signed-note figcaption b { display: block; color: var(--text); font-weight: 600; }
+    .facts-box { display: grid; gap: 16px; align-content: start; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-4); padding: 24px; min-width: 0; }
+    .project dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 20px; font-size: 15px; }
+    .project dt { color: var(--muted); }
+    .project dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+    .project .cmd { margin-top: 0; }
+    .facts-box > * { min-width: 0; }
+    @media (max-width: 900px) { .project { grid-template-columns: minmax(0, 1fr); } }
 
     /* The resume page, and the cards that float over it */
     .stage { position: relative; max-width: 940px; margin: 56px auto 0; text-align: left; }
@@ -516,7 +598,7 @@
     .illustration-note { font-size: 13px; color: var(--faint); text-align: center; margin: 16px auto 0; max-width: 40em; }
 
     /* ---------- Home: comparison and next steps ---------- */
-    .section { padding-top: 96px; padding-bottom: 24px; }
+    .section { padding-top: 72px; padding-bottom: 24px; }
     .section-head { text-align: center; max-width: 44rem; margin: 0 auto 44px; }
     .section-head h2 { font-size: clamp(32px, 4.8vw, 52px); text-wrap: balance; }
     .section-head p { color: var(--muted); font-size: 18px; margin-top: 16px; }
@@ -749,7 +831,7 @@
       background: linear-gradient(160deg, #143a2f 0%, #1d5242 45%, #2a6a53 75%, #5f9c84 100%);
     }
     @media (min-width: 720px) { .closer { margin: 88px 16px 0; padding: 72px 32px; } }
-    .closer h2 { font-size: clamp(32px, 5vw, 54px); max-width: 16ch; margin: 0 auto; text-wrap: balance; }
+    .closer h2 { font-size: clamp(32px, 5vw, 54px); max-width: 10.7em; margin: 0 auto; text-wrap: balance; }
     .closer p { color: #fff; max-width: 32em; margin: 16px auto 0; font-size: 18px; }
     .closer .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 28px; }
 
@@ -778,13 +860,20 @@
 
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
-      *, *::before, *::after { transition: none !important; animation: none !important; }
-      .btn.press.pressed { transform: none; }
+      *, *::before, *::after { animation: none !important;
+        transition-property: opacity, color, background-color, border-color !important; transition-duration: 0.15s !important; }
+      .btn.press.pressed, .tap.tap.pressed { transform: none; }
     }
     /* Asked for less transparency, the glass turns to frosted solid; asked for
        more contrast, it also gets a drawn edge. Neither loses the shape. */
+    @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+      .glass, .ap-glass { --g-tint: #f7f6f2; }
+      .glass[data-tone="dark"], .glass[data-tone="dark"] .ap-glass { --g-tint: #16211c; }
+      .btn-glass { background: #1c4a3b; }
+      .btn-light { background: #fff; }
+    }
     @media (prefers-reduced-transparency: reduce) {
-      .glass, .btn { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+      .glass, .btn, .ap-glass { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
       .glass { --g-tint: #f7f6f2; }
       .glass[data-tone="dark"] { --g-tint: #16211c; }
       .btn-glass { background: #1c4a3b; }
@@ -877,41 +966,35 @@
         </div>
         <p class="facts"><span>Free and open source ·</span> <span>runs on your own machine ·</span> <span>no account ·</span> <span>job analysis needs no API key ·</span> <span>Gemini or Claude for the AI steps</span></p>
 
-        <div class="stage" data-backdrop="light" role="img" aria-label="Illustration: the worked example's resume, its match against a job posting, and the rewrite check ticking one suggestion and flagging one that adds facts">
-          <div class="paper keys">
-            <div class="name">Priya Raman</div>
-            <div class="role">Backend engineer — data platforms and the services on top of them</div>
-            <div class="contact">Manchester, UK · priya.raman@example.com · GitHub · LinkedIn</div>
-            <h4>Summary</h4>
-            <p>Backend engineer, four years on <mark>Python</mark> data platforms. Happiest owning a thing end to end, from the <mark>Postgres</mark> schema to the dashboard the team actually reads.</p>
-            <h4>Experience</h4>
-            <div class="job"><b>Senior Backend Engineer, Ridgeway Systems</b><span>Feb 2024 – Present</span></div>
-            <ul>
-              <li>Cut the nightly reconciliation run from 4 hours to 26 minutes by batching <mark>Postgres</mark> writes and moving the join into the database</li>
-              <li>Rebuilt the ingest service in <mark>Python</mark> around a Redis queue, taking the failure rate on malformed supplier files from 12% to under 1%</li>
-              <li>Wrote the <mark>Airflow</mark> alerting and the runbook for twelve scheduled jobs, cutting out-of-hours pages from nine a month to two</li>
-            </ul>
-            <div class="fade"></div>
-          </div>
-          <div class="stage-floats">
-            <div class="float match">
-              <div class="k">Job match <span class="badge good">Good</span></div>
-              <div class="big">73%</div>
-              <div class="meter"><i style="width:73%"></i></div>
-              <div class="lbl">Evidenced, 4 of 7 shown</div>
-              <div class="chips"><span class="chip">PostgreSQL</span><span class="chip">Python</span><span class="chip">Airflow</span><span class="chip">APIs</span></div>
-              <div class="lbl">Missing, 2 of 3 shown</div>
-              <div class="chips"><span class="chip miss">Kubernetes</span><span class="chip miss">data pipeline</span></div>
+        <div class="proof">
+          <figure class="capture" data-backdrop="light">
+            <div class="mat">
+              <picture class="cap-light"><source media="(max-width: 700px)" srcset="img/app/check-apis-light-phone.webp" width="760" height="1528" /><img src="img/app/check-apis-light-desk.webp" width="1984" height="892" loading="lazy" decoding="async" alt="The app's Tailor screen after a rewrite. The first suggestion adds the word APIs, carries a red notice and is left unticked. The second, a line about Airflow alerting, is ticked." /></picture>
+              <picture class="cap-dark"><source media="(max-width: 700px)" srcset="img/app/check-apis-dark-phone.webp" width="760" height="1528" /><img src="img/app/check-apis-dark-desk.webp" width="1984" height="892" loading="lazy" decoding="async" alt="The app's Tailor screen after a rewrite. The first suggestion adds the word APIs, carries a red notice and is left unticked. The second, a line about Airflow alerting, is ticked." /></picture>
             </div>
-            <div class="float check">
-              <div class="k">Rewrite check <span class="badge poor">1 flagged</span></div>
-              <div class="sug ok"><span class="box"></span><div>Worked across the backend team on the customer dashboard service and the Postgres migration<small>Backed by your profile · ticked</small></div></div>
-              <div class="sug flag"><span class="box"></span><div>Ran the backend's services on <u>Kubernetes</u>, cutting incidents by <u>40%</u>.<small>Not in your profile · left unticked</small></div></div>
-            </div>
-          </div>
+            <figcaption>The app's Tailor screen after a real rewrite of its worked example, on 11 November 2026. The check flagged "APIs", a word the profile never uses, and left it unticked.</figcaption>
+          </figure>
         </div>
       </div>
-      <p class="illustration-note wrap">Illustration built from the worked example that ships with the app. The 73% is what the app scores it against the posting in the demo video.</p>
+
+      <div class="wrap project" aria-label="The project">
+          <figure class="signed-note" id="founder">
+          <blockquote>
+            <p>Most AI resume tools hand your history and a job advert to a model and print whatever comes back. It's fast, and it's how a resume ends up claiming a tool you've never used.</p>
+            <p>I wanted the opposite: the job read by rules, the AI only allowed to rewrite, and every rewrite checked against what you've actually done. Dossierbuild is that tool. It runs on your own machine, it's open source, and its limits are written down in the README.</p>
+          </blockquote>
+          <figcaption><b>Muhammad Ali Akbar</b>Founder, Dossierbuild · <a href="https://www.linkedin.com/in/muhammad-ali-akbar-khan-7b37b8197" rel="noopener">LinkedIn</a></figcaption>
+                  </figure>
+        <div class="facts-box">
+        <dl>
+          <dt>Repository</dt><dd><a href="https://github.com/aliakbarkhan21/Dossierbuild">aliakbarkhan21/Dossierbuild</a> on GitHub</dd>
+          <dt>Checks</dt><dd>414, and 32 more on the interface</dd>
+          <dt>Version</dt><dd>2.4.0 · <a href="https://github.com/aliakbarkhan21/Dossierbuild/blob/main/CHANGELOG.md">changelog</a></dd>
+          <dt>Licence</dt><dd>MIT, free</dd>
+        </dl>
+        <div class="cmd" data-backdrop="dark"><div class="cmd-bar"><span>Terminal</span><button type="button" class="copy glass" data-tone="dark" aria-live="polite">Copy</button></div><code tabindex="0">docker run -d --name dossierbuild -p 127.0.0.1:8000:8000 -v dossierbuild:/data ghcr.io/aliakbarkhan21/dossierbuild</code></div>
+        </div>
+      </div>
 
       <div class="wrap section">
         <div class="section-head">
@@ -1318,6 +1401,7 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
   </footer>
 
   <div class="appearance glass" id="appearance" data-tone="light">
+    <span class="ap-shape" aria-hidden="true"><i class="ap-glass"></i><i class="ap-glass"></i><i class="ap-glass"></i></span>
     <button type="button" class="appearance-toggle" aria-expanded="false" aria-controls="appearance-options" aria-label="Appearance: Auto">
       <svg class="i-auto" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"/><path d="M12 3.75a8.25 8.25 0 0 1 0 16.5z" fill="currentColor" stroke="none"/></svg>
       <svg class="i-light" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.55 1.55M17.15 17.15l1.55 1.55M5.3 18.7l1.55-1.55M17.15 6.85l1.55-1.55"/></svg>
@@ -1355,9 +1439,11 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
     var LEAD = [0.28, 0.8], TRAIL = [0.4, 1];
     function Spring(x) { this.x = this.to = x; this.v = 0; this.k = 0; this.c = 0; }
     Spring.prototype.tune = function (p) { var w = 2 * Math.PI / p[0]; this.k = w * w; this.c = 2 * p[1] * w; };
-    function Droplet(track) {
+    function Droplet(track, capsule) {
       this.el = document.createElement("span");
-      this.el.className = "thumb";
+      this.el.className = capsule ? "thumb capsule" : "thumb";
+      this.capsule = capsule;
+      if (capsule) { for (var i = 0; i < 3; i++) this.el.appendChild(document.createElement("i")); this.parts = this.el.children; }
       this.el.setAttribute("aria-hidden", "true");
       track.prepend(this.el);
       this.track = track; this.e = null; this.raf = 0; this.t = 0;
@@ -1368,9 +1454,16 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
       var g = { l: target.offsetLeft, t: target.offsetTop, r: target.offsetLeft + target.offsetWidth, b: target.offsetTop + target.offsetHeight };
       var e = this.e, k;
       this.track.classList.add("glide");
+      if (this.capsule) this.el.style.setProperty("--h", (g.b - g.t) + "px");
       if (!e || !animate || still) {
         cancelAnimationFrame(this.raf); this.raf = 0;
         this.e = { l: new Spring(g.l), t: new Spring(g.t), r: new Spring(g.r), b: new Spring(g.b) };
+        // Asked for less motion, the highlight fades out where it was and in where it lands.
+        if (e && animate && still && this.capsule) {
+          var self = this; this.el.style.opacity = "0";
+          setTimeout(function () { self.paint(); self.el.style.opacity = ""; }, 150);
+          return;
+        }
         return this.paint();
       }
       var dx = g.l + g.r - e.l.x - e.r.x, dy = g.t + g.b - e.t.x - e.b.x;
@@ -1390,12 +1483,20 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
       this.raf = busy ? requestAnimationFrame(this.frame) : 0;
     };
     Droplet.prototype.paint = function () {
+      if (this.capsule) {
+        // Height is the tab's own; only the ends move, so the ends stay round.
+        var c = this.e, h = c.b.to - c.t.to, cap = h / 2, l = c.l.x, w = Math.max(h, c.r.x - c.l.x), y = c.t.x, p = this.parts;
+        p[0].style.transform = "translate(" + l + "px," + y + "px)";
+        p[1].style.transform = "translate(" + (l + cap) + "px," + y + "px) scaleX(" + Math.max(0, (w - h) / 100) + ")";
+        p[2].style.transform = "translate(" + (l + w - cap) + "px," + y + "px)";
+        return;
+      }
       var e = this.e, s = this.el.style;
       s.transform = "translate(" + e.l.x + "px," + e.t.x + "px)";
       s.width = Math.max(0, e.r.x - e.l.x) + "px";
       s.height = Math.max(0, e.b.x - e.t.x) + "px";
     };
-    var tabDrops = Array.prototype.map.call(document.querySelectorAll(".tabs"), function (t) { return new Droplet(t); });
+    var tabDrops = Array.prototype.map.call(document.querySelectorAll(".tabs"), function (t) { return new Droplet(t, true); });
     var strip = document.querySelector(".tabs-mobile .strip");
     function fadeStrip() {
       var max = strip.scrollWidth - strip.clientWidth;
@@ -1410,15 +1511,33 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
       tabDrops.forEach(function (d) { d.to(d.track.querySelector("[aria-current]"), animate); });
     }
 
+    // A second click mid-fade takes each panel on from where it is: the
+    // running animation's current values are kept, then the new one starts
+    // from them, so nothing jumps and nothing waits for the first to finish.
+    var EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
+    function hold(p) {
+      p.getAnimations().forEach(function (a) { try { a.commitStyles(); } catch (err) {} a.cancel(); });
+    }
     function show(name, scroll, animate) {
       panels.forEach(function (p) {
         var on = p.dataset.panel === name;
-        var was = p.classList.contains("active");
-        p.classList.toggle("active", on);
-        if (on && !was && animate) {
-          p.classList.remove("arriving");
-          void p.offsetWidth;                              // restart the animation
-          p.classList.add("arriving");
+        var visible = p.classList.contains("active") || p.classList.contains("leaving");
+        if (on) {
+          hold(p);
+          p.classList.remove("leaving"); p.classList.add("active");
+          if (!animate) { p.style.opacity = ""; p.style.transform = ""; return; }
+          var from = visible ? { opacity: p.style.opacity || "1", transform: p.style.transform || "none" }
+                             : { opacity: "0", transform: still ? "none" : "translateY(8px)" };
+          p.style.opacity = ""; p.style.transform = "";
+          p.animate([from, { opacity: 1, transform: "none" }], { duration: still ? 150 : 300, easing: EASE });
+        } else if (visible) {
+          hold(p);
+          p.classList.remove("active");
+          if (!animate) { p.classList.remove("leaving"); p.style.opacity = ""; p.style.transform = ""; return; }
+          p.classList.add("leaving");
+          var start = { opacity: p.style.opacity || "1", transform: p.style.transform || "none" };
+          var out = p.animate([start, { opacity: 0, transform: still ? "none" : "translateY(-6px)" }], { duration: still ? 150 : 200, easing: EASE, fill: "forwards" });
+          out.onfinish = function () { if (!p.classList.contains("active")) { out.cancel(); p.classList.remove("leaving"); p.style.opacity = ""; p.style.transform = ""; } };
         }
       });
       links.forEach(function (a) {
@@ -1429,14 +1548,23 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
       });
       // Centre the chosen tab in the phone strip by scrolling the strip alone;
       // scrollIntoView would nudge the whole page sideways as well.
-      var current = strip.querySelector("[aria-current]");
+      var current = strip.offsetParent && strip.querySelector("[aria-current]");
       if (current) strip.scrollTo({ left: current.offsetLeft - (strip.clientWidth - current.offsetWidth) / 2, behavior: animate && !still ? "smooth" : "instant" });
       requestAnimationFrame(fadeStrip);
       placeTabs(animate);
       if (scroll) window.scrollTo({ top: 0, behavior: "instant" });
       if (name === "how") { stepDrop.to(stepBtns[step], false); startSteps(); } else stopSteps();
-      readTones();
+      queueTones();
     }
+    // Once the page is idle, each panel is laid out once in the background,
+    // so even the first visit to a tab reuses a finished layout.
+    function warm(list) {
+      if (!list.length) return;
+      var p = list.shift();
+      if (!p.classList.contains("active")) { p.classList.add("warm"); void p.offsetHeight; p.classList.remove("warm"); }
+      (window.requestIdleCallback || function (f) { return setTimeout(f, 50); })(function () { warm(list); });
+    }
+    window.addEventListener("load", function () { setTimeout(function () { warm(Array.prototype.slice.call(panels)); }, 400); });
     function fromHash() {
       return ALIASES[location.hash.replace("#", "")] || "home";
     }
@@ -1471,7 +1599,7 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
     function readTones() {
       toneQueued = false;
       surfaces.forEach(function (s) {
-        var r = s.getBoundingClientRect();
+        var r = (s.id === "appearance" ? s.querySelector(".appearance-toggle") : s).getBoundingClientRect();
         if (!r.width) return;
         var x = r.left + r.width / 2, y = r.top + r.height / 2, tone = pageIsDark() ? "dark" : "light";
         zones.forEach(function (z) {
@@ -1543,7 +1671,7 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
       lenses.setAttribute("aria-hidden", "true");
       lenses.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
       document.body.appendChild(lenses);
-      document.querySelectorAll(".glass, .btn").forEach(function (s, n) {
+      document.querySelectorAll(".glass:not(.appearance), .btn").forEach(function (s, n) {
         var f = document.createElementNS(SVG, "filter"), img = document.createElementNS(SVG, "feImage"), dm = document.createElementNS(SVG, "feDisplacementMap");
         f.id = "lens-" + n;
         [["x", 0], ["y", 0], ["width", "100%"], ["height", "100%"], ["color-interpolation-filters", "sRGB"]].forEach(function (a) { f.setAttribute(a[0], a[1]); });
@@ -1568,10 +1696,45 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
 
     // ---------- Glass buttons give under the press ----------
     // On press, not on release, so the response comes with the touch.
-    document.querySelectorAll(".btn.press").forEach(function (el) {
+    document.querySelectorAll(".bar .brand, .bar-right .gh, .tabs a, .appearance-toggle, .appearance-options button, .btn:not(.press), .explore a, .copy, .stepper button, .faq summary, .more summary, .templates a, footer a").forEach(function (el) { el.classList.add("tap"); });
+    document.querySelectorAll(".btn.press, .tap").forEach(function (el) {
       el.addEventListener("pointerdown", function () { el.classList.add("pressed"); });
       ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) {
         el.addEventListener(t, function () { el.classList.remove("pressed"); });
+      });
+    });
+
+    // ---------- Disclosures open and close softly ----------
+    // Opening shows the answer at once and fades it up a few pixels; closing
+    // fades it out first and only then closes the row. A click during either
+    // turns it round from wherever it has got to.
+    document.querySelectorAll(".faq details, .more").forEach(function (d) {
+      var sum = d.querySelector("summary"), body = function () { return Array.prototype.filter.call(d.children, function (c) { return c !== sum; }); };
+      function run(list, keys, opts) {
+        return list.map(function (el) {
+          el.getAnimations().forEach(function (a) { try { a.commitStyles(); } catch (e) {} a.cancel(); });
+          var from = { opacity: el.style.opacity || getComputedStyle(el).opacity, transform: el.style.transform || "none" };
+          el.style.opacity = ""; el.style.transform = "";
+          return el.animate([from, keys], opts);
+        });
+      }
+      sum.addEventListener("click", function (e) {
+        e.preventDefault();
+        var closing = d.open && !d.classList.contains("closing");
+        if (closing) {
+          d.classList.add("closing");
+          var outs = run(body(), { opacity: 0, transform: still ? "none" : "translateY(-4px)" }, { duration: 150, easing: EASE, fill: "forwards" });
+          outs[outs.length - 1].onfinish = function () {
+            if (!d.classList.contains("closing")) return;
+            d.classList.remove("closing"); d.open = false;
+            body().forEach(function (el) { el.getAnimations().forEach(function (a) { a.cancel(); }); });
+          };
+        } else {
+          var wasOpen = d.open;
+          d.classList.remove("closing"); d.open = true;
+          if (!wasOpen) body().forEach(function (el) { el.style.opacity = "0"; el.style.transform = still ? "none" : "translateY(-4px)"; });
+          run(body(), { opacity: 1, transform: "none" }, { duration: still ? 150 : 250, easing: EASE });
+        }
       });
     });
 
@@ -1615,8 +1778,35 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
       // just updates the control.
       if (document.startViewTransition && !still && willBeDark !== pageIsDark()) document.startViewTransition(swap); else swap();
     }
+    // The glass opens leftward from the button on a critically damped spring
+    // and closes back into it. A spring keeps its speed when it is turned
+    // round, so a click mid-way reverses it smoothly from where it is.
+    var apParts = appearance.querySelectorAll(".ap-glass"), APW = 238, APH = 44;
+    var apEdge = new Spring(APW - APH), apRaf = 0, apT = 0;
+    apEdge.tune([0.32, 1]);
+    function apPaint() {
+      var l = apEdge.x;
+      apParts[0].style.transform = "translateX(" + l + "px)";
+      apParts[1].style.transform = "translateX(" + (l + APH / 2) + "px) scaleX(" + Math.max(0, (APW - APH - l) / 100) + ")";
+    }
+    function apFrame(now) {
+      var dt = Math.max(0, Math.min(0.05, (now - apT) / 1000)), n = Math.max(1, Math.ceil(dt * 240)), h = dt / n;
+      apT = now;
+      while (n--) { apEdge.v += (-apEdge.k * (apEdge.x - apEdge.to) - apEdge.c * apEdge.v) * h; apEdge.x += apEdge.v * h; }
+      var busy = Math.abs(apEdge.x - apEdge.to) > 0.2 || Math.abs(apEdge.v) > 4;
+      if (!busy) { apEdge.x = apEdge.to; apEdge.v = 0; }
+      apPaint();
+      apRaf = busy ? requestAnimationFrame(apFrame) : 0;
+    }
+    function apTo(open) {
+      apEdge.to = open ? 0 : APW - APH;
+      if (still) { apEdge.x = apEdge.to; apEdge.v = 0; return apPaint(); }
+      if (!apRaf) { apT = performance.now(); apRaf = requestAnimationFrame(apFrame); }
+    }
+    apPaint();
     function openMenu(open, focus) {
       appearance.classList.toggle("open", open);
+      apTo(open);
       appToggle.setAttribute("aria-expanded", String(open));
       appOptions.forEach(function (b) { b.tabIndex = open && b.dataset.set === currentMode() ? 0 : -1; });
       if (focus) (open ? appearance.querySelector('[aria-checked="true"]') : appToggle).focus();
@@ -1665,7 +1855,7 @@ python -m uvicorn dossier.api:app --port 8000</code></div>
     ];
     var paperClass = ["", "keys", "keys rewrite", "keys saved"];
     var stepBtns = document.querySelectorAll(".stepper button");
-    var stepDrop = new Droplet(document.querySelector(".stepper"));
+    var stepDrop = new Droplet(document.querySelector(".stepper"), true);
     var stepTitle = document.querySelector(".step-title");
     var stepCopy = document.querySelector(".step-copy");
     var howPaper = document.getElementById("how-paper");
